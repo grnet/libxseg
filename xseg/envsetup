@@ -48,17 +48,12 @@ if [ -z "$XSEG_HOME" ]; then
 	exit 1
 fi
 
-PEERS=${XSEG_HOME}/peers
 TOOLS=${XSEG_HOME}/tools
 LIBS=${XSEG_HOME}/lib/user
 
-if [ ! -d "${LIBS}" ] || [ ! -d "${PEERS}" ]; then
+if [ ! -d "${LIBS}" ] ; then
 	echo "Cannot find basic xseg layout"
 	exit 1
-fi
-
-if ! echo ${PATH} | grep -E -e '(^|:)'"${PEERS}"'(:|$)' > /dev/null 2>&1; then
-	PATH=${PATH}:${PEERS}
 fi
 
 if ! echo ${PATH} | grep -E -e '(^|:)'"${TOOLS}"'(:|$)' > /dev/null 2>&1; then

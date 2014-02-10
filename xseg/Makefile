@@ -67,7 +67,6 @@ install: $(XSEG_INSTALL_TARGETS)
 install-src: $(XSEG_INSTALLSRC_TARGETS) $(XSEG_INSTALLSRC_DIRS)
 	install -d $(DESTDIR)$(srcdir)/lib
 	install -d $(DESTDIR)$(srcdir)/lib/user
-	install -d $(DESTDIR)$(srcdir)/lib/kernel
 	install -d $(DESTDIR)$(srcdir)/
 	install -o 0 -g 0 -m 755 -t $(DESTDIR)$(srcdir) envsetup
 	install -o 0 -g 0 -m 755 -t $(DESTDIR)$(srcdir) launch
@@ -110,5 +109,4 @@ $(XSEG_CLEAN_TARGETS):
 
 distclean: $(XSEG_CLEAN_TARGETS)
 	rm -f lib/user/*.so* lib/user/*.a
-	rm -f lib/kernel/*.ko
 	rm -f $(XSEG_HOME)/config.mk
