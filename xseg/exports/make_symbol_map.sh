@@ -1,4 +1,6 @@
-# Copyright 2012 GRNET S.A. All rights reserved.
+#!/bin/bash
+
+# Copyright 2013 GRNET S.A. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or
 # without modification, are permitted provided that the following
@@ -30,82 +32,11 @@
 # documentation are those of the authors and should not be
 # interpreted as representing official policies, either expressed
 # or implied, of GRNET S.A.
-#
-
-# Setup for xseg Makefiles.
-
-ifndef TARGET
-TARGET:=$(shell basename $(shell pwd))
-endif
-
-export CC=gcc
-ifndef MOPTS
-export MOPTS=
-endif
-ifndef COPTS
-export COPTS=-O2 -g -finline-functions $(MOPTS) $(DEBUG)
-endif
-ifndef CSTD
-export CSTD=-std=gnu99 -pedantic
-endif
-
-export TOPDIR=$(shell dirname $(CURDIR))
-ifeq (,$(VERSION))
-export VERSION=$(shell cat $(TOPDIR)/version)
-endif
-
-ifeq (,$(DESTDIR))
-export DESTDIR=/
-endif
-
-ifeq (,$(KVER))
-export KVER=$(shell uname -r)
-endif
 
 
-bindir=/usr/bin/
-libdir=/usr/lib/
-pythondir=/usr/lib/python2.7/
+echo '{'
+echo 'global:'
+sed -e 's/^[\/ ]\*.*//' -e 's/EXPORT_SYMBOL(\([^)]*\));/	\1;/'
+echo 'local:  *;'
+echo '};'
 
-INC=-I$(BASE)
-INC+=-I$(BASE)/peers/$(TARGET)
-INC+=-I$(BASE)/sys/$(TARGET)
-INC+=-I$(BASE)/drivers/$(TARGET)
-export INC
-
-export LIB=$(BASE)/lib/$(TARGET)
-export CFLAGS=-Wall $(COPTS) $(CSTD)
-
-#ifeq (,$(XSEG_HOME))
-#export XSEG_HOME=$(shell ${XSEG_HOME})
-#endif
-
-ifeq (,$(XSEG_HOME))
-export XSEG_HOME=$(CURDIR)
-endif
-
-CONFIG=./config.mk
-
-#default:
-
-#.PHONY: clean-config
-
-#clean: clean-config
-
-#clean-config:
-#	rm -f $(CONFIG)
-
-ifndef BASE
-exists=$(shell [ -f "$(CONFIG)" ] && echo exists)
-ifeq (exists,$(exists))
-include $(CONFIG)
-else
-$(shell $(XSEG_HOME)/envsetup show | sed -e 's/"//g' > "$(CONFIG)")
-include $(CONFIG)
-endif
-
-ifeq (,$(XSEG_DOMAIN_TARGETS))
-export XSEG_DOMAIN_TARGETS=$(shell $(XSEG_HOME)/tools/xseg-domain-targets | sed -e 's/^[^=]*=//;s/"//g')
-endif
-export BASE=$(XSEG_HOME)
-endif

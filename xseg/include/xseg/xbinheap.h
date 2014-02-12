@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 GRNET S.A. All rights reserved.
+ * Copyright 2013 GRNET S.A. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or
  * without modification, are permitted provided that the following
@@ -32,76 +32,45 @@
  * or implied, of GRNET S.A.
  */
 
-#include <xseg/xlist.h>
 
-void __xlist_detach(struct xlist_node *node)
-{
-	struct xlist_node *head, *tail;
-	head = XPTR(&node->head);
-	tail = XPTR(&node->tail);
-	if (head)
-		XPTRSET(&head->tail, tail);
-	if (tail)
-		XPTRSET(&tail->head, head);
-	XPTRSET(&node->pool, NULL);
-}
+#ifndef __XBINHEAP_H
+#define __XBINHEAP_H
 
-void __xlist_attach(	struct xlist_node *head,
-			struct xlist_node *tail,
-			struct xlist_node *node	)
-{
-	struct xlist *list = XPTR(node->list);
-	xqindex nr = XPTRI(&list->node.list);
+#include <xseg/xtypes.h>
+#include <xseg/domain.h>
+#include <xseg/util.h>
 
-	if (!list || !nr)
-		return;
+typedef uint64_t xbinheapidx;
+typedef xbinheapidx xbinheap_handler;
+#define NoNode (xbinheapidx)-1
+#define XBINHEAP_MAX (uint32_t)(1<<0)
+#define XBINHEAP_MIN (uint32_t)(1<<1)
 
-	XPTRSET(&node->head, head);
-	XPTRSET(&node->tail, tail);
-	XPTRSET(&head->tail, node);
-	XPTRSET(&tail->head, node);
-	XPTRISET(&list->node.list, nr - 1);
-}
+struct xbinheap_node {
+	xbinheapidx key;
+	xbinheapidx value;
+	xbinheapidx h;
+};
 
-xqindex xlist_add_head(struct xlist *list, struct xlist_node *node)
-{
-	struct xlist_node *head;
-	xqindex nr = XPTRI(&list->node.list) + 1;
+struct xbinheap {
+	xbinheapidx size;
+	xbinheapidx count;
+	uint32_t flags;
+	xbinheapidx *indexes;
+	struct xbinheap_node *nodes;
+};
 
-	if (nr == Noneidx)
-		goto out;
+xbinheap_handler xbinheap_insert(struct xbinheap *h, xbinheapidx key,
+		xbinheapidx value);
+int xbinheap_empty(struct xbinheap *h);
+xbinheapidx xbinheap_peak(struct xbinheap *h);
+xbinheapidx xbinheap_extract(struct xbinheap *h);
+int xbinheap_increasekey(struct xbinheap *h, xbinheap_handler idx,
+		xbinheapidx newkey);
+int xbinheap_decreasekey(struct xbinheap *h, xbinheap_handler idx,
+		xbinheapidx newkey);
+xbinheapidx xbinheap_getkey(struct xbinheap *h, xbinheap_handler idx);
+int xbinheap_init(struct xbinheap *h, xbinheapidx size, uint32_t flags, void *mem);
+void xbinheap_free(struct xbinheap *h);
 
-	__xlist_detach(node);
-	head = XPTR(&node->head);
-	__xlist_attach(head, &list->node, node);
-
-	XPTRISET(&list->node.list, nr);
-out:
-	return nr;
-}
-
-xqindex xlist_add_tail(struct xlist *list, struct xlist_node *node)
-{
-	struct xlist_node *tail;
-	xqindex nr = XPTRI(&list->node.list) + 1;
-
-	if (nr == Noneidx)
-		goto out;
-
-	__xlist_detach(node);
-	tail = XPTR(&node->tail);
-	__xlist_attach(&list->node, tail, node);
-
-	XPTRISET(&list->node.list, nr);
-out:
-	return nr;
-}
-
-struct xlist *xlist_detach(struct xlist_node *node)
-{
-	struct xlist *list = node->list;
-	__xlist_detach(node);
-	return list;
-}
-
-#endif
+#endif /* __XBINHEAP_H */

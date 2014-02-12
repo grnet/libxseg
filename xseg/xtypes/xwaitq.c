@@ -32,8 +32,8 @@
  * or implied, of GRNET S.A.
  */
 
-#include <xtypes/domain.h>
-#include <xtypes/xwaitq.h>
+#include <xseg/xtypes.h>
+#include <xseg/xwaitq.h>
 
 static int __check_cond(struct xwaitq *wq)
 {

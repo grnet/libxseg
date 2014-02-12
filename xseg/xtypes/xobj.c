@@ -32,9 +32,9 @@
  * or implied, of GRNET S.A.
  */
 
-#include <xtypes/xobj.h>
-#include <xtypes/xhash.h>
-#include <xtypes/domain.h>
+#include <xseg/xobj.h>
+#include <xseg/xhash.h>
+#include <xseg/xtypes.h>
 
 int xobj_handler_init(struct xobject_h *obj_h, void *container,
 		uint32_t magic,	uint64_t size, struct xheap *heap)
@@ -60,7 +60,7 @@ int xobj_handler_init(struct xobject_h *obj_h, void *container,
 	 */
 	//bytes = xheap_get_chunk_size(xhash);
 
-	xhash_init(xhash, 3, 0, INTEGER);
+	xhash_init(xhash, 3, 0, XHASH_INTEGER);
 	obj_h->allocated = XPTR_MAKE(xhash, container);
 	obj_h->list = 0;
 	obj_h->flags = 0;

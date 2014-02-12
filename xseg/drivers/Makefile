@@ -1,4 +1,4 @@
-# Copyright 2013 GRNET S.A. All rights reserved.
+# Copyright 2012 GRNET S.A. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or
 # without modification, are permitted provided that the following
@@ -30,64 +30,69 @@
 # documentation are those of the authors and should not be
 # interpreted as representing official policies, either expressed
 # or implied, of GRNET S.A.
+#
 
-.PHONY: install-src
+.PHONY: default all clean xseg lib
 
 include $(XSEG_HOME)/base.mk
 
 FILES="Makefile"
-FILES+=$(shell ls *.h)
+#FILES+=$(shell ls *.h)
+FILES+=$(shell ls *.c)
 
-SUBDIR:=$(subst $(XSEG_HOME)/,,$(CURDIR))
-XSEG_CLEAN_TARGETS=$(patsubst %,clean-%,$(XSEG_DOMAIN_TARGETS))
-XSEG_INSTALL_TARGETS=$(patsubst %,install-%,$(XSEG_DOMAIN_TARGETS))
-XSEG_INSTALLSRC_TARGETS=$(patsubst %,install-src-%,$(XSEG_DOMAIN_TARGETS))
+SUBDIR:=$(subst $(XSEG_HOME),,$(CURDIR))
 
 
-default: $(XSEG_DOMAIN_TARGETS)
+DRIVERS=xseg_posix xseg_segdev xseg_pthread xseg_posixfd
+DRVOBJS=$(DRIVERS:=.o)
+DRVSOS=$(DRIVERS:=.so)
 
-install: $(XSEG_INSTALL_TARGETS)
+default: all
 
-clean: $(XSEG_CLEAN_TARGETS)
+all: xseg $(DRIVERS:=.so) lib
 
-.PHONY: $(XSEG_DOMAIN_TARGETS)
-$(XSEG_DOMAIN_TARGETS):
-	@echo " ";
-	@echo "=== $@ in $(SUBDIR) ===";
-	@echo " ";
-	@make -C $@ TARGET=$@ default || exit 1;
-	@echo " ";
+$(BASE)/sys/user/xseg_user.o:
+	make -C $(BASE)/sys/user xseg_user.o
 
-.PHONY: $(XSEG_INSTALL_TARGETS)
-$(XSEG_INSTALL_TARGETS):
-	@echo " ";
-	@echo "=== $@ in $(SUBDIR)===";
-	@echo " ";
-	@make -C $(@:install-%=%) TARGET=$@ install || true;
-	@echo " ";
+xseg_posix.o: xseg_posix.c $(BASE)/xseg/xseg.h $(BASE)/drivers/xseg_posix.h
+	$(CC) $(CFLAGS) $(INC) -fPIC -c -o $@ $<
 
+xseg_posix.so: xseg_posix.o $(BASE)/sys/user/xseg_user.o
+	$(CC) -shared -o $@ $< $(BASE)/sys/user/xseg_user.o 
 
-.PHONY: $(XSEG_INSTALLSRC_TARGETS)
-$(XSEG_INSTALLSRC_TARGETS):
-	@echo " ";
-	@echo "=== $@ in $(SUBDIR)===";
-	@echo " ";
-	@make -C $(@:install-src-%=%) TARGET=$@ install-src || true;
-	@echo " ";
+xseg_segdev.o: xseg_segdev.c $(BASE)/xseg/xseg.h $(BASE)/drivers/xseg_segdev.h
+	$(CC) $(CFLAGS) $(INC) -fPIC -c -o $@ $<
 
-.PHONY: $(XSEG_CLEAN_TARGETS)
-$(XSEG_CLEAN_TARGETS):
-	@echo " ";
-	@echo "=== $@ in $(SUBDIR)===";
-	@echo " ";
-	@make -C $(@:clean-%=%) TARGET=$@ clean || true;
-	@echo " ";
+xseg_segdev.so: xseg_segdev.o $(BASE)/sys/user/xseg_user.o
+	$(CC) -shared -o $@ $< $(BASE)/sys/user/xseg_user.o 
 
+xseg_pthread.o: xseg_pthread.c $(BASE)/xseg/xseg.h $(BASE)/drivers/xseg_pthread.h
+	$(CC) $(CFLAGS) $(INC) -fPIC -c -o $@ $<
 
+xseg_pthread.so: xseg_pthread.o $(BASE)/sys/user/xseg_user.o
+	$(CC) -shared -lpthread -o $@ $< $(BASE)/sys/user/xseg_user.o 
 
-install-src: $(XSEG_INSTALLSRC_TARGETS)
-	@install -d $(DESTDIR)$(srcdir)$(SUBDIR) ;
+xseg_posixfd.o: xseg_posixfd.c $(BASE)/xseg/xseg.h $(BASE)/drivers/xseg_posixfd.h
+	$(CC) $(CFLAGS) $(INC) -fPIC -c -o $@ $<
+
+xseg_posixfd.so: xseg_posixfd.o $(BASE)/sys/user/xseg_user.o
+	$(CC) -shared -o $@ $< $(BASE)/sys/user/xseg_user.o
+
+.PHONY: lib
+lib:
+	cp -vaf $(DRVSOS) $(LIB)
+
+.PHONY: install-src
+
+install-src:
+	install -d $(DESTDIR)$(srcdir)$(SUBDIR) ;
 	@for f in $(FILES) ; do \
 		install -o 0 -g 0 -m 644 -t $(DESTDIR)$(srcdir)$(SUBDIR) $$f ; \
 	done
 
+.PHONY: install
+install:
+
+
+clean:
+	rm -f $(DRVOBJS) $(DRVSOS)

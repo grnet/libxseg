@@ -33,7 +33,7 @@
  */
 
 
-#include <xtypes/xbinheap.h>
+#include <xseg/xbinheap.h>
 
 //TODO, container aware. use xptr
 //add resize capability
@@ -94,7 +94,8 @@ static int heapify_down(struct xbinheap *h, xbinheapidx i)
 	left = 2*i + 1;
 	right = 2*i + 1 + 1;
 	largest = i;
-	n = &h->nodes[i];
+	(void)n;
+	//n = &h->nodes[i];
 	ln = &h->nodes[left];
 	rn = &h->nodes[right];
 	largest_n = &h->nodes[largest];

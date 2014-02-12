@@ -32,76 +32,67 @@
  * or implied, of GRNET S.A.
  */
 
-#include <xseg/xlist.h>
+#ifndef __XOBJ_H__
+#define __XOBJ_H__
 
-void __xlist_detach(struct xlist_node *node)
-{
-	struct xlist_node *head, *tail;
-	head = XPTR(&node->head);
-	tail = XPTR(&node->tail);
-	if (head)
-		XPTRSET(&head->tail, tail);
-	if (tail)
-		XPTRSET(&tail->head, head);
-	XPTRSET(&node->pool, NULL);
-}
+#include <xseg/util.h>
+#include <xseg/xlock.h>
+#include <xseg/xheap.h>
+#include <xseg/domain.h>
+#include <xseg/xhash.h>
 
-void __xlist_attach(	struct xlist_node *head,
-			struct xlist_node *tail,
-			struct xlist_node *node	)
-{
-	struct xlist *list = XPTR(node->list);
-	xqindex nr = XPTRI(&list->node.list);
+struct xobject_header {
+	XPTR_TYPE(struct xseg_object_handler) obj_h;
+};
 
-	if (!list || !nr)
-		return;
+struct xobject {
+	uint32_t magic;
+	uint64_t size;
+	xptr next;
+};
 
-	XPTRSET(&node->head, head);
-	XPTRSET(&node->tail, tail);
-	XPTRSET(&head->tail, node);
-	XPTRSET(&tail->head, node);
-	XPTRISET(&list->node.list, nr - 1);
-}
+struct xobject_h {
+	struct xlock lock;
+	uint32_t magic;
+	uint64_t obj_size;
+	uint32_t flags;
+	XPTR_TYPE(void) container;
+	xptr heap;
+	xptr allocated;
+	uint64_t nr_allocated;
+	uint64_t allocated_space;
+	xptr list;
+	uint64_t nr_free;
+};
 
-xqindex xlist_add_head(struct xlist *list, struct xlist_node *node)
-{
-	struct xlist_node *head;
-	xqindex nr = XPTRI(&list->node.list) + 1;
+struct xobject_iter {
+	struct xobject_h *obj_h;
+	xhash_iter_t xhash_it;
+	void *chunk;
+	xhashidx cnt;
+};
 
-	if (nr == Noneidx)
-		goto out;
+void *xobj_get_obj(struct xobject_h * obj_h, uint32_t flags);
+void xobj_put_obj(struct xobject_h * obj_h, void *ptr);
+int xobj_alloc_obj(struct xobject_h * obj_h, uint64_t nr);
+int xobj_handler_init(struct xobject_h *obj_h, void *container,
+		uint32_t magic,	uint64_t size, struct xheap *heap);
 
-	__xlist_detach(node);
-	head = XPTR(&node->head);
-	__xlist_attach(head, &list->node, node);
+void xobj_iter_init(struct xobject_h *obj_h, struct xobject_iter *it);
+int xobj_iterate(struct xobject_h *obj_h, struct xobject_iter *it, void **obj);
+int xobj_check(struct xobject_h *obj_h, void *obj);
+int xobj_isFree(struct xobject_h *obj_h, void *obj);
 
-	XPTRISET(&list->node.list, nr);
-out:
-	return nr;
-}
+int __xobj_check(struct xobject_h *obj_h, void *obj);
+int __xobj_isFree(struct xobject_h *obj_h, void *obj);
 
-xqindex xlist_add_tail(struct xlist *list, struct xlist_node *node)
-{
-	struct xlist_node *tail;
-	xqindex nr = XPTRI(&list->node.list) + 1;
-
-	if (nr == Noneidx)
-		goto out;
-
-	__xlist_detach(node);
-	tail = XPTR(&node->tail);
-	__xlist_attach(&list->node, tail, node);
-
-	XPTRISET(&list->node.list, nr);
-out:
-	return nr;
-}
-
-struct xlist *xlist_detach(struct xlist_node *node)
-{
-	struct xlist *list = node->list;
-	__xlist_detach(node);
-	return list;
-}
-
+//TODO 
+//xobj_handler_destroy()
+//releases allocated pages
+//
+//maybe we need lock free versions of get/put obj
+//
+//also an
+//unsigned long xobj_get_objs(obj_h, flags, uint64_t nr, void **buf)
+//which will put nr objects in buf
 #endif

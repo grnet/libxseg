@@ -32,7 +32,9 @@
  * or implied, of GRNET S.A.
  */
 
-#include <xtypes/xcache.h>
+#include <xseg/xcache.h>
+#include <string.h>
+
 //TODO container aware and xptrs
 
 #if 0
@@ -735,7 +737,7 @@ int xcache_init(struct xcache *cache, uint32_t xcache_size,
 		return -1;
 	}
 
-	cache->entries = xhash_new(shift, cache->size, STRING);
+	cache->entries = xhash_new(shift, cache->size, XHASH_STRING);
 	if (!cache->entries){
 		goto out_free_q;
 	}
@@ -745,7 +747,7 @@ int xcache_init(struct xcache *cache, uint32_t xcache_size,
 		 * "rm_entries" must have the same size as "entries" since each one indexes
 		 * at most (cache->nodes / 2) entries
 		 */
-		cache->rm_entries = xhash_new(shift, cache->size, STRING);
+		cache->rm_entries = xhash_new(shift, cache->size, XHASH_STRING);
 		if (!cache->rm_entries){
 			goto out_free_entries;
 		}

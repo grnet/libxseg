@@ -32,76 +32,35 @@
  * or implied, of GRNET S.A.
  */
 
-#include <xseg/xlist.h>
+#ifndef _XSEG_DOMAIN_H
+#define _XSEG_DOMAIN_H
 
-void __xlist_detach(struct xlist_node *node)
-{
-	struct xlist_node *head, *tail;
-	head = XPTR(&node->head);
-	tail = XPTR(&node->tail);
-	if (head)
-		XPTRSET(&head->tail, tail);
-	if (tail)
-		XPTRSET(&tail->head, head);
-	XPTRSET(&node->pool, NULL);
-}
+#include <stdio.h>
+#include <stdint.h>
+#include <sys/time.h>
 
-void __xlist_attach(	struct xlist_node *head,
-			struct xlist_node *tail,
-			struct xlist_node *node	)
-{
-	struct xlist *list = XPTR(node->list);
-	xqindex nr = XPTRI(&list->node.list);
+#define MAX_PEER_NAME 64
+#define MAX_LOGFILE_LEN 1024
 
-	if (!list || !nr)
-		return;
+/* domain-provided functions */
+void __lock_domain(void);
+void __unlock_domain(void);
+void __load_plugin(const char *name);
+int __xseg_preinit(void);
+uint64_t __get_id(void);
+void __get_current_time(struct timeval *tv);
 
-	XPTRSET(&node->head, head);
-	XPTRSET(&node->tail, tail);
-	XPTRSET(&head->tail, node);
-	XPTRSET(&tail->head, node);
-	XPTRISET(&list->node.list, nr - 1);
-}
+extern char __xseg_errbuf[4096];
+void __xseg_log(const char *msg);
+extern int (*xseg_snprintf)(char *str, size_t size, const char *format, ...);
 
-xqindex xlist_add_head(struct xlist *list, struct xlist_node *node)
-{
-	struct xlist_node *head;
-	xqindex nr = XPTRI(&list->node.list) + 1;
+struct log_ctx;
+enum log_level { E = 0, W = 1, I = 2, D = 3};
+extern int (*init_logctx)(struct log_ctx *lc, char *peer_name,
+		enum log_level log_level, char *logfile, uint32_t flags);
+extern int (*renew_logctx)(struct log_ctx *lc, char *peer_name,
+		enum log_level log_level, char *logfile, uint32_t flags);
+void __xseg_log2(struct log_ctx *lc, enum log_level level, char *fmt, ...);
 
-	if (nr == Noneidx)
-		goto out;
-
-	__xlist_detach(node);
-	head = XPTR(&node->head);
-	__xlist_attach(head, &list->node, node);
-
-	XPTRISET(&list->node.list, nr);
-out:
-	return nr;
-}
-
-xqindex xlist_add_tail(struct xlist *list, struct xlist_node *node)
-{
-	struct xlist_node *tail;
-	xqindex nr = XPTRI(&list->node.list) + 1;
-
-	if (nr == Noneidx)
-		goto out;
-
-	__xlist_detach(node);
-	tail = XPTR(&node->tail);
-	__xlist_attach(&list->node, tail, node);
-
-	XPTRISET(&list->node.list, nr);
-out:
-	return nr;
-}
-
-struct xlist *xlist_detach(struct xlist_node *node)
-{
-	struct xlist *list = node->list;
-	__xlist_detach(node);
-	return list;
-}
-
+void xseg_printtrace(void);
 #endif

@@ -32,8 +32,8 @@
  * or implied, of GRNET S.A.
  */
 
-#include <xtypes/domain.h>
-#include <xtypes/xworkq.h>
+#include <xseg/xtypes.h>
+#include <xseg/xworkq.h>
 
 
 int xworkq_init(struct xworkq *wq, struct xlock *lock, uint32_t flags)
@@ -125,7 +125,6 @@ void xworkq_signal(struct xworkq *wq)
 			xqi = __xq_pop_head(wq->q);
 			xlock_release(&wq->q_lock);
 		}
-out:
 		if (wq->lock)
 			xlock_release(wq->lock);
 	}

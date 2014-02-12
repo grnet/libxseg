@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 GRNET S.A. All rights reserved.
+ * Copyright 2013 GRNET S.A. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or
  * without modification, are permitted provided that the following
@@ -32,76 +32,27 @@
  * or implied, of GRNET S.A.
  */
 
-#include <xseg/xlist.h>
+#ifndef __X_WAITQ_H
+#define __X_WAITQ_H
 
-void __xlist_detach(struct xlist_node *node)
-{
-	struct xlist_node *head, *tail;
-	head = XPTR(&node->head);
-	tail = XPTR(&node->tail);
-	if (head)
-		XPTRSET(&head->tail, tail);
-	if (tail)
-		XPTRSET(&tail->head, head);
-	XPTRSET(&node->pool, NULL);
-}
+#include <xseg/xq.h>
+#include <xseg/xwork.h>
 
-void __xlist_attach(	struct xlist_node *head,
-			struct xlist_node *tail,
-			struct xlist_node *node	)
-{
-	struct xlist *list = XPTR(node->list);
-	xqindex nr = XPTRI(&list->node.list);
+#define XWAIT_SIGNAL_ONE (1 << 0)
 
-	if (!list || !nr)
-		return;
+struct xwaitq {
+	int (*cond_fn)(void *arg);
+	void *cond_arg;
+	uint32_t flags;
+	struct xq *q;
+	struct xlock lock;
+};
 
-	XPTRSET(&node->head, head);
-	XPTRSET(&node->tail, tail);
-	XPTRSET(&head->tail, node);
-	XPTRSET(&tail->head, node);
-	XPTRISET(&list->node.list, nr - 1);
-}
+int xwaitq_init(struct xwaitq *wq, int (*cond_fn)(void *arg), void *arg, uint32_t flags);
+int xwaitq_enqueue(struct xwaitq *wq, struct work *w);
+void xwaitq_signal(struct xwaitq *wq);
+void xwaitq_destroy(struct xwaitq *wq);
 
-xqindex xlist_add_head(struct xlist *list, struct xlist_node *node)
-{
-	struct xlist_node *head;
-	xqindex nr = XPTRI(&list->node.list) + 1;
 
-	if (nr == Noneidx)
-		goto out;
 
-	__xlist_detach(node);
-	head = XPTR(&node->head);
-	__xlist_attach(head, &list->node, node);
-
-	XPTRISET(&list->node.list, nr);
-out:
-	return nr;
-}
-
-xqindex xlist_add_tail(struct xlist *list, struct xlist_node *node)
-{
-	struct xlist_node *tail;
-	xqindex nr = XPTRI(&list->node.list) + 1;
-
-	if (nr == Noneidx)
-		goto out;
-
-	__xlist_detach(node);
-	tail = XPTR(&node->tail);
-	__xlist_attach(&list->node, tail, node);
-
-	XPTRISET(&list->node.list, nr);
-out:
-	return nr;
-}
-
-struct xlist *xlist_detach(struct xlist_node *node)
-{
-	struct xlist *list = node->list;
-	__xlist_detach(node);
-	return list;
-}
-
-#endif
+#endif /* __X_WAITQ_H */

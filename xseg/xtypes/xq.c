@@ -32,8 +32,9 @@
  * or implied, of GRNET S.A.
  */
 
-#include <xtypes/xq.h>
-#include <xtypes/domain.h>
+#include <xseg/xq.h>
+#include <xseg/xtypes.h>
+#include <string.h>
 
 static inline int __snap(xqindex size)
 {

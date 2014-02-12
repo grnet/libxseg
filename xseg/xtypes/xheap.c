@@ -32,8 +32,8 @@
  * or implied, of GRNET S.A.
  */
 
-#include <xtypes/xheap.h>
-#include <xtypes/domain.h>
+#include <xseg/xheap.h>
+#include <xseg/xtypes.h>
 
 // small allocations are considered those  < 1 << (alignment_unit + SMALL_LIMIT)
 #define SMALL_LIMIT 5	

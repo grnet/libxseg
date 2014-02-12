@@ -32,7 +32,7 @@
  * or implied, of GRNET S.A.
  */
 
-#include <xtypes/xpool.h>
+#include <xseg/xpool.h>
 
 static inline int __validate_idx(struct xpool *xp, xpool_index idx) 
 {

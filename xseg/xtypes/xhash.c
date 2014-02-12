@@ -37,7 +37,8 @@
  *  -- kkourt@cslab.ece.ntua.gr
  */
 
-#include <xtypes/xhash.h>
+#include <xseg/xhash.h>
+#include <string.h>
 
 #define UNUSED (~(xhashidx)0)      /* this entry was never used */
 #define DUMMY  ((~(xhashidx)0)-1)  /* this entry was used, but now its empty */
@@ -697,7 +698,7 @@ int main(int argc, char **argv)
     xhashidx key, val;
     int ret;
 
-    ph = xhash_new(2, INTEGER);
+    ph = xhash_new(2, XHASH_INTEGER);
 
     for (;;){
         s = fgets(buf, BUFLEN-1, stdin);

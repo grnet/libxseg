@@ -32,76 +32,29 @@
  * or implied, of GRNET S.A.
  */
 
-#include <xseg/xlist.h>
+#ifndef __XHEAP_H__
+#define __XHEAP_H__
 
-void __xlist_detach(struct xlist_node *node)
-{
-	struct xlist_node *head, *tail;
-	head = XPTR(&node->head);
-	tail = XPTR(&node->tail);
-	if (head)
-		XPTRSET(&head->tail, tail);
-	if (tail)
-		XPTRSET(&tail->head, head);
-	XPTRSET(&node->pool, NULL);
-}
+#include <xseg/util.h>
+#include <xseg/xlock.h>
 
-void __xlist_attach(	struct xlist_node *head,
-			struct xlist_node *tail,
-			struct xlist_node *node	)
-{
-	struct xlist *list = XPTR(node->list);
-	xqindex nr = XPTRI(&list->node.list);
+struct xheap_header {
+	uint64_t magic;
+	XPTR_TYPE(struct xheap) heap;
+	uint64_t size;
+};
 
-	if (!list || !nr)
-		return;
+struct xheap {
+	uint32_t alignment_unit;
+	uint64_t size;
+	uint64_t cur;
+	struct xlock lock;
+	XPTR_TYPE(void) mem;
+};
 
-	XPTRSET(&node->head, head);
-	XPTRSET(&node->tail, tail);
-	XPTRSET(&head->tail, node);
-	XPTRSET(&tail->head, node);
-	XPTRISET(&list->node.list, nr - 1);
-}
-
-xqindex xlist_add_head(struct xlist *list, struct xlist_node *node)
-{
-	struct xlist_node *head;
-	xqindex nr = XPTRI(&list->node.list) + 1;
-
-	if (nr == Noneidx)
-		goto out;
-
-	__xlist_detach(node);
-	head = XPTR(&node->head);
-	__xlist_attach(head, &list->node, node);
-
-	XPTRISET(&list->node.list, nr);
-out:
-	return nr;
-}
-
-xqindex xlist_add_tail(struct xlist *list, struct xlist_node *node)
-{
-	struct xlist_node *tail;
-	xqindex nr = XPTRI(&list->node.list) + 1;
-
-	if (nr == Noneidx)
-		goto out;
-
-	__xlist_detach(node);
-	tail = XPTR(&node->tail);
-	__xlist_attach(&list->node, tail, node);
-
-	XPTRISET(&list->node.list, nr);
-out:
-	return nr;
-}
-
-struct xlist *xlist_detach(struct xlist_node *node)
-{
-	struct xlist *list = node->list;
-	__xlist_detach(node);
-	return list;
-}
+uint64_t xheap_get_chunk_size(void *ptr);
+int xheap_init(struct xheap *xheap, uint64_t size, uint32_t alignment_unit, void *mem);
+void* xheap_allocate(struct xheap *xheap, uint64_t bytes);
+void xheap_free(void *ptr);
 
 #endif
