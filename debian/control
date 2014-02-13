@@ -28,7 +28,7 @@ Description: Python xseg bindings
  Extended Description here
 
 Package: libxseg-dev
-Section: devel
+Section: libdevel
 Architecture: amd64
 Depends: libxseg0(=${binary:Version}), ${misc:Depends}
 Description: Xseg library devel files
