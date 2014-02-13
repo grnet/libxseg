@@ -26,3 +26,10 @@ Depends: ${misc:Depends}, ${python:Depends}, libxseg0(=${binary:Version})
 Provides: ${python:Provides}
 Description: Python xseg bindings
  Extended Description here
+
+Package: libxseg-dev
+Section: devel
+Architecture: amd64
+Depends: libxseg0(=${binary:Version}), ${misc:Depends}
+Description: Xseg library devel files
+ Extended Description here
