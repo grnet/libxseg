@@ -54,3 +54,6 @@ MESSAGE(STATUS "Found xml2py: " ${XML2PY})
 add_subdirectory(xseg)
 add_subdirectory(python)
 add_subdirectory(tests)
+
+add_custom_target(build)
+add_dependencies(build xseg python tests)

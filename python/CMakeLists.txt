@@ -35,16 +35,14 @@ cmake_minimum_required(VERSION 2.8)
 
 project(xseg_python)
 
-set(VERSIONCMD cd ${CMAKE_CURRENT_SOURCE_DIR} &&
-		echo '__version__ = \"'`devflow-version python`'\"' >
-			${CMAKE_CURRENT_SOURCE_DIR}/xseg/version.py &&
-		cd ${CMAKE_CURRENT_BINARY_DIR})
+set(VERSIONCMD ${CMAKE_CURRENT_SOURCE_DIR}/version.sh
+	${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
-ADD_CUSTOM_COMMAND (OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/xseg/version.py
+ADD_CUSTOM_COMMAND (OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xseg/version.py
 		    COMMAND ${VERSIONCMD}
 		    #DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/xseg/version.py"
 		   )
-ADD_CUSTOM_TARGET (pyversion DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/xseg/version.py)
+ADD_CUSTOM_TARGET (pyversion DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/xseg/version.py)
 
 set(ENV "env")
 
@@ -75,9 +73,16 @@ set (SED1 sed -i -e 's/xseg_get_data_nonstatic.restype = STRING/xseg_get_data_no
 set(SED2 sed -i -e 's/xseg_get_target_nonstatic.restype = STRING/xseg_get_target_nonstatic.restype = POINTER(c_char)/g' xseg/xseg_api.py)
 set(SED3 sed -i -e 's/xseg_get_signal_desc_nonstatic.restype = STRING/xseg_get_signal_desc_nonstatic.restype = POINTER(c_char)/g' xseg/xseg_api.py)
 
-SET(SETUP_PY ${CMAKE_CURRENT_SOURCE_DIR}/setup.py)
+SET(SETUP_PY_IN ${CMAKE_CURRENT_SOURCE_DIR}/setup.py)
+SET(SETUP_PY ${CMAKE_CURRENT_BINARY_DIR}/setup.py)
+SET(SETUP_PY_BUILD_OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/build)
 
-ADD_CUSTOM_COMMAND( OUTPUT ${H2XML_OUTPUT_XSEG} ${H2XML_OUTPUT_PROTOCOL} ${XML2PY_OUTPUT_PROTOCOL} ${XML2PY_OUTPUT_XSEG}
+SET(DISTSETUP_PY_IN ${CMAKE_CURRENT_SOURCE_DIR}/distribute_setup.py)
+SET(DISTSETUP_PY ${CMAKE_CURRENT_BINARY_DIR}/distribute_setup.py)
+configure_file(${SETUP_PY_IN} ${SETUP_PY})
+configure_file(${DISTSETUP_PY_IN} ${DISTSETUP_PY})
+
+ADD_CUSTOM_COMMAND( OUTPUT ${H2XML_OUTPUT_XSEG} ${H2XML_OUTPUT_PROTOCOL} ${XML2PY_OUTPUT_PROTOCOL} ${XML2PY_OUTPUT_XSEG} ${SETUP_PY_BUILD_OUTPUT} ${CMAKE_CURRENT_BINARY_DIR}/xseg ${CMAKE_CURRENT_BINARY_DIR}/xseg.egg-info
 	            COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/xseg
 		    COMMAND touch ${CMAKE_CURRENT_BINARY_DIR}/xseg/__init__.py
 
@@ -91,6 +96,8 @@ ADD_CUSTOM_COMMAND( OUTPUT ${H2XML_OUTPUT_XSEG} ${H2XML_OUTPUT_PROTOCOL} ${XML2P
 		    COMMAND ${ENV} ${XML2PY_ENV} ${XML2PY}
 		    ${H2XML_OUTPUT_PROTOCOL} -d -k defst -c -l ${XSEG_LIB} -o ${XML2PY_OUTPUT_PROTOCOL}
 
+
+		    COMMAND pwd
 		    COMMAND python ${SETUP_PY} build
 
 		    #		    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/xseg/version.py
@@ -102,6 +109,6 @@ ADD_CUSTOM_TARGET(python ALL DEPENDS ${OUTPUT} )
 ADD_DEPENDENCIES(python xseg)
 ADD_DEPENDENCIES(python pyversion)
 
-install(CODE "execute_process(COMMAND python ${SETUP_PY} --install-layout=deb install)")
+install(CODE "execute_process(COMMAND python ${SETUP_PY} install --install-layout=deb --root=$DESTDIR)")
 
 

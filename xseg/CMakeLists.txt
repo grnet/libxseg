@@ -83,5 +83,12 @@ SET_TARGET_PROPERTIES(
 	xseg
 	PROPERTIES
 	SOVERSION ${MAJOR}
-	VERSION {MAJOR}.{MINOR}
+	VERSION ${MAJOR}.${MINOR}
 )
+
+INSTALL_TARGETS(/lib xseg)
+#INSTALL_FILES(/include )
+INSTALL(DIRECTORY include DESTINATION /usr/include)
+#install(FILES libxseg0.so DESTINATION $DESTDIR/usr/lib/)
+#install(FILES libxseg0.so.${MAJOR} DESTINATION $DESTDIR/usr/lib/)
+#install(FILES libxseg0.so.${MAJOR}.${MINOR} DESTINATION $DESTDIR/usr/lib/)
