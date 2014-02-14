@@ -78,6 +78,9 @@ set(xseg_srcs xseg.c initialize.c xseg_posix.c xseg_pthread.c xseg_posixfd.c
 add_library(xseg SHARED ${xseg_srcs})
 target_link_libraries(xseg rt pthread dl)
 
+add_executable(xseg-tool xseg-tool.c)
+target_link_libraries(xseg-tool xseg)
+
 ADD_DEPENDENCIES(xseg libmap)
 SET_TARGET_PROPERTIES(
 	xseg
@@ -86,7 +89,14 @@ SET_TARGET_PROPERTIES(
 	VERSION ${MAJOR}.${MINOR}
 )
 
+SET_TARGET_PROPERTIES(
+	xseg-tool
+	PROPERTIES
+	OUTPUT_NAME xseg
+)
+
 INSTALL_TARGETS(/lib xseg)
+INSTALL_TARGETS(/bin xseg-tool)
 #INSTALL_FILES(/include )
 INSTALL(DIRECTORY include DESTINATION /usr/include)
 #install(FILES libxseg0.so DESTINATION $DESTDIR/usr/lib/)
