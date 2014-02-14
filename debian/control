@@ -33,3 +33,9 @@ Architecture: amd64
 Depends: libxseg0(=${binary:Version}), ${misc:Depends}
 Description: Xseg library devel files
  Extended Description here
+
+Package: xseg-tools
+Architecture: amd64
+Depends: ${misc:Depends}, ${shlibs:Depends}, libxseg0(=${binary:Version})
+Description: Xseg tools
+ Extended Description here
