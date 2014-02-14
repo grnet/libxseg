@@ -51,7 +51,7 @@ ENDIF()
 MESSAGE(STATUS "Found xml2py: " ${XML2PY})
 
 
-add_subdirectory(xseg)
+add_subdirectory(src)
 add_subdirectory(python)
 add_subdirectory(tests)
 
