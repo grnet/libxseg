@@ -98,7 +98,7 @@ SET_TARGET_PROPERTIES(
 INSTALL_TARGETS(/lib xseg)
 INSTALL_TARGETS(/bin xseg-tool)
 #INSTALL_FILES(/include )
-INSTALL(DIRECTORY include DESTINATION /usr/include)
+INSTALL(DIRECTORY include DESTINATION /usr)
 #install(FILES libxseg0.so DESTINATION $DESTDIR/usr/lib/)
 #install(FILES libxseg0.so.${MAJOR} DESTINATION $DESTDIR/usr/lib/)
 #install(FILES libxseg0.so.${MAJOR}.${MINOR} DESTINATION $DESTDIR/usr/lib/)
