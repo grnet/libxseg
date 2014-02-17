@@ -56,4 +56,4 @@ add_subdirectory(python)
 add_subdirectory(tests)
 
 add_custom_target(build)
-add_dependencies(build xseg python tests)
+add_dependencies(build src python tests)
