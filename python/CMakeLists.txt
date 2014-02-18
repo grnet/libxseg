@@ -73,6 +73,9 @@ set (SED1 sed -i -e 's/xseg_get_data_nonstatic.restype = STRING/xseg_get_data_no
 set(SED2 sed -i -e 's/xseg_get_target_nonstatic.restype = STRING/xseg_get_target_nonstatic.restype = POINTER(c_char)/g' xseg/xseg_api.py)
 set(SED3 sed -i -e 's/xseg_get_signal_desc_nonstatic.restype = STRING/xseg_get_signal_desc_nonstatic.restype = POINTER(c_char)/g' xseg/xseg_api.py)
 
+set(SED4 sed -i -e 's/xseg_reply_map_scatterlist \\* 0/POINTER(xseg_reply_map_scatterlist)/g' xseg/xprotocol.py)
+
+
 SET(SETUP_PY_IN ${CMAKE_CURRENT_SOURCE_DIR}/setup.py)
 SET(SETUP_PY ${CMAKE_CURRENT_BINARY_DIR}/setup.py)
 SET(SETUP_PY_BUILD_OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/build)
@@ -95,6 +98,8 @@ ADD_CUSTOM_COMMAND( OUTPUT ${H2XML_OUTPUT_XSEG} ${H2XML_OUTPUT_PROTOCOL} ${XML2P
                     COMMAND ${H2XML} ${H2XML_FLAGS} -I ${H2XML_INCLUDE_DIR} -o ${H2XML_OUTPUT_PROTOCOL} ${H2XML_INPUT_PROTOCOL}
 		    COMMAND ${ENV} ${XML2PY_ENV} ${XML2PY}
 		    ${H2XML_OUTPUT_PROTOCOL} -d -k defst -c -l ${XSEG_LIB} -o ${XML2PY_OUTPUT_PROTOCOL}
+
+		    COMMAND ${SED4}
 
 
 		    COMMAND pwd
