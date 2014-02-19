@@ -54,6 +54,7 @@ char errbuf[ERRSIZE];
 static long posix_allocate(const char *name, uint64_t size)
 {
 	int fd, r;
+	off_t lr;
 	fd = shm_open(name, O_RDWR | O_CREAT | O_EXCL, 0770);
 	if (fd < 0) {
 		XSEGLOG("Cannot create shared segment: %s\n",
@@ -61,8 +62,8 @@ static long posix_allocate(const char *name, uint64_t size)
 		return fd;
 	}
 
-	r = lseek(fd, size -1, SEEK_SET);
-	if (r < 0) {
+	lr = lseek(fd, size -1, SEEK_SET);
+	if (lr == (off_t)-1) {
 		close(fd);
 		XSEGLOG("Cannot seek into segment file: %s\n",
 			strerror_r(errno, errbuf, ERRSIZE));
