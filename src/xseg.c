@@ -623,6 +623,11 @@ int xseg_create(struct xseg_config *cfg)
 	uint64_t size;
 	long r;
 
+	if (cfg->dynports >= cfg->nr_ports) {
+		XSEGLOG("Invalid config: Dynamic ports >= Total number of ports");
+		goto out_err;
+	}
+
 	type = __find_or_load_type(cfg->type);
 	if (!type) {
 		cfg->type[XSEG_TNAMESIZE-1] = 0;
