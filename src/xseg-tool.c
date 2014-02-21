@@ -1260,14 +1260,15 @@ int cmd_report(uint32_t portno)
 	lock_status(&port->rq_lock, rls, 64);
 	lock_status(&port->pq_lock, pls, 64);
 	fprintf(stderr, "port %u:\n"
-		"   requests: %llu/%llu  next: %u  dst gw: %u\n"
+		"   requests: %llu/%llu  next: %u  dst gw: %u  owner:%llu\n"
 		"       free_queue [%p] count : %4llu | %s\n"
 		"    request_queue [%p] count : %4llu | %s\n"
 		"      reply_queue [%p] count : %4llu | %s\n",
-		portno, (unsigned long long)port->alloc_reqs, 
+		portno, (unsigned long long)port->alloc_reqs,
 		(unsigned long long)port->max_alloc_reqs,
 		xseg->path_next[portno],
 		xseg->dst_gw[portno],
+		port->owner,
 		(void *)fq, (unsigned long long)xq_count(fq), fls,
 		(void *)rq, (unsigned long long)xq_count(rq), rls,
 		(void *)pq, (unsigned long long)xq_count(pq), pls);
