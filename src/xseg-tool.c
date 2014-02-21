@@ -1839,6 +1839,30 @@ int cmd_bind(long portno)
 	return 0;
 }
 
+int cmd_free(long portno)
+{
+	struct xseg_port *port;
+	int r;
+	if (portno < xseg->config.dynports) {
+		return 0;
+	}
+
+	port = xseg_get_port(xseg, portno);
+	if (!port) {
+		fprintf(stderr, "Failed to get port %ld\n", portno);
+		return 1;
+	}
+
+	r = xseg_leave_dynport(xseg, port);
+	if (r < 0) {
+		fprintf(stderr, "Failed to free dynamic port %ld\n", portno);
+		return 1;
+	}
+
+	fprintf(stderr, "Freed port %ld\n", portno);
+	return 0;
+}
+
 int cmd_signal(uint32_t portno)
 {
 	return xseg_signal(xseg, portno);
@@ -1938,6 +1962,12 @@ int main(int argc, char **argv)
 
 		if (!strcmp(argv[i], "bind") && (i + 1 < argc)) {
 			ret = cmd_bind(atol(argv[i+1]));
+			i += 1;
+			continue;
+		}
+
+		if (!strcmp(argv[i], "free") && (i + 1 < argc)) {
+			ret = cmd_free(atol(argv[i+1]));
 			i += 1;
 			continue;
 		}
