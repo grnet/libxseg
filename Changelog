@@ -1,1 +1,6 @@
-First strictly xseg only repo
+* xseg-tool: Add free dynamic port command
+* xseg: Add check of dynport validity on create
+* xseg-tool: Report if port is dynamic or not
+* xseg-tool: Report owner of the port
+
+* First strictly xseg only repo
