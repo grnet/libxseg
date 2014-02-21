@@ -1252,6 +1252,12 @@ int cmd_report(uint32_t portno)
 		printf("port %u is not assigned\n", portno);
 		return 0;
 	}
+	char *dynamic;
+	if (portno >= xseg->config.dynports) {
+		dynamic = "True";
+	} else {
+		dynamic = "False";
+	}
 	struct xq *fq, *rq, *pq;
 	fq = xseg_get_queue(xseg, port, free_queue);
 	rq = xseg_get_queue(xseg, port, request_queue);
@@ -1259,12 +1265,13 @@ int cmd_report(uint32_t portno)
 	lock_status(&port->fq_lock, fls, 64);
 	lock_status(&port->rq_lock, rls, 64);
 	lock_status(&port->pq_lock, pls, 64);
-	fprintf(stderr, "port %u:\n"
+	fprintf(stderr, "port %u (dynamic: %s):\n"
 		"   requests: %llu/%llu  next: %u  dst gw: %u  owner:%llu\n"
 		"       free_queue [%p] count : %4llu | %s\n"
 		"    request_queue [%p] count : %4llu | %s\n"
 		"      reply_queue [%p] count : %4llu | %s\n",
-		portno, (unsigned long long)port->alloc_reqs,
+		portno, dynamic,
+		(unsigned long long)port->alloc_reqs,
 		(unsigned long long)port->max_alloc_reqs,
 		xseg->path_next[portno],
 		xseg->dst_gw[portno],
