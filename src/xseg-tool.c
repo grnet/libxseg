@@ -1252,6 +1252,12 @@ int cmd_report(uint32_t portno)
 		printf("port %u is not assigned\n", portno);
 		return 0;
 	}
+	char *dynamic;
+	if (portno >= xseg->config.dynports) {
+		dynamic = "True";
+	} else {
+		dynamic = "False";
+	}
 	struct xq *fq, *rq, *pq;
 	fq = xseg_get_queue(xseg, port, free_queue);
 	rq = xseg_get_queue(xseg, port, request_queue);
@@ -1259,15 +1265,17 @@ int cmd_report(uint32_t portno)
 	lock_status(&port->fq_lock, fls, 64);
 	lock_status(&port->rq_lock, rls, 64);
 	lock_status(&port->pq_lock, pls, 64);
-	fprintf(stderr, "port %u:\n"
-		"   requests: %llu/%llu  next: %u  dst gw: %u\n"
+	fprintf(stderr, "port %u (dynamic: %s):\n"
+		"   requests: %llu/%llu  next: %u  dst gw: %u  owner:%llu\n"
 		"       free_queue [%p] count : %4llu | %s\n"
 		"    request_queue [%p] count : %4llu | %s\n"
 		"      reply_queue [%p] count : %4llu | %s\n",
-		portno, (unsigned long long)port->alloc_reqs, 
+		portno, dynamic,
+		(unsigned long long)port->alloc_reqs,
 		(unsigned long long)port->max_alloc_reqs,
 		xseg->path_next[portno],
 		xseg->dst_gw[portno],
+		port->owner,
 		(void *)fq, (unsigned long long)xq_count(fq), fls,
 		(void *)rq, (unsigned long long)xq_count(rq), rls,
 		(void *)pq, (unsigned long long)xq_count(pq), pls);
@@ -1831,6 +1839,30 @@ int cmd_bind(long portno)
 	return 0;
 }
 
+int cmd_free(long portno)
+{
+	struct xseg_port *port;
+	int r;
+	if (portno < xseg->config.dynports) {
+		return 0;
+	}
+
+	port = xseg_get_port(xseg, portno);
+	if (!port) {
+		fprintf(stderr, "Failed to get port %ld\n", portno);
+		return 1;
+	}
+
+	r = xseg_leave_dynport(xseg, port);
+	if (r < 0) {
+		fprintf(stderr, "Failed to free dynamic port %ld\n", portno);
+		return 1;
+	}
+
+	fprintf(stderr, "Freed port %ld\n", portno);
+	return 0;
+}
+
 int cmd_signal(uint32_t portno)
 {
 	return xseg_signal(xseg, portno);
@@ -1930,6 +1962,12 @@ int main(int argc, char **argv)
 
 		if (!strcmp(argv[i], "bind") && (i + 1 < argc)) {
 			ret = cmd_bind(atol(argv[i+1]));
+			i += 1;
+			continue;
+		}
+
+		if (!strcmp(argv[i], "free") && (i + 1 < argc)) {
+			ret = cmd_free(atol(argv[i+1]));
 			i += 1;
 			continue;
 		}
