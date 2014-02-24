@@ -1,3 +1,4 @@
+* xseg-tool: Add fail port functionality
 * xseg-tool: Add free dynamic port command
 * xseg: Add check of dynport validity on create
 * xseg-tool: Report if port is dynamic or not
