@@ -38,15 +38,13 @@ import os, sys, shutil
 
 EXCLUDE_FILENAMES = ['.gitignore', 'README', 'version', 'c_bsd.licence',
                      'python_bsd.licence', 'devflow.conf', 'verify',
-                     'create', 'detach', 'attach', 'parameters.list', 'grow',
-                     'remove', 'python_gpl.licence', 'c_gpl.licence', 'tags',
-                     'config.env', 'distribute_setup.py', '.o', '.ko', '.mod',
-		     '.a', '.so', '.cmd', '.mod.c', '.pyc', 'version.py']
-GPL_FILES = ['vlmc_wrapper.py', 'kernel/xseg_posix.c', 'kernel/xseg_pthread.c',
-             'xsegbd.c']
-EXCLUDE_DIRECTORIES = ['.git', 'doc', 'archipelago.egg-info', 'xseg.egg-info']
-VALID_YEARS = [2011, 2012, 2013]
-CUR_YEAR = 2013
+                     'python_gpl.licence', 'c_gpl.licence', 'tags',
+                     'distribute_setup.py', '.o',
+        		     '.a', '.so', '.cmd', '.pyc', 'version.py']
+GPL_FILES = []
+EXCLUDE_DIRECTORIES = ['.git', 'doc', 'xseg.egg-info']
+VALID_YEARS = [2011, 2012, 2013, 2014]
+CUR_YEAR = 2014
 PYTHON_INTERPRETER = "#!/usr/bin/env python\n"
 BASH_INTERPRETER = "#!/bin/bash\n"
 THIS_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -97,7 +95,8 @@ def get_file_type(filename):
         return 'bash'
     elif filename.endswith('.py'):
         return 'python'
-    elif filename.endswith('Makefile') or filename.endswith('.mk'):
+    elif filename.endswith('Makefile') or filename.endswith('.mk') or \
+            filename.endswith('CMakeLists.txt'):
         return 'makefile'
 
     firstline = open(filename).readline()

@@ -69,7 +69,11 @@ set(CMAKE_C_FLAGS  "-O2 -finline -march=nocona -Wall -std=gnu99 -pedantic -g -rd
 #add_subdirectory(exports)
 
 
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/xseg/version.h.in
+	${CMAKE_CURRENT_BINARY_DIR}/include/xseg/version.h)
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 set(xseg_srcs xseg.c initialize.c xseg_posix.c xseg_pthread.c xseg_posixfd.c
 	xseg_user.c xtypes/xcache.c xtypes/xbinheap.c xtypes/xhash.c
@@ -98,7 +102,8 @@ SET_TARGET_PROPERTIES(
 INSTALL_TARGETS(/lib xseg)
 INSTALL_TARGETS(/bin xseg-tool)
 #INSTALL_FILES(/include )
-INSTALL(DIRECTORY include DESTINATION /usr)
+INSTALL(DIRECTORY include DESTINATION /usr FILES_MATCHING PATTERN "*.h")
+INSTALL(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include DESTINATION /usr)
 #install(FILES libxseg0.so DESTINATION $DESTDIR/usr/lib/)
 #install(FILES libxseg0.so.${MAJOR} DESTINATION $DESTDIR/usr/lib/)
 #install(FILES libxseg0.so.${MAJOR}.${MINOR} DESTINATION $DESTDIR/usr/lib/)

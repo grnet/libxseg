@@ -35,10 +35,6 @@
 #ifndef _XSEG_H
 #define _XSEG_H
 
-#ifndef XSEG_VERSION
-#define XSEG_VERSION 2012022601
-#endif
-
 #ifndef XSEG_PAGE_SHIFT
 #define XSEG_PAGE_SHIFT 12
 #endif
@@ -53,6 +49,7 @@
 
 #include <stdint.h>
 #include <sys/time.h>
+#include <xseg/version.h>
 #include <xseg/util.h>
 #include <xseg/xq.h>
 #include <xseg/xobj.h>

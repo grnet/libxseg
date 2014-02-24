@@ -507,6 +507,7 @@ static long initialize_segment(struct xseg *xseg, struct xseg_config *cfg)
 	if (page_size < XSEG_MIN_PAGE_SIZE)
 		return -1;
 
+	xseg->version = XSEG_VERSION;
 	xseg->segment_size = 2 * page_size + cfg->heap_size;
 	xseg->segment = (struct xseg *) segment;
 
@@ -773,6 +774,12 @@ struct xseg *xseg_join(	char *segtypename,
 	__xseg = xops->map(segname, XSEG_MIN_PAGE_SIZE, NULL);
 	if (!__xseg) {
 		XSEGLOG("Cannot map segment");
+		goto err_priv;
+	}
+
+	if (!(__xseg->version == XSEG_VERSION)) {
+		XSEGLOG("Version mismatch. Expected %llu, segment version %llu",
+				XSEG_VERSION, __xseg->version);
 		goto err_priv;
 	}
 

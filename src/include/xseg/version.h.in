@@ -1,0 +1,10 @@
+#ifndef XSEG_VERSION_H
+
+#define XSEG_VERSION_H
+
+#define XSEG_MAJOR ((uint64_t)${MAJOR})
+#define XSEG_MINOR ((uint64_t)${MINOR})
+
+#define XSEG_VERSION ((uint64_t)((XSEG_MAJOR << 48) + (XSEG_MINOR << 16)) + 0)
+
+#endif /* XSEG_VERSION_H */
