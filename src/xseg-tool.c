@@ -1559,6 +1559,35 @@ int cmd_verify(int fix)
 	return 0;
 }
 
+
+int cmd_failport(long portno)
+{
+	if (cmd_join())
+		return -1;
+
+	struct xobject_h *obj_h = xseg->request_h;
+	struct xobject_iter it;
+
+	struct xseg_request *req;
+	xlock_acquire(&obj_h->lock, srcport);
+	xobj_iter_init(obj_h, &it);
+	while (xobj_iterate(obj_h, &it, (void **)&req)){
+		//FIXME this will not work cause obj->magic - req->serial is not
+		//touched when a request is get
+		/* if (obj->magic != MAGIC_REQ && t->src_portno == portno){ */
+		if (isDangling(req) && !__xobj_isFree(obj_h, req)){
+			if (req->transit_portno == (uint32_t)portno) {
+				report_request(req);
+				printf("Finishing...\n");
+				finish_req(req, FAIL);
+			}
+		}
+	}
+	xlock_release(&obj_h->lock);
+
+	return 0;
+}
+
 int cmd_inspectq(xport portno, enum queue qt)
 {
 	if (cmd_join())
@@ -2002,6 +2031,12 @@ int main(int argc, char **argv)
 		if (dstport == -1) {
 			if (!parse_ports(argv[i]))
 				fprintf(stderr, "destination port undefined: %s\n", argv[i]);
+			continue;
+		}
+
+		if (!strcmp(argv[i], "failport") && (i + 1 < argc)) {
+			ret = cmd_failport(atol(argv[i+1]));
+			i += 1;
 			continue;
 		}
 
