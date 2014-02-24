@@ -36,6 +36,7 @@ cmake_minimum_required(VERSION 2.8)
 project (xseg_tests)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../src/include)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/../src/include)
 
 add_executable(xbinheap_test xbinheap_test.c)
 target_link_libraries(xbinheap_test xseg)
