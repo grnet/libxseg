@@ -1,3 +1,5 @@
+* xseg: Derive xseg version from MAJOR, MINOR library version
+* xseg: Check segment version before joining
 * xseg-tool: Add fail port functionality
 * xseg-tool: Add free dynamic port command
 * xseg: Add check of dynport validity on create
