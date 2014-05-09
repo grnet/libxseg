@@ -227,6 +227,7 @@ struct xseg_task {
 #define X_CLOSE    15
 #define	X_SNAPSHOT 16
 #define X_HASH	   17
+#define X_CREATE   18
 
 /* REQ FLAGS */
 #define XF_NOSYNC    (1 << 0)
