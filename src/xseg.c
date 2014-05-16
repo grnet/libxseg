@@ -1407,6 +1407,7 @@ done:
 	req->timestamp.tv_usec = 0;
 	req->flags = 0;
 	req->serviced = 0;
+	req->contaddr_size = -1;
 
 	xq_init_empty(&req->path, MAX_PATH_LEN, req->path_bufs);
 

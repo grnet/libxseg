@@ -255,6 +255,7 @@ struct xseg_request {
 	uint64_t offset;
 	uint64_t size; 
 	uint64_t serviced;
+	uint64_t contaddr_size;
 	xptr data;
 	uint64_t datalen;
 	xptr target;
