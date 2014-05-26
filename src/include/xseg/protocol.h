@@ -106,4 +106,8 @@ struct xseg_reply_hash {
 	uint32_t targetlen;
 };
 
+struct xseg_request_rename {
+        char target[XSEG_MAX_TARGETLEN];
+	uint32_t targetlen;
+};
 #endif
