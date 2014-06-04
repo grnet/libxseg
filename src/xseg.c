@@ -52,7 +52,9 @@ static struct xseg_peer *__peer_types[XSEG_NR_PEER_TYPES];
 static unsigned int __nr_peer_types;
 
 pthread_mutex_t xseg_initref_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t xseg_joinref_mutex = PTHREAD_MUTEX_INITIALIZER;
 static int xseg_init_ref;
+static int xseg_join_ref;
 
 static void __lock_segment(struct xseg *xseg)
 {
@@ -742,6 +744,9 @@ struct xseg *xseg_join(	char *segtypename,
 	struct xseg_peer_operations *pops;
 	int r;
 
+	pthread_mutex_lock(&xseg_joinref_mutex);
+	xseg_join_ref++;
+
 	__lock_domain();
 
 	peertype = __find_or_load_peer_type(peertypename);
@@ -849,18 +854,22 @@ struct xseg *xseg_join(	char *segtypename,
 		goto err_free_types;
 	}
 	*/
+	pthread_mutex_unlock(&xseg_joinref_mutex);
 	return xseg;
 
 err_free_types:
 	pops->mfree(priv->peer_types);
 err_unmap:
-	xops->unmap(__xseg, size);
+	xseg_join_ref--;
+	if (!xseg_join_ref)
+		xops->unmap(__xseg, size);
 	xhash_free(priv->req_data);
 err_priv:
 	pops->mfree(priv);
 err_seg:
 	pops->mfree(xseg);
 err:
+	pthread_mutex_unlock(&xseg_joinref_mutex);
 	return NULL;
 }
 
