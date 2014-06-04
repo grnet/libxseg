@@ -877,8 +877,8 @@ void xseg_leave(struct xseg *xseg)
 {
 	struct xseg_type *type;
 	pthread_mutex_lock(&xseg_joinref_mutex);
+	xseg_join_ref--;
 	if(xseg_join_ref) {
-		xseg_join_ref--;
 		pthread_mutex_unlock(&xseg_joinref_mutex);
 		return;
 	}
@@ -894,6 +894,7 @@ void xseg_leave(struct xseg *xseg)
 
 	type->ops.unmap(xseg->segment, xseg->segment_size);
 	//FIXME free xseg?
+	pthread_mutex_unlock(&xseg_joinref_mutex);
 }
 
 struct xseg_port* xseg_get_port(struct xseg *xseg, uint32_t portno)
