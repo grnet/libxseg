@@ -876,6 +876,12 @@ err:
 void xseg_leave(struct xseg *xseg)
 {
 	struct xseg_type *type;
+	pthread_mutex_lock(&xseg_joinref_mutex);
+	if(xseg_join_ref) {
+		xseg_join_ref--;
+		pthread_mutex_unlock(&xseg_joinref_mutex);
+		return;
+	}
 
 	__lock_domain();
 	type = __find_or_load_type(xseg->config.type);
