@@ -36,6 +36,7 @@
 #include <xseg/domain.h>
 #include <xseg/util.h>
 #include <string.h>
+#include <pthread.h>
 
 #ifndef NULL
 #define NULL ((void *)0)
@@ -49,6 +50,9 @@ static struct xseg_type *__types[XSEG_NR_TYPES];
 static unsigned int __nr_types;
 static struct xseg_peer *__peer_types[XSEG_NR_PEER_TYPES];
 static unsigned int __nr_peer_types;
+
+pthread_mutex_t xseg_initref_mutex = PTHREAD_MUTEX_INITIALIZER;
+static int xseg_init_ref;
 
 static void __lock_segment(struct xseg *xseg)
 {
@@ -486,7 +490,7 @@ static uint64_t calculate_segment_size(struct xseg_config *config)
 	/* struct xseg itself + struct xheap */
 	size += 2*page_size + config->heap_size;
 	size = __align(size, page_shift);
-	
+
 	return size;
 }
 
@@ -527,32 +531,32 @@ static long initialize_segment(struct xseg *xseg, struct xseg_config *cfg)
 		return -1;
 	xseg->object_handlers = (struct xobject_h *) XPTR_MAKE(mem, segment);
 	obj_h = mem;
-	r = xobj_handler_init(obj_h, segment, MAGIC_OBJH, 
+	r = xobj_handler_init(obj_h, segment, MAGIC_OBJH,
 			sizeof(struct xobject_h), heap);
 	if (r < 0)
 		return -1;
 
 	//now that we have object handlers handler, use that to allocate
 	//new object handlers
-	
+
 	//allocate requests handler
 	mem = xobj_get_obj(obj_h, X_ALLOC);
 	if (!mem)
 		return -1;
 	obj_h = mem;
-	r = xobj_handler_init(obj_h, segment, MAGIC_REQ, 
+	r = xobj_handler_init(obj_h, segment, MAGIC_REQ,
 			sizeof(struct xseg_request), heap);
 	if (r < 0)
 		return -1;
 	xseg->request_h = (struct xobject_h *) XPTR_MAKE(obj_h, segment);
-	
+
 	//allocate ports handler
 	obj_h = XPTR_TAKE(xseg->object_handlers, segment);
 	mem = xobj_get_obj(obj_h, X_ALLOC);
 	if (!mem)
 		return -1;
 	obj_h = mem;
-	r = xobj_handler_init(obj_h, segment, MAGIC_PORT, 
+	r = xobj_handler_init(obj_h, segment, MAGIC_PORT,
 			sizeof(struct xseg_port), heap);
 	if (r < 0)
 		return -1;
@@ -587,7 +591,7 @@ static long initialize_segment(struct xseg *xseg, struct xseg_config *cfg)
 		gw[i] = NoPort;
 	}
 	xseg->dst_gw = (xport *) XPTR_MAKE(mem, segment);
-	
+
 	//allocate xseg_shared memory
 	mem = xheap_allocate(heap, sizeof(struct xseg_shared));
 	if (!mem)
@@ -596,7 +600,7 @@ static long initialize_segment(struct xseg *xseg, struct xseg_config *cfg)
 	shared->flags = 0;
 	shared->nr_peer_types = 0;
 	xseg->shared = (struct xseg_shared *) XPTR_MAKE(mem, segment);
-	
+
 	mem = xheap_allocate(heap, page_size);
 	if (!mem)
 		return -1;
@@ -845,7 +849,6 @@ struct xseg *xseg_join(	char *segtypename,
 		goto err_free_types;
 	}
 	*/
-
 	return xseg;
 
 err_free_types:
@@ -886,7 +889,7 @@ struct xseg_port* xseg_get_port(struct xseg *xseg, uint32_t portno)
 	p = xseg->ports[portno];
 	if (p)
 		return XPTR_TAKE(p, xseg->segment);
-	else 
+	else
 		return NULL;
 }
 
@@ -909,7 +912,7 @@ struct xq * __alloc_queue(struct xseg *xseg, uint64_t nr_reqs)
 	//initialize queue with max nr of elements it can hold
 	q = (struct xq *) mem;
 	buf = (void *) (((unsigned long) mem) + sizeof(struct xq));
-	xq_init_empty(q, bytes/sizeof(xqindex), buf); 
+	xq_init_empty(q, bytes/sizeof(xqindex), buf);
 
 	return q;
 }
@@ -993,7 +996,7 @@ void* xseg_alloc_buffer(struct xseg *xseg, uint64_t size)
 	struct xheap *heap = xseg->heap;
 	void *mem = xheap_allocate(heap, size);
 	if (mem && xheap_get_chunk_size(mem) < size) {
-		XSEGLOG("Buffer size %llu instead of %llu\n", 
+		XSEGLOG("Buffer size %llu instead of %llu\n",
 				xheap_get_chunk_size(mem), size);
 		xheap_free(mem);
 		mem = NULL;
@@ -1032,7 +1035,7 @@ int xseg_signal(struct xseg *xseg, xport portno)
 	struct xseg_port *port = xseg_get_port(xseg, portno);
 	if (!port)
 		return -1;
-	
+
 	type = __get_peer_type(xseg, port->peer_type);
 	if (!type)
 		return -1;
@@ -1046,7 +1049,7 @@ int xseg_init_local_signal(struct xseg *xseg, xport portno)
 	struct xseg_port *port = xseg_get_port(xseg, portno);
 	if (!port)
 		return -1;
-	
+
 	type = __get_peer_type(xseg, port->peer_type);
 	if (!type)
 		return -1;
@@ -1060,7 +1063,7 @@ void xseg_quit_local_signal(struct xseg *xseg, xport portno)
 	struct xseg_port *port = xseg_get_port(xseg, portno);
 	if (!port)
 		return;
-	
+
 	type = __get_peer_type(xseg, port->peer_type);
 	if (!type)
 		return;
@@ -1209,7 +1212,7 @@ done:
 	req->flags = 0;
 	req->serviced = 0;
 
-	xq_init_empty(&req->path, MAX_PATH_LEN, req->path_bufs); 
+	xq_init_empty(&req->path, MAX_PATH_LEN, req->path_bufs);
 
 	return req;
 }
@@ -1222,7 +1225,7 @@ int xseg_put_request (struct xseg *xseg, struct xseg_request *xreq,
 	xqindex xqi = XPTR_MAKE(xreq, xseg->segment);
 	struct xq *q;
 	struct xseg_port *port = xseg_get_port(xseg, xreq->src_portno);
-	if (!port) 
+	if (!port)
 		return -1;
 
 	if (xreq->buffer){
@@ -1230,8 +1233,8 @@ int xseg_put_request (struct xseg *xseg, struct xseg_request *xreq,
 		xseg_free_buffer(xseg, ptr);
 	}
 	/* empty path */
-	xq_init_empty(&xreq->path, MAX_PATH_LEN, xreq->path_bufs); 
-	
+	xq_init_empty(&xreq->path, MAX_PATH_LEN, xreq->path_bufs);
+
 	xreq->buffer = 0;
 	xreq->bufferlen = 0;
 	xreq->target = 0;
@@ -1242,7 +1245,7 @@ int xseg_put_request (struct xseg *xseg, struct xseg_request *xreq,
 	xreq->src_portno = NoPort;
 	xreq->dst_portno = NoPort;
 	xreq->transit_portno = NoPort;
-	xreq->effective_dst_portno = NoPort;	
+	xreq->effective_dst_portno = NoPort;
 	xreq->serviced = 0;
 
 	if (xreq->elapsed != 0) {
@@ -1280,7 +1283,7 @@ int xseg_prep_request ( struct xseg* xseg, struct xseg_request *req,
 		return -1;
 	req->bufferlen = xheap_get_chunk_size(buf);
 	req->buffer = XPTR_MAKE(buf, xseg->segment);
-	
+
 	req->data = req->buffer;
 	req->target = req->buffer + req->bufferlen - targetlen;
 	req->datalen = datalen;
@@ -1318,7 +1321,7 @@ static void __update_timestamp(struct xseg_request *xreq)
 		 * FIXME: Make xreq->elapsed timeval/timespec again to avoid the
 		 * 		  multiplication?
 		 */
-		xreq->elapsed += (tv.tv_sec - xreq->timestamp.tv_sec) * 1000000 
+		xreq->elapsed += (tv.tv_sec - xreq->timestamp.tv_sec) * 1000000
 						+ (tv.tv_usec - xreq->timestamp.tv_usec);
 
 	xreq->timestamp.tv_sec = tv.tv_sec;
@@ -1527,7 +1530,7 @@ out_rel:
 	if (serial == Noneidx)
 		dst = NoPort;
 	return dst;
-	
+
 }
 
 xport xseg_forward(struct xseg *xseg, struct xseg_request *req, xport new_dst,
@@ -1557,7 +1560,7 @@ int xseg_set_req_data(struct xseg *xseg, struct xseg_request *xreq, void *data)
 {
 	int r;
 	xhash_t *req_data;
-	
+
 	xlock_acquire(&xseg->priv->reqdatalock, 1);
 
 	req_data = xseg->priv->req_data;
@@ -1579,7 +1582,7 @@ int xseg_get_req_data(struct xseg *xseg, struct xseg_request *xreq, void **data)
 	int r;
 	xhashidx val;
 	xhash_t *req_data;
-	
+
 	xlock_acquire(&xseg->priv->reqdatalock, 1);
 
 	req_data = xseg->priv->req_data;
@@ -1667,7 +1670,7 @@ struct xseg_port *xseg_bind_port(struct xseg *xseg, uint32_t req, void * sd)
 		} else if (force) {
 			port = xseg_get_port(xseg, portno);
 			if (!port)
-				goto out;	
+				goto out;
 		} else {
 			continue;
 		}
@@ -1904,7 +1907,16 @@ int xseg_leave_port(struct xseg *xseg, struct xseg_port *port)
 
 int xseg_initialize(void)
 {
-	return __xseg_preinit();	/* with or without lock ? */
+	int rv;
+	pthread_mutex_lock(&xseg_initref_mutex);
+	if (!xseg_init_ref) {
+		xseg_init_ref += 1;
+		rv = __xseg_preinit(); /* with or without lock ? */
+		pthread_mutex_unlock(&xseg_initref_mutex);
+		return rv;
+	}
+	pthread_mutex_unlock(&xseg_initref_mutex);
+	return 0;
 }
 
 int xseg_finalize(void)
