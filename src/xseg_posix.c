@@ -122,7 +122,7 @@ static void *posix_map(const char *name, uint64_t size, struct xseg *seg)
 static void posix_unmap(void *ptr, uint64_t size)
 {
 	struct xseg *xseg = ptr;
-	(void)munmap(xseg, xseg->segment_size);
+	(void)munmap(xseg, size);
 }
 
 

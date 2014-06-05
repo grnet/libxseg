@@ -121,7 +121,7 @@ static void *posixfd_map(const char *name, uint64_t size, struct xseg *seg)
 static void posixfd_unmap(void *ptr, uint64_t size)
 {
 	struct xseg *xseg = ptr;
-	(void)munmap(xseg, xseg->segment_size);
+	(void)munmap(xseg, size);
 }
 
 static struct posixfd_signal_desc * __get_signal_desc(struct xseg *xseg, xport portno)

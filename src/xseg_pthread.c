@@ -125,7 +125,7 @@ static void *pthread_map(const char *name, uint64_t size, struct xseg *seg)
 static void pthread_unmap(void *ptr, uint64_t size)
 {
 	struct xseg *xseg = ptr;
-	(void)munmap(xseg, xseg->segment_size);
+	(void)munmap(xseg, size);
 }
 
 
@@ -225,11 +225,11 @@ static int pthread_local_signal_init(struct xseg *xseg, xport portno)
 	if(sigaction(SIGIO, act, old_act) < 0)
 		goto err5;
 
-	
+
 	sigaddset(set, SIGIO);
 
 	r = pthread_sigmask(SIG_BLOCK, set, savedset);
-	if (r < 0) 
+	if (r < 0)
 		goto err6;
 
 
@@ -294,7 +294,7 @@ static int pthread_prepare_wait(struct xseg *xseg, uint32_t portno)
 	pid_t pid;
 	int my_id;
 	struct xseg_port *port = xseg_get_port(xseg, portno);
-	if (!port) 
+	if (!port)
 		return -1;
 	struct pthread_signal_desc *psd = xseg_get_signal_desc(xseg, port);
 	if (!psd)
@@ -358,7 +358,7 @@ static int pthread_signal(struct xseg *xseg, uint32_t portno)
 	int i;
 
 	struct xseg_port *port = xseg_get_port(xseg, portno);
-	if (!port) 
+	if (!port)
 		return -1;
 	struct pthread_signal_desc *psd = xseg_get_signal_desc(xseg, port);
 	if (!psd)
