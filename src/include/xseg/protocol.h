@@ -59,9 +59,11 @@ struct xseg_reply_info {
 #endif
 
 #define XF_MAPFLAG_READONLY (1 << 0)
+#define XF_MAPFLAG_ZERO     (1 << 1)
 
 struct xseg_reply_map_scatterlist {
 	char target[XSEG_MAX_TARGETLEN];
+	uint32_t flags;
 	uint32_t targetlen;
 	uint64_t offset;
 	uint64_t size;
