@@ -58,8 +58,12 @@ struct xseg_reply_info {
 #define XSEG_MAX_TARGETLEN 64
 #endif
 
+#define XF_MAPFLAG_READONLY (1 << 0)
+#define XF_MAPFLAG_ZERO     (1 << 1)
+
 struct xseg_reply_map_scatterlist {
 	char target[XSEG_MAX_TARGETLEN];
+	uint32_t flags;
 	uint32_t targetlen;
 	uint64_t offset;
 	uint64_t size;
@@ -68,6 +72,19 @@ struct xseg_reply_map_scatterlist {
 struct xseg_reply_map {
 	uint32_t cnt;
 	struct xseg_reply_map_scatterlist segs[];
+};
+
+struct xseg_create_map_scatterlist {
+	char target[XSEG_MAX_TARGETLEN];
+	uint32_t targetlen;
+	uint32_t flags;
+};
+
+struct xseg_request_create {
+	uint32_t cnt;
+	uint32_t blocksize;
+	uint32_t create_flags;
+	struct xseg_create_map_scatterlist segs[];
 };
 
 struct xseg_request_clone {
@@ -91,4 +108,8 @@ struct xseg_reply_hash {
 	uint32_t targetlen;
 };
 
+struct xseg_request_rename {
+        char target[XSEG_MAX_TARGETLEN];
+	uint32_t targetlen;
+};
 #endif

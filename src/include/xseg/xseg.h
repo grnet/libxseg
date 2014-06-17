@@ -227,13 +227,15 @@ struct xseg_task {
 #define X_CLOSE    15
 #define	X_SNAPSHOT 16
 #define X_HASH	   17
+#define X_CREATE   18
+#define X_RENAME   19
 
 /* REQ FLAGS */
 #define XF_NOSYNC    (1 << 0)
 #define XF_FLUSH     (1 << 1)
 #define XF_FUA       (1 << 2)
 #define XF_FORCE     (1 << 3)
-#define XF_CONTADDR  (1 << 4)
+#define XF_ASSUMEV0  (1 << 4)
 
 /* PORT FLAGS */
 
@@ -254,6 +256,7 @@ struct xseg_request {
 	uint64_t offset;
 	uint64_t size; 
 	uint64_t serviced;
+	uint64_t v0_size;
 	xptr data;
 	uint64_t datalen;
 	xptr target;

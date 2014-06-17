@@ -75,6 +75,7 @@ set(SED2 sed -i -e 's/xseg_get_target_nonstatic.restype = STRING/xseg_get_target
 set(SED3 sed -i -e 's/xseg_get_signal_desc_nonstatic.restype = STRING/xseg_get_signal_desc_nonstatic.restype = POINTER(c_char)/g' xseg/xseg_api.py)
 
 set(SED4 sed -i -e 's/xseg_reply_map_scatterlist \\* 0/POINTER(xseg_reply_map_scatterlist)/g' xseg/xprotocol.py)
+set(SED5 sed -i -e 's/xseg_create_map_scatterlist \\* 0/POINTER(xseg_create_map_scatterlist)/g' xseg/xprotocol.py)
 
 
 SET(SETUP_PY_IN ${CMAKE_CURRENT_SOURCE_DIR}/setup.py)
@@ -101,6 +102,7 @@ ADD_CUSTOM_COMMAND( OUTPUT ${H2XML_OUTPUT_XSEG} ${H2XML_OUTPUT_PROTOCOL} ${XML2P
 		    ${H2XML_OUTPUT_PROTOCOL} -d -k defst -c -l ${XSEG_LIB} -o ${XML2PY_OUTPUT_PROTOCOL}
 
 		    COMMAND ${SED4}
+		    COMMAND ${SED5}
 
 
 		    COMMAND pwd
