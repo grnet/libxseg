@@ -210,7 +210,10 @@ static void posixfd_local_signal_quit(struct xseg *xseg, xport portno)
 static int posixfd_remote_signal_init(void)
 {
 	int r;
-	r = mkdir(POSIXFD_DIR, 01755);
+	mode_t oldumask;
+	oldumask = umask(0000);
+	r = mkdir(POSIXFD_DIR, 01777);
+	umask(oldumask);
 
 	if (r < 0) {
 		if (errno != EEXIST) // && isdir(POSIXFD_DIR)
