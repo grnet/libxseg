@@ -237,7 +237,7 @@ struct xseg_task {
 struct xseg_request {
 	xserial serial;
 	uint64_t offset;
-	uint64_t size; 
+	uint64_t size;
 	uint64_t serviced;
 	uint64_t v0_size;
 	xptr data;
@@ -346,9 +346,9 @@ struct xseg {
 /*                    \___________________/                       \_________/ */
 /*                     ___________________                         _________  */
 /*                    /                   \                       /         \ */
-        struct xseg *  xseg_join            ( char                * segtype,
-                                              char                * segname,
-                                              char                * peertype,
+        struct xseg *  xseg_join            ( const char          * segtype,
+                                              const char          * segname,
+                                              const char          * peertype,
                                               void               (* wakeup    )
                                              (uint32_t              portno   ));
 
@@ -381,19 +381,19 @@ struct xseg_request *  xseg_get_request     ( struct xseg         * xseg,
 /*                     ___________________                         _________  */
 /*                    /                   \                       /         \ */
               xport    xseg_submit          ( struct xseg         * xseg,
-                                              struct xseg_request * xreq,      
+                                              struct xseg_request * xreq,
                                               xport                 portno,
 					      uint32_t              flags     );
 
 struct xseg_request *  xseg_receive         ( struct xseg         * xseg,
-                                              xport                 portno,    
+                                              xport                 portno,
 					      uint32_t		    flags     );
 /*                    \___________________/                       \_________/ */
 /*                     ___________________                         _________  */
 /*                    /                   \                       /         \ */
 
 struct xseg_request *  xseg_accept          ( struct xseg         * xseg,
-                                              xport                 portno,    
+                                              xport                 portno,
 					      uint32_t		    flags     );
 
               xport    xseg_respond         ( struct xseg         * xseg,

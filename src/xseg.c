@@ -802,9 +802,9 @@ static int xseg_validate_pointers(struct xseg *xseg)
 	return r;
 }
 
-struct xseg *xseg_join(	char *segtypename,
-			char *segname,
-			char *peertypename,
+struct xseg *xseg_join(const char *segtypename,
+			const char *segname,
+			const char *peertypename,
 			void (*wakeup)
 			(	uint32_t portno		))
 {
