@@ -126,7 +126,7 @@ int __renew_logctx(struct log_ctx *lc, char *peer_name,
 		return 0;
 
 	fd = open(lc->filename, O_WRONLY|O_CREAT|O_APPEND, S_IRUSR|S_IWUSR);
-	if (fd < 1){
+	if (fd < 0){
 		return -1;
 	}
 
