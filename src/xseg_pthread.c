@@ -53,7 +53,7 @@ static long pthread_allocate(const char *name, uint64_t size)
 		close(fd);
 		XSEGLOG("Cannot seek into segment file: %s\n",
 			strerror_r(errno, errbuf, ERRSIZE));
-		return r;
+		return lr;
 	}
 
 	errbuf[0] = 0;
