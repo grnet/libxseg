@@ -373,7 +373,7 @@ static char get_hex(unsigned int h)
 static void hexlify(unsigned char *data, long datalen, char *hex)
 {
 	long i;
-	for (i=0; i<datalen; i++){
+	for (i = 0; i < datalen; i++) {
 		hex[2*i] = get_hex((data[i] & 0xF0) >> 4);
 		hex[2*i + 1] = get_hex(data[i] & 0x0F);
 	}
@@ -386,9 +386,10 @@ int posixfd_init_signal_desc(struct xseg *xseg, void *sd)
 	struct posixfd_signal_desc *psd = sd;
 	if (!psd)
 		return -1;
-	psd->flag = 0;
 	psd->signal_file[0] = 0;
-	hexlify(&sd, POSIXFD_FILENAME_LEN, psd->signal_file);
+	/* POSIXFD_FILENAME_LEN = 2 * sizeof(void *) */
+	hexlify(&sd, POSIXFD_FILENAME_LEN / 2, psd->signal_file);
+	psd->flag = 0;
 	psd->fd = -1;
 
 	return 0;

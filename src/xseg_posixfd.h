@@ -31,7 +31,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 struct posixfd_signal_desc {
 	/* hexlified value of xport */
 	/* FIXME include xseg_types or sth and use sizeof(xport) */
-	char signal_file[sizeof(void *)];
+	char signal_file[2 * sizeof(void *)];
 	int fd;
 	/* whether or not, the port should be signaled */
 	int flag;
