@@ -1212,7 +1212,7 @@ void xseg_quit_local_signal(struct xseg *xseg, xport portno)
 
 	if (!xseg) {
 		XSEGLOG("Invalid xseg argument");
-		return -1;
+		return;
 	}
 	port = xseg_get_port(xseg, portno);
 
