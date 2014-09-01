@@ -34,7 +34,7 @@ int help(void)
 {
 	printf("xseg <spec> [[[<src_port>]:[<dst_port>]] [<command> <arg>*] ]*\n"
 		"spec:\n"
-		"    <type:name:nr_ports:nr_requests:request_size:page_shift>\n"
+		"    <type:name:nr_ports:nr_dynports:segment_size:page_shift>\n"
 		"global commands:\n"
 		"    reportall\n"
 		"    create\n"
@@ -42,6 +42,10 @@ int help(void)
 		"    bind <portno>\n"
 		"    signal <portno>\n"
 		"    bridge <portno1> <portno2> <logfile> {full|summary|stats}\n"
+		"    recoverport <portno>\n"
+		"    recoverlocks <portno>\n"
+		"    verify\n"
+		"    verify-fix\n"
 		"port commands:\n"
 		"    report\n"
 		"    alloc_requests (to source) <nr>\n"
@@ -1542,8 +1546,68 @@ int cmd_verify(int fix)
 	return 0;
 }
 
+int cmd_recoverlocks(long p)
+{
+	xport portno = (xport)p;
 
-int cmd_failport(long portno)
+	if (cmd_join())
+		return -1;
+
+	if (xseg->shared->flags & XSEG_F_LOCK){
+		fprintf(stdout, "Segment lock: Locked\n");
+		fprintf(stdout, "Consider rebooting the node\n");
+		return -1;
+	}
+	if (xseg->heap->lock.owner != XLOCK_NOONE){
+		fprintf(stdout, "Heap lock: Locked\n");
+		fprintf(stdout, "Consider rebooting the node\n");
+		return -1;
+	}
+	//obj_h locks
+	if (xseg->request_h->lock.owner != XLOCK_NOONE){
+		fprintf(stdout, "Requests handler lock: Locked\n");
+		fprintf(stdout, "Consider rebooting the node\n");
+		return -1;
+	}
+	if (xseg->port_h->lock.owner != XLOCK_NOONE){
+		fprintf(stdout, "Ports handler lock: Locked\n");
+		fprintf(stdout, "Consider rebooting the node\n");
+		return -1;
+	}
+	if (xseg->object_handlers->lock.owner != XLOCK_NOONE){
+		fprintf(stdout, "Objects handler lock: Locked\n");
+		fprintf(stdout, "Consider rebooting the node\n");
+		return -1;
+	}
+	//take segment lock?
+	xport i;
+	struct xseg_port *port;
+	for (i = 0; i < xseg->config.nr_ports; i++) {
+		if (xseg->ports[i]){
+			port = xseg_get_port(xseg, i);
+			if (!port){
+				fprintf(stdout, "Inconsisten port <-> portno mapping %u", i);
+				fprintf(stdout, "Consider rebooting the node\n");
+				return -1;
+			}
+			if (port->fq_lock.owner == portno) {
+				fprintf(stdout, "Free queue lock of port %u locked. Unlocking...\n", i);
+				xlock_release(&port->fq_lock);
+			}
+			if (port->rq_lock.owner == portno) {
+				fprintf(stdout, "Request queue lock of port %u locked. Unlocking...\n", i);
+				xlock_release(&port->rq_lock);
+			}
+			if (port->pq_lock.owner == portno) {
+				fprintf(stdout, "Reply queue lock of port %u locked. Unlocking...\n", i);
+				xlock_release(&port->pq_lock);
+			}
+		}
+	}
+	return 0;
+}
+
+int cmd_recoverport(long portno)
 {
 	if (cmd_join())
 		return -1;
@@ -1972,8 +2036,14 @@ int main(int argc, char **argv)
 			continue;
 		}
 
-		if (!strcmp(argv[i], "failport") && (i + 1 < argc)) {
-			ret = cmd_failport(atol(argv[i+1]));
+		if (!strcmp(argv[i], "recoverport") && (i + 1 < argc)) {
+			ret = cmd_recoverport(atol(argv[i+1]));
+			i += 1;
+			continue;
+		}
+
+		if (!strcmp(argv[i], "recoverlocks") && (i + 1 < argc)) {
+			ret = cmd_recoverlocks(atol(argv[i+1]));
 			i += 1;
 			continue;
 		}
