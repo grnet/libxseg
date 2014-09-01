@@ -1219,7 +1219,7 @@ int cmd_submit_reqs(long loops, long concurrent_reqs, int op)
 static void lock_status(struct xlock *lock, char *buf, int len)
 {
 	int r;
-	if (lock->owner == Noone)
+	if (lock->owner == XLOCK_NOONE)
 		r = snprintf(buf, len, "Locked: No");
 	else
 		r = snprintf(buf, len, "Locked: Yes (Owner: %lu)", lock->owner);
@@ -1464,26 +1464,26 @@ int cmd_verify(int fix)
 			xseg->shared->flags &= ~XSEG_F_LOCK;
 	}
 	//heap lock
-	if (xseg->heap->lock.owner != Noone){
+	if (xseg->heap->lock.owner != XLOCK_NOONE){
 		fprintf(stderr, "Heap lock: Locked (Owner: %llu)\n",
 			(unsigned long long)xseg->heap->lock.owner);
 		if (fix && prompt_user("Unlock it ?"))
 			xlock_release(&xseg->heap->lock);
 	}
 	//obj_h locks
-	if (xseg->request_h->lock.owner != Noone){
+	if (xseg->request_h->lock.owner != XLOCK_NOONE){
 		fprintf(stderr, "Requests handler lock: Locked (Owner: %llu)\n",
 			(unsigned long long)xseg->request_h->lock.owner);
 		if (fix && prompt_user("Unlock it ?"))
 			xlock_release(&xseg->request_h->lock);
 	}
-	if (xseg->port_h->lock.owner != Noone){
+	if (xseg->port_h->lock.owner != XLOCK_NOONE){
 		fprintf(stderr, "Ports handler lock: Locked (Owner: %llu)\n",
 			(unsigned long long)xseg->port_h->lock.owner);
 		if (fix && prompt_user("Unlock it ?"))
 			xlock_release(&xseg->port_h->lock);
 	}
-	if (xseg->object_handlers->lock.owner != Noone){
+	if (xseg->object_handlers->lock.owner != XLOCK_NOONE){
 		fprintf(stderr, "Objects handler lock: Locked (Owner: %llu)\n",
 			(unsigned long long)xseg->object_handlers->lock.owner);
 		if (fix && prompt_user("Unlock it ?"))
@@ -1499,19 +1499,19 @@ int cmd_verify(int fix)
 				fprintf(stderr, "Inconsisten port <-> portno mapping %u", i);
 				continue;
 			}
-			if (port->fq_lock.owner != Noone) {
+			if (port->fq_lock.owner != XLOCK_NOONE) {
 				fprintf(stderr, "Free queue lock of port %u locked (Owner %llu)\n",
 						i, (unsigned long long)port->fq_lock.owner);
 				if (fix && prompt_user("Unlock it ?"))
 					xlock_release(&port->fq_lock);
 			}
-			if (port->rq_lock.owner != Noone) {
+			if (port->rq_lock.owner != XLOCK_NOONE) {
 				fprintf(stderr, "Request queue lock of port %u locked (Owner %llu)\n",
 						i, (unsigned long long)port->rq_lock.owner);
 				if (fix && prompt_user("Unlock it ?"))
 					xlock_release(&port->rq_lock);
 			}
-			if (port->pq_lock.owner != Noone) {
+			if (port->pq_lock.owner != XLOCK_NOONE) {
 				fprintf(stderr, "Reply queue lock of port %u locked (Owner %llu)\n",
 						i, (unsigned long long)port->pq_lock.owner);
 				if (fix && prompt_user("Unlock it ?"))

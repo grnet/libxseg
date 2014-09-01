@@ -1060,7 +1060,7 @@ struct xseg_port *xseg_alloc_port(struct xseg *xseg, uint32_t flags, uint64_t nr
 	xlock_release(&port->rq_lock);
 	xlock_release(&port->pq_lock);
 	xlock_release(&port->port_lock);
-	port->owner = Noone;
+	port->owner = NoOwner;
 	port->portno = NoPort;
 	port->peer_type = 0; //FIXME what  here ??? NoType??
 	port->alloc_reqs = 0;
@@ -2006,7 +2006,7 @@ struct xseg_port *xseg_bind_dynport(struct xseg *xseg)
 			port = xseg_get_port(xseg, portno);
 			if (!port)
 				goto out;
-			if (port->owner != Noone)
+			if (port->owner != NoOwner)
 				continue;
 
 			if (port->signal_desc) {
@@ -2062,7 +2062,7 @@ int xseg_leave_dynport(struct xseg *xseg, struct xseg_port *port)
 		return -1;
 
 	__lock_segment(xseg);
-	port->owner = Noone;
+	port->owner = NoOwner;
 	__unlock_segment(xseg);
 	return 0;
 }
