@@ -27,6 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define __pause()
 
 #define Noone ((unsigned long)-1)
+#define XLOCK_UNKNOWN_OWNER ((unsigned long)-2)
 
 #define XLOCK_SANITY_CHECKS
 #define XLOCK_CONGESTION_NOTIFY
@@ -45,6 +46,15 @@ struct xlock {
 };
 //} __attribute__ ((aligned (16))); /* support up to 128bit longs */
 
+#ifdef XLOCK_SANITY_CHECKS
+static inline int __is_valid_owner(unsigned long owner)
+{
+	if (owner == XLOCK_UNKNOWN_OWNER || owner <= MAX_VALID_OWNER)
+		return 1;
+	return 0;
+}
+#endif /* XLOCK_SANITY_CHECKS */
+
 static inline unsigned long xlock_acquire(struct xlock *lock, unsigned long who)
 {
 	unsigned long owner;
@@ -56,7 +66,7 @@ static inline unsigned long xlock_acquire(struct xlock *lock, unsigned long who)
 	for (;;) {
 		for (; (owner = *(volatile unsigned long *)(&lock->owner) != Noone);){
 #ifdef XLOCK_SANITY_CHECKS
-			if (owner > MAX_VALID_OWNER){
+			if (!__is_valid_owner(owner)) {
 				XSEGLOG("xlock %lx corrupted. Lock owner %lu",
 						(unsigned long) lock, owner);
 				XSEGLOG("Resetting xlock %lx to Noone", 
@@ -83,7 +93,7 @@ static inline unsigned long xlock_acquire(struct xlock *lock, unsigned long who)
 			break;
 	}
 #ifdef XLOCK_SANITY_CHECKS
-	if (lock->owner > MAX_VALID_OWNER){
+	if (!__is_valid_owner(lock->owner)) {
 		XSEGLOG("xlock %lx locked with INVALID lock owner %lu",
 				(unsigned long) lock, lock->owner);
 	}
@@ -106,7 +116,7 @@ static inline void xlock_release(struct xlock *lock)
 	BARRIER();
 	/*
 #ifdef XLOCK_SANITY_CHECKS
-	if (lock->owner > MAX_VALID_OWNER){
+	if (!__is_valid_owner(lock->owner)) {
 		XSEGLOG("xlock %lx releasing lock with INVALID lock owner %lu",
 				(unsigned long) lock, lock->owner);
 	}
