@@ -28,6 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #define XLOCK_NOONE ((unsigned long)-1)
 #define XLOCK_UNKNOWN_OWNER ((unsigned long)-2)
+#define XLOCK_XSEGTOOL ((unsigned long)-3)
 
 #define XLOCK_SANITY_CHECKS
 #define XLOCK_CONGESTION_NOTIFY
@@ -49,7 +50,8 @@ struct xlock {
 #ifdef XLOCK_SANITY_CHECKS
 static inline int __is_valid_owner(unsigned long owner)
 {
-	if (owner == XLOCK_UNKNOWN_OWNER || owner <= MAX_VALID_OWNER)
+	if (owner == XLOCK_UNKNOWN_OWNER || owner <= MAX_VALID_OWNER
+			|| owner != XLOCK_XSEGTOOL)
 		return 1;
 	return 0;
 }
