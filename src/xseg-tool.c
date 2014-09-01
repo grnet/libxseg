@@ -34,7 +34,7 @@ int help(void)
 {
 	printf("xseg <spec> [[[<src_port>]:[<dst_port>]] [<command> <arg>*] ]*\n"
 		"spec:\n"
-		"    <type:name:nr_ports:nr_requests:request_size:extra_size:page_shift>\n"
+		"    <type:name:nr_ports:nr_requests:request_size:page_shift>\n"
 		"global commands:\n"
 		"    reportall\n"
 		"    create\n"
@@ -1972,6 +1972,12 @@ int main(int argc, char **argv)
 			continue;
 		}
 
+		if (!strcmp(argv[i], "failport") && (i + 1 < argc)) {
+			ret = cmd_failport(atol(argv[i+1]));
+			i += 1;
+			continue;
+		}
+
 		if (!strcmp(argv[i], "bind") && (i + 1 < argc)) {
 			ret = cmd_bind(atol(argv[i+1]));
 			i += 1;
@@ -2014,12 +2020,6 @@ int main(int argc, char **argv)
 		if (dstport == -1) {
 			if (!parse_ports(argv[i]))
 				fprintf(stderr, "destination port undefined: %s\n", argv[i]);
-			continue;
-		}
-
-		if (!strcmp(argv[i], "failport") && (i + 1 < argc)) {
-			ret = cmd_failport(atol(argv[i+1]));
-			i += 1;
 			continue;
 		}
 
