@@ -108,7 +108,7 @@ xpool_index xpool_add(struct xpool *xp, xpool_data data)
 {
 	struct xpool_node *new, *list, *free, *next, *prev;
 	//acquire lock
-	xlock_acquire(&xp->lock, 1);
+	xlock_acquire(&xp->lock, XLOCK_UNKNOWN_OWNER);
 	free = XPTR(&xp->free);
 	list = XPTR(&xp->list);
 	new = free;
@@ -151,7 +151,7 @@ xpool_index xpool_remove(struct xpool *xp, xpool_index idx, xpool_data *data)
 {
 	struct xpool_node *node, *list, *free, *prev, *next;
 	//acquire lock
-	xlock_acquire(&xp->lock, 1);
+	xlock_acquire(&xp->lock, XLOCK_UNKNOWN_OWNER);
 	if (!__validate_idx(xp, idx)){ // idx < xp->size && node->prev != NULL
 		xlock_release(&xp->lock);
 		return NoIndex;
@@ -293,7 +293,7 @@ xpool_index xpool_peek_and_fwd(struct xpool *xp, xpool_data *data)
 {
 	struct xpool_node *list, *next;
 	//acquire lock
-	xlock_acquire(&xp->lock, 1);
+	xlock_acquire(&xp->lock, XLOCK_UNKNOWN_OWNER);
 	list = XPTR(&xp->list);
 	if (!list){
 		xlock_release(&xp->lock);

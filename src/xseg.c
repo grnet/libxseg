@@ -1804,7 +1804,7 @@ int xseg_set_req_data(struct xseg *xseg, struct xseg_request *xreq, void *data)
 		return -1;
 	}
 
-	xlock_acquire(&xseg->priv->reqdatalock, 1);
+	xlock_acquire(&xseg->priv->reqdatalock, XLOCK_UNKNOWN_OWNER);
 
 	req_data = xseg->priv->req_data;
 	r = xhash_insert(req_data, (xhashidx) xreq, (xhashidx) data);
@@ -1835,7 +1835,7 @@ int xseg_get_req_data(struct xseg *xseg, struct xseg_request *xreq, void **data)
 		return -1;
 	}
 
-	xlock_acquire(&xseg->priv->reqdatalock, 1);
+	xlock_acquire(&xseg->priv->reqdatalock, XLOCK_UNKNOWN_OWNER);
 
 	req_data = xseg->priv->req_data;
 	//maybe we need a xhash_delete with lookup...

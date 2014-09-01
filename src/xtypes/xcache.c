@@ -96,12 +96,12 @@ static int __table_remove(xhash_t *table, char *name)
 
 static xqindex alloc_cache_entry(struct xcache *cache)
 {
-	return xq_pop_head(&cache->free_nodes, 1);
+	return xq_pop_head(&cache->free_nodes, XLOCK_UNKNOWN_OWNER);
 }
 
 static void __free_cache_entry(struct xcache *cache, xqindex idx)
 {
-	if (UNLIKELY(xq_append_head(&cache->free_nodes, idx, 1) == Noneidx))
+	if (UNLIKELY(xq_append_head(&cache->free_nodes, idx, XLOCK_UNKNOWN_OWNER) == Noneidx))
 		XSEGLOG("BUG: Could not free cache entry node. Queue is full");
 }
 
@@ -319,7 +319,7 @@ static void xcache_entry_put(struct xcache *cache, xqindex idx)
 	unsigned long ref;
 
 	if (cache->flags & XCACHE_USE_RMTABLE) {
-		xlock_acquire(&cache->rm_lock, 1);
+		xlock_acquire(&cache->rm_lock, XLOCK_UNKNOWN_OWNER);
 
 		ref = __sync_sub_and_fetch(&ce->ref, 1);
 		if (ref > 0)
@@ -434,7 +434,7 @@ static int __xcache_evict(struct xcache *cache, xcache_handler h)
 		return 0;
 
 	ce->state = NODE_EVICTED;
-	xlock_acquire(&cache->rm_lock, 1);
+	xlock_acquire(&cache->rm_lock, XLOCK_UNKNOWN_OWNER);
 	r = __xcache_insert_rm(cache, h);
 	xlock_release(&cache->rm_lock);
 
@@ -511,7 +511,7 @@ static xcache_handler __xcache_insert(struct xcache *cache, xcache_handler h,
 		goto insert;
 
 	/* check if our "older self" exists in the rm_entries */
-	xlock_acquire(&cache->rm_lock, 1);
+	xlock_acquire(&cache->rm_lock, XLOCK_UNKNOWN_OWNER);
 	tmp_h = __xcache_lookup_rm(cache, ce->name);
 	if (tmp_h != NoEntry) {
 		/* if so then remove it from rm table */
@@ -584,7 +584,7 @@ xcache_handler xcache_insert(struct xcache *cache, xcache_handler h)
 	xcache_handler lru = NoEntry;
 	xcache_handler reinsert_handler = NoEntry;
 
-	xlock_acquire(&cache->lock, 1);
+	xlock_acquire(&cache->lock, XLOCK_UNKNOWN_OWNER);
 	ret = __xcache_insert(cache, h, &lru, &reinsert_handler);
 	xlock_release(&cache->lock);
 
@@ -622,7 +622,7 @@ xcache_handler xcache_lookup(struct xcache *cache, char *name)
 {
 	xcache_handler h = NoEntry;
 
-	xlock_acquire(&cache->lock, 1);
+	xlock_acquire(&cache->lock, XLOCK_UNKNOWN_OWNER);
 	h = __xcache_lookup_and_get_entries(cache, name);
 	xlock_release(&cache->lock);
 
@@ -788,7 +788,7 @@ out_free_q:
 int xcache_remove(struct xcache *cache, xcache_handler h)
 {
 	int r;
-	xlock_acquire(&cache->lock, 1);
+	xlock_acquire(&cache->lock, XLOCK_UNKNOWN_OWNER);
 	r = __xcache_remove(cache, h);
 	xlock_release(&cache->lock);
 	return r;
@@ -802,7 +802,7 @@ int xcache_invalidate(struct xcache *cache, char *name)
 	int r = 0;
 	xcache_handler h;
 
-	xlock_acquire(&cache->lock, 1);
+	xlock_acquire(&cache->lock, XLOCK_UNKNOWN_OWNER);
 
 	h = __xcache_lookup_entries(cache, name);
 	if (h != NoEntry){
@@ -811,7 +811,7 @@ int xcache_invalidate(struct xcache *cache, char *name)
 	}
 
 	if (cache->flags & XCACHE_USE_RMTABLE) {
-		xlock_acquire(&cache->rm_lock, 1);
+		xlock_acquire(&cache->rm_lock, XLOCK_UNKNOWN_OWNER);
 		xlock_release(&cache->lock);
 
 		h = __xcache_lookup_rm(cache, name);

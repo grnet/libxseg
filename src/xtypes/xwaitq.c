@@ -80,7 +80,7 @@ int xwaitq_enqueue(struct xwaitq *wq, struct work *w)
 		w->job_fn(wq, w->job);
 		return 0;
 	}
-	xlock_acquire(&wq->lock, 1);
+	xlock_acquire(&wq->lock, XLOCK_UNKNOWN_OWNER);
 	r = __xwaitq_enqueue(wq, w);
 	xlock_release(&wq->lock);
 	xwaitq_signal(wq);
@@ -96,10 +96,10 @@ void xwaitq_signal(struct xwaitq *wq)
 		return;
 
 	if (wq->flags & XWAIT_SIGNAL_ONE){
-		if (!xlock_try_lock(&wq->lock, 1))
+		if (!xlock_try_lock(&wq->lock, XLOCK_UNKNOWN_OWNER))
 			return;
 	} else {
-		xlock_acquire(&wq->lock, 1);
+		xlock_acquire(&wq->lock, XLOCK_UNKNOWN_OWNER);
 	}
 	while (xq_count(wq->q) && __check_cond(wq)){
 		xqi = __xq_pop_head(wq->q);
@@ -110,10 +110,10 @@ void xwaitq_signal(struct xwaitq *wq)
 		w = (struct work *)xqi;
 		w->job_fn(wq, w->job);
 		if (wq->flags & XWAIT_SIGNAL_ONE){
-			if (!xlock_try_lock(&wq->lock, 1))
+			if (!xlock_try_lock(&wq->lock, XLOCK_UNKNOWN_OWNER))
 				return;
 		} else {
-			xlock_acquire(&wq->lock, 1);
+			xlock_acquire(&wq->lock, XLOCK_UNKNOWN_OWNER);
 		}
 	}
 	xlock_release(&wq->lock);

@@ -93,7 +93,7 @@ void* xheap_allocate(struct xheap *heap, uint64_t bytes)
 	xptr head, next;
 	uint64_t req_bytes = bytes;
 
-	xlock_acquire(&heap->lock, 1);
+	xlock_acquire(&heap->lock, XLOCK_UNKNOWN_OWNER);
 
 	head = free_list[r];
 	//printf("(r: %d) list[%x]: %lu\n", r, &free_list[r], list);
@@ -148,7 +148,7 @@ static inline void __add_in_free_list(struct xheap *heap, xptr* list, void *ptr)
 	xptr abs_ptr = (xptr) ((unsigned long)ptr - (unsigned long) mem);
 	xptr cur, *node = (xptr *) ptr;
 
-	xlock_acquire(&heap->lock, 2);
+	xlock_acquire(&heap->lock, XLOCK_UNKNOWN_OWNER);
 
 	cur = *(volatile xptr *)list;
 	*node = cur;
