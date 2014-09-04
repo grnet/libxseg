@@ -50,7 +50,7 @@ void *race_thread(void *arg)
         return NULL;
     }
 
-    oldserial = xlock_acquire(lock, 1);
+    oldserial = xlock_acquire(lock, XLOCK_UNKNOWN_OWNER);
     xlock_release(lock);
 
     printf("%d: starting at %lu\n", th->id, oldserial);
@@ -58,7 +58,7 @@ void *race_thread(void *arg)
         //if ((i & 15) == 0)
         //printf("%d: %lu\n", th->id, i);
         asm volatile ("#boo");
-        serial = xlock_acquire(lock, 1);
+        serial = xlock_acquire(lock, XLOCK_UNKNOWN_OWNER);
         asm volatile ("#bee");
         //serial = oldserial +1;
         (*counter) ++;
@@ -74,7 +74,7 @@ void *race_thread(void *arg)
         xlock_release(lock);
     }
 
-    xlock_acquire(lock, 1);
+    xlock_acquire(lock, XLOCK_UNKNOWN_OWNER);
     printf("%d: serial %lu, avediff: %.0lf/%lu = %lf maxdiff: %lu\n",
             th->id, serial, totaldiff, total, totaldiff/total, maxdiff);
     printf("stats:\n");

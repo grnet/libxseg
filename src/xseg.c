@@ -1060,7 +1060,7 @@ struct xseg_port *xseg_alloc_port(struct xseg *xseg, uint32_t flags, uint64_t nr
 	xlock_release(&port->rq_lock);
 	xlock_release(&port->pq_lock);
 	xlock_release(&port->port_lock);
-	port->owner = Noone;
+	port->owner = NoOwner;
 	port->portno = NoPort;
 	port->peer_type = 0; //FIXME what  here ??? NoType??
 	port->alloc_reqs = 0;
@@ -1804,7 +1804,7 @@ int xseg_set_req_data(struct xseg *xseg, struct xseg_request *xreq, void *data)
 		return -1;
 	}
 
-	xlock_acquire(&xseg->priv->reqdatalock, 1);
+	xlock_acquire(&xseg->priv->reqdatalock, XLOCK_UNKNOWN_OWNER);
 
 	req_data = xseg->priv->req_data;
 	r = xhash_insert(req_data, (xhashidx) xreq, (xhashidx) data);
@@ -1835,7 +1835,7 @@ int xseg_get_req_data(struct xseg *xseg, struct xseg_request *xreq, void **data)
 		return -1;
 	}
 
-	xlock_acquire(&xseg->priv->reqdatalock, 1);
+	xlock_acquire(&xseg->priv->reqdatalock, XLOCK_UNKNOWN_OWNER);
 
 	req_data = xseg->priv->req_data;
 	//maybe we need a xhash_delete with lookup...
@@ -2006,7 +2006,7 @@ struct xseg_port *xseg_bind_dynport(struct xseg *xseg)
 			port = xseg_get_port(xseg, portno);
 			if (!port)
 				goto out;
-			if (port->owner != Noone)
+			if (port->owner != NoOwner)
 				continue;
 
 			if (port->signal_desc) {
@@ -2062,7 +2062,7 @@ int xseg_leave_dynport(struct xseg *xseg, struct xseg_port *port)
 		return -1;
 
 	__lock_segment(xseg);
-	port->owner = Noone;
+	port->owner = NoOwner;
 	__unlock_segment(xseg);
 	return 0;
 }

@@ -41,11 +41,11 @@ int (*xseg_snprintf)(char *str, size_t size, const char *format, ...) = snprintf
 
 char __xseg_errbuf[4096];
 
-static struct xlock __lock = { .owner = Noone};
+static struct xlock __lock = { .owner = XLOCK_NOONE};
 
 void __lock_domain(void)
 {
-	(void)xlock_acquire(&__lock, 1);
+	(void)xlock_acquire(&__lock, XLOCK_UNKNOWN_OWNER);
 }
 
 void __unlock_domain(void)

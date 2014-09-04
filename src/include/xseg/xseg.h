@@ -44,6 +44,7 @@ typedef uint32_t xport;
 
 #define NoSerial ((xserial)-1)
 #define NoPort ((xport) -1)
+#define NoOwner ((uint64_t)-1)
 
 #ifndef XSEG_DEF_REQS
 #define XSEG_DEF_REQS 256
