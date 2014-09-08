@@ -1,35 +1,18 @@
 /*
- * Copyright 2012 GRNET S.A. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or
- * without modification, are permitted provided that the following
- * conditions are met:
- *
- *   1. Redistributions of source code must retain the above
- *      copyright notice, this list of conditions and the following
- *      disclaimer.
- *   2. Redistributions in binary form must reproduce the above
- *      copyright notice, this list of conditions and the following
- *      disclaimer in the documentation and/or other materials
- *      provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY GRNET S.A. ``AS IS'' AND ANY EXPRESS
- * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL GRNET S.A OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- * The views and conclusions contained in the software and
- * documentation are those of the authors and should not be
- * interpreted as representing official policies, either expressed
- * or implied, of GRNET S.A.
+Copyright (C) 2010-2014 GRNET S.A.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef _XLOCK_H
@@ -43,7 +26,9 @@
 #undef __pause
 #define __pause()
 
-#define Noone ((unsigned long)-1)
+#define XLOCK_NOONE ((unsigned long)-1)
+#define XLOCK_UNKNOWN_OWNER ((unsigned long)-2)
+#define XLOCK_XSEGTOOL ((unsigned long)-3)
 
 #define XLOCK_SANITY_CHECKS
 #define XLOCK_CONGESTION_NOTIFY
@@ -62,6 +47,16 @@ struct xlock {
 };
 //} __attribute__ ((aligned (16))); /* support up to 128bit longs */
 
+#ifdef XLOCK_SANITY_CHECKS
+static inline int __is_valid_owner(unsigned long owner)
+{
+	if (owner == XLOCK_UNKNOWN_OWNER || owner <= MAX_VALID_OWNER
+			|| owner != XLOCK_XSEGTOOL)
+		return 1;
+	return 0;
+}
+#endif /* XLOCK_SANITY_CHECKS */
+
 static inline unsigned long xlock_acquire(struct xlock *lock, unsigned long who)
 {
 	unsigned long owner;
@@ -71,14 +66,14 @@ static inline unsigned long xlock_acquire(struct xlock *lock, unsigned long who)
 #endif /* XLOCK_CONGESTION_NOTIFY */
 
 	for (;;) {
-		for (; (owner = *(volatile unsigned long *)(&lock->owner) != Noone);){
+		for (; (owner = *(volatile unsigned long *)(&lock->owner) != XLOCK_NOONE);){
 #ifdef XLOCK_SANITY_CHECKS
-			if (owner > MAX_VALID_OWNER){
+			if (!__is_valid_owner(owner)) {
 				XSEGLOG("xlock %lx corrupted. Lock owner %lu",
 						(unsigned long) lock, owner);
-				XSEGLOG("Resetting xlock %lx to Noone", 
+				XSEGLOG("Resetting xlock %lx to XLOCK_NOONE", 
 						(unsigned long) lock);
-				lock->owner = Noone;
+				lock->owner = XLOCK_NOONE;
 			}
 #endif /* XLOCK_SANITY_CHECKS */
 #ifdef XLOCK_CONGESTION_NOTIFY
@@ -96,11 +91,11 @@ static inline unsigned long xlock_acquire(struct xlock *lock, unsigned long who)
 			__pause();
 		}
 
-		if (__sync_bool_compare_and_swap(&lock->owner, Noone, who))
+		if (__sync_bool_compare_and_swap(&lock->owner, XLOCK_NOONE, who))
 			break;
 	}
 #ifdef XLOCK_SANITY_CHECKS
-	if (lock->owner > MAX_VALID_OWNER){
+	if (!__is_valid_owner(lock->owner)) {
 		XSEGLOG("xlock %lx locked with INVALID lock owner %lu",
 				(unsigned long) lock, lock->owner);
 	}
@@ -113,8 +108,8 @@ static inline unsigned long xlock_try_lock(struct xlock *lock, unsigned long who
 {
 	unsigned long owner;
 	owner = *(volatile unsigned long *)(&lock->owner);
-	if (owner == Noone)
-		return __sync_bool_compare_and_swap(&lock->owner, Noone, who);
+	if (owner == XLOCK_NOONE)
+		return __sync_bool_compare_and_swap(&lock->owner, XLOCK_NOONE, who);
 	return 0;
 }
 
@@ -123,14 +118,14 @@ static inline void xlock_release(struct xlock *lock)
 	BARRIER();
 	/*
 #ifdef XLOCK_SANITY_CHECKS
-	if (lock->owner > MAX_VALID_OWNER){
+	if (!__is_valid_owner(lock->owner)) {
 		XSEGLOG("xlock %lx releasing lock with INVALID lock owner %lu",
 				(unsigned long) lock, lock->owner);
 	}
 #endif 
 	*/
 	/* XLOCK_SANITY_CHECKS */
-	lock->owner = Noone;
+	lock->owner = XLOCK_NOONE;
 }
 
 static inline unsigned long xlock_get_owner(struct xlock *lock)

@@ -1,35 +1,18 @@
 /*
- * Copyright 2013 GRNET S.A. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or
- * without modification, are permitted provided that the following
- * conditions are met:
- *
- *   1. Redistributions of source code must retain the above
- *      copyright notice, this list of conditions and the following
- *      disclaimer.
- *   2. Redistributions in binary form must reproduce the above
- *      copyright notice, this list of conditions and the following
- *      disclaimer in the documentation and/or other materials
- *      provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY GRNET S.A. ``AS IS'' AND ANY EXPRESS
- * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL GRNET S.A OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- * The views and conclusions contained in the software and
- * documentation are those of the authors and should not be
- * interpreted as representing official policies, either expressed
- * or implied, of GRNET S.A.
+Copyright (C) 2010-2014 GRNET S.A.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <xseg/xcache.h>
@@ -113,12 +96,12 @@ static int __table_remove(xhash_t *table, char *name)
 
 static xqindex alloc_cache_entry(struct xcache *cache)
 {
-	return xq_pop_head(&cache->free_nodes, 1);
+	return xq_pop_head(&cache->free_nodes, XLOCK_UNKNOWN_OWNER);
 }
 
 static void __free_cache_entry(struct xcache *cache, xqindex idx)
 {
-	if (UNLIKELY(xq_append_head(&cache->free_nodes, idx, 1) == Noneidx))
+	if (UNLIKELY(xq_append_head(&cache->free_nodes, idx, XLOCK_UNKNOWN_OWNER) == Noneidx))
 		XSEGLOG("BUG: Could not free cache entry node. Queue is full");
 }
 
@@ -336,7 +319,7 @@ static void xcache_entry_put(struct xcache *cache, xqindex idx)
 	unsigned long ref;
 
 	if (cache->flags & XCACHE_USE_RMTABLE) {
-		xlock_acquire(&cache->rm_lock, 1);
+		xlock_acquire(&cache->rm_lock, XLOCK_UNKNOWN_OWNER);
 
 		ref = __sync_sub_and_fetch(&ce->ref, 1);
 		if (ref > 0)
@@ -451,7 +434,7 @@ static int __xcache_evict(struct xcache *cache, xcache_handler h)
 		return 0;
 
 	ce->state = NODE_EVICTED;
-	xlock_acquire(&cache->rm_lock, 1);
+	xlock_acquire(&cache->rm_lock, XLOCK_UNKNOWN_OWNER);
 	r = __xcache_insert_rm(cache, h);
 	xlock_release(&cache->rm_lock);
 
@@ -528,7 +511,7 @@ static xcache_handler __xcache_insert(struct xcache *cache, xcache_handler h,
 		goto insert;
 
 	/* check if our "older self" exists in the rm_entries */
-	xlock_acquire(&cache->rm_lock, 1);
+	xlock_acquire(&cache->rm_lock, XLOCK_UNKNOWN_OWNER);
 	tmp_h = __xcache_lookup_rm(cache, ce->name);
 	if (tmp_h != NoEntry) {
 		/* if so then remove it from rm table */
@@ -601,7 +584,7 @@ xcache_handler xcache_insert(struct xcache *cache, xcache_handler h)
 	xcache_handler lru = NoEntry;
 	xcache_handler reinsert_handler = NoEntry;
 
-	xlock_acquire(&cache->lock, 1);
+	xlock_acquire(&cache->lock, XLOCK_UNKNOWN_OWNER);
 	ret = __xcache_insert(cache, h, &lru, &reinsert_handler);
 	xlock_release(&cache->lock);
 
@@ -639,7 +622,7 @@ xcache_handler xcache_lookup(struct xcache *cache, char *name)
 {
 	xcache_handler h = NoEntry;
 
-	xlock_acquire(&cache->lock, 1);
+	xlock_acquire(&cache->lock, XLOCK_UNKNOWN_OWNER);
 	h = __xcache_lookup_and_get_entries(cache, name);
 	xlock_release(&cache->lock);
 
@@ -805,7 +788,7 @@ out_free_q:
 int xcache_remove(struct xcache *cache, xcache_handler h)
 {
 	int r;
-	xlock_acquire(&cache->lock, 1);
+	xlock_acquire(&cache->lock, XLOCK_UNKNOWN_OWNER);
 	r = __xcache_remove(cache, h);
 	xlock_release(&cache->lock);
 	return r;
@@ -819,7 +802,7 @@ int xcache_invalidate(struct xcache *cache, char *name)
 	int r = 0;
 	xcache_handler h;
 
-	xlock_acquire(&cache->lock, 1);
+	xlock_acquire(&cache->lock, XLOCK_UNKNOWN_OWNER);
 
 	h = __xcache_lookup_entries(cache, name);
 	if (h != NoEntry){
@@ -828,7 +811,7 @@ int xcache_invalidate(struct xcache *cache, char *name)
 	}
 
 	if (cache->flags & XCACHE_USE_RMTABLE) {
-		xlock_acquire(&cache->rm_lock, 1);
+		xlock_acquire(&cache->rm_lock, XLOCK_UNKNOWN_OWNER);
 		xlock_release(&cache->lock);
 
 		h = __xcache_lookup_rm(cache, name);

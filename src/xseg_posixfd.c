@@ -1,35 +1,18 @@
 /*
- * Copyright 2012 GRNET S.A. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or
- * without modification, are permitted provided that the following
- * conditions are met:
- *
- *   1. Redistributions of source code must retain the above
- *      copyright notice, this list of conditions and the following
- *      disclaimer.
- *   2. Redistributions in binary form must reproduce the above
- *      copyright notice, this list of conditions and the following
- *      disclaimer in the documentation and/or other materials
- *      provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY GRNET S.A. ``AS IS'' AND ANY EXPRESS
- * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL GRNET S.A OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- * The views and conclusions contained in the software and
- * documentation are those of the authors and should not be
- * interpreted as representing official policies, either expressed
- * or implied, of GRNET S.A.
+Copyright (C) 2010-2014 GRNET S.A.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #define _GNU_SOURCE
@@ -56,6 +39,7 @@ char errbuf[ERRSIZE];
 static long posixfd_allocate(const char *name, uint64_t size)
 {
 	int fd, r;
+	off_t lr;
 	fd = shm_open(name, O_RDWR | O_CREAT | O_EXCL, 0770);
 	if (fd < 0) {
 		XSEGLOG("Cannot create shared segment: %s\n",
@@ -63,12 +47,12 @@ static long posixfd_allocate(const char *name, uint64_t size)
 		return fd;
 	}
 
-	r = lseek(fd, size -1, SEEK_SET);
-	if (r < 0) {
+	lr = lseek(fd, size -1, SEEK_SET);
+	if (lr == (off_t)-1) {
 		close(fd);
 		XSEGLOG("Cannot seek into segment file: %s\n",
 			strerror_r(errno, errbuf, ERRSIZE));
-		return r;
+		return lr;
 	}
 
 	errbuf[0] = 0;
@@ -120,7 +104,7 @@ static void *posixfd_map(const char *name, uint64_t size, struct xseg *seg)
 static void posixfd_unmap(void *ptr, uint64_t size)
 {
 	struct xseg *xseg = ptr;
-	(void)munmap(xseg, xseg->segment_size);
+	(void)munmap(xseg, size);
 }
 
 static struct posixfd_signal_desc * __get_signal_desc(struct xseg *xseg, xport portno)
@@ -209,7 +193,10 @@ static void posixfd_local_signal_quit(struct xseg *xseg, xport portno)
 static int posixfd_remote_signal_init(void)
 {
 	int r;
-	r = mkdir(POSIXFD_DIR, 01755);
+	mode_t oldumask;
+	oldumask = umask(0000);
+	r = mkdir(POSIXFD_DIR, 01777);
+	umask(oldumask);
 
 	if (r < 0) {
 		if (errno != EEXIST) // && isdir(POSIXFD_DIR)
@@ -386,7 +373,7 @@ static char get_hex(unsigned int h)
 static void hexlify(unsigned char *data, long datalen, char *hex)
 {
 	long i;
-	for (i=0; i<datalen; i++){
+	for (i = 0; i < datalen; i++) {
 		hex[2*i] = get_hex((data[i] & 0xF0) >> 4);
 		hex[2*i + 1] = get_hex(data[i] & 0x0F);
 	}
@@ -399,9 +386,10 @@ int posixfd_init_signal_desc(struct xseg *xseg, void *sd)
 	struct posixfd_signal_desc *psd = sd;
 	if (!psd)
 		return -1;
-	psd->flag = 0;
 	psd->signal_file[0] = 0;
-	hexlify(&sd, POSIXFD_FILENAME_LEN, psd->signal_file);
+	/* POSIXFD_FILENAME_LEN = 2 * sizeof(void *) */
+	hexlify(&sd, POSIXFD_FILENAME_LEN / 2, psd->signal_file);
+	psd->flag = 0;
 	psd->fd = -1;
 
 	return 0;
