@@ -214,7 +214,6 @@ struct xseg_task {
 #define X_CREATE   18
 #define X_RENAME   19
 #define X_FLUSH    20
-#define X_TRUNCATE 21
 
 /* REQ FLAGS */
 #define XF_NOSYNC    (1 << 0)
