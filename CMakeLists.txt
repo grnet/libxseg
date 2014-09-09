@@ -17,7 +17,7 @@ cmake_minimum_required(VERSION 2.8)
 
 project (xseg)
 SET(MAJOR 0)
-SET(MINOR 2)
+SET(MINOR 4)
 
 
 FIND_PROGRAM(H2XML h2xml)
