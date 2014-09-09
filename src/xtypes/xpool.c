@@ -39,7 +39,7 @@ void __xpool_clear(struct xpool *xp)
 	xp->free = 0;
 }
 
-void xpool_clear(struct xpool *xp, uint32_t who)
+void xpool_clear(struct xpool *xp)
 {
 	xlock_acquire(&xp->lock);
 	__xpool_clear(xp);
@@ -95,7 +95,7 @@ xpool_index __xpool_add(struct xpool *xp, xpool_data data)
 	return idx;
 }
 
-xpool_index xpool_add(struct xpool *xp, xpool_data data, uint32_t who)
+xpool_index xpool_add(struct xpool *xp, xpool_data data)
 {
 	xpool_index idx;
 	xlock_acquire(&xp->lock);
@@ -214,7 +214,7 @@ xpool_index __xpool_remove(struct xpool *xp, xpool_index idx, xpool_data *data)
 	return idx;
 }
 
-xpool_index xpool_remove(struct xpool *xp, xpool_index idx, xpool_data *data, uint32_t who)
+xpool_index xpool_remove(struct xpool *xp, xpool_index idx, xpool_data *data)
 {
 	xpool_index ret;
 	xlock_acquire(&xp->lock);
@@ -236,7 +236,7 @@ xpool_index __xpool_peek(struct xpool *xp, xpool_data *data)
 	return ret;
 }
 
-xpool_index xpool_peek(struct xpool *xp, xpool_data *data, uint32_t who)
+xpool_index xpool_peek(struct xpool *xp, xpool_data *data)
 {
 	xpool_index ret;
 	xlock_acquire(&xp->lock);
@@ -256,7 +256,7 @@ xpool_index __xpool_peek_idx(struct xpool *xp, xpool_index idx, xpool_data *data
 	return idx;
 }
 
-xpool_index xpool_peek_idx(struct xpool *xp, xpool_index idx, xpool_data *data, uint32_t who)
+xpool_index xpool_peek_idx(struct xpool *xp, xpool_index idx, xpool_data *data)
 {
 	xpool_index ret;
 	xlock_acquire(&xp->lock);
@@ -279,7 +279,7 @@ xpool_index __xpool_peek_and_fwd(struct xpool *xp, xpool_data *data)
 	return ret;
 }
 
-xpool_index xpool_peek_and_fwd(struct xpool *xp, xpool_data *data, uint32_t who)
+xpool_index xpool_peek_and_fwd(struct xpool *xp, xpool_data *data)
 {
 	xpool_index ret;
 	xlock_acquire(&xp->lock);
@@ -320,7 +320,7 @@ xpool_index __xpool_set_idx(struct xpool *xp, xpool_index idx, xpool_data data)
 	return idx;
 }
 
-xpool_index xpool_set_idx(struct xpool *xp, xpool_index idx, xpool_data data, uint32_t who)
+xpool_index xpool_set_idx(struct xpool *xp, xpool_index idx, xpool_data data)
 {
 	xpool_index ret;
 	xlock_acquire(&xp->lock);
