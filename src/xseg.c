@@ -41,16 +41,12 @@ static int xseg_join_ref;
 
 static void __lock_segment(struct xseg *xseg)
 {
-	volatile uint64_t *flags;
-	flags = &xseg->shared->flags;
-	while (__sync_fetch_and_or(flags, XSEG_F_LOCK));
+	xlock_acquire(&xseg->shared->segment_lock);
 }
 
 static void __unlock_segment(struct xseg *xseg)
 {
-	volatile uint64_t *flags;
-	flags = &xseg->shared->flags;
-	__sync_fetch_and_and(flags, ~XSEG_F_LOCK);
+	xlock_release(&xseg->shared->segment_lock);
 }
 
 static struct xseg_type *__find_type(const char *name, long *index)
@@ -660,6 +656,7 @@ static long initialize_segment(struct xseg *xseg, struct xseg_config *cfg)
 	shared = (struct xseg_shared *) mem;
 	shared->flags = 0;
 	shared->nr_peer_types = 0;
+	xlock_release(&shared->segment_lock);
 	xseg->shared = (struct xseg_shared *) XPTR_MAKE(mem, segment);
 
 	mem = xheap_allocate(heap, page_size);
