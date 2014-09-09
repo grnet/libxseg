@@ -1226,7 +1226,7 @@ static void lock_status(struct xlock *lock, char *buf, int len)
 	if (lock->owner == XLOCK_NOONE)
 		r = snprintf(buf, len, "Locked: No");
 	else
-		r = snprintf(buf, len, "Locked: Yes (Owner: %lu)", lock->owner);
+		r = snprintf(buf, len, "Locked: Yes (Owner: %d)", lock->owner);
 	if (r >= len)
 		buf[len-1] = 0;
 }
@@ -1413,19 +1413,19 @@ static int isDangling(struct xseg_request *req)
 			fq = xseg_get_queue(xseg, port, free_queue);
 			rq = xseg_get_queue(xseg, port, request_queue);
 			pq = xseg_get_queue(xseg, port, reply_queue);
-			xlock_acquire(&port->fq_lock, XLOCK_XSEGTOOL);
+			xlock_acquire(&port->fq_lock);
 			if (__xq_check(fq, XPTR_MAKE(req, xseg->segment))){
 					xlock_release(&port->fq_lock);
 					return 0;
 			}
 			xlock_release(&port->fq_lock);
-			xlock_acquire(&port->rq_lock, XLOCK_XSEGTOOL);
+			xlock_acquire(&port->rq_lock);
 			if (__xq_check(rq, XPTR_MAKE(req, xseg->segment))){
 					xlock_release(&port->rq_lock);
 					return 0;
 			}
 			xlock_release(&port->rq_lock);
-			xlock_acquire(&port->pq_lock, XLOCK_XSEGTOOL);
+			xlock_acquire(&port->pq_lock);
 			if (__xq_check(pq, XPTR_MAKE(req, xseg->segment))){
 					xlock_release(&port->pq_lock);
 					return 0;
@@ -1528,7 +1528,7 @@ int cmd_verify(int fix)
 	struct xobject_iter it;
 
 	struct xseg_request *req;
-	xlock_acquire(&obj_h->lock, XLOCK_XSEGTOOL);
+	xlock_acquire(&obj_h->lock);
 	xobj_iter_init(obj_h, &it);
 	while (xobj_iterate(obj_h, &it, (void **)&req)){
 		//FIXME this will not work cause obj->magic - req->serial is not
@@ -1616,7 +1616,7 @@ int cmd_recoverport(long portno)
 	struct xobject_iter it;
 
 	struct xseg_request *req;
-	xlock_acquire(&obj_h->lock, XLOCK_XSEGTOOL);
+	xlock_acquire(&obj_h->lock);
 	xobj_iter_init(obj_h, &it);
 	while (xobj_iterate(obj_h, &it, (void **)&req)){
 		//FIXME this will not work cause obj->magic - req->serial is not
@@ -1659,7 +1659,7 @@ int cmd_inspectq(xport portno, enum queue qt)
 	}
 	else
 		return -1;
-	xlock_acquire(l, XLOCK_XSEGTOOL);
+	xlock_acquire(l);
 	xqindex i,c = xq_count(q);
 	if (c) {
 		struct xseg_request *req;

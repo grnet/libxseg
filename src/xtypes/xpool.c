@@ -41,7 +41,7 @@ void __xpool_clear(struct xpool *xp)
 
 void xpool_clear(struct xpool *xp, uint32_t who)
 {
-	xlock_acquire(&xp->lock, who);
+	xlock_acquire(&xp->lock);
 	__xpool_clear(xp);
 	xlock_release(&xp->lock);
 }
@@ -98,7 +98,7 @@ xpool_index __xpool_add(struct xpool *xp, xpool_data data)
 xpool_index xpool_add(struct xpool *xp, xpool_data data, uint32_t who)
 {
 	xpool_index idx;
-	xlock_acquire(&xp->lock, who);
+	xlock_acquire(&xp->lock);
 	idx = __xpool_add(xp, data);
 	xlock_release(&xp->lock);
 	return idx;
@@ -108,7 +108,7 @@ xpool_index xpool_add(struct xpool *xp, xpool_data data)
 {
 	struct xpool_node *new, *list, *free, *next, *prev;
 	//acquire lock
-	xlock_acquire(&xp->lock, XLOCK_UNKNOWN_OWNER);
+	xlock_acquire(&xp->lock);
 	free = XPTR(&xp->free);
 	list = XPTR(&xp->list);
 	new = free;
@@ -151,7 +151,7 @@ xpool_index xpool_remove(struct xpool *xp, xpool_index idx, xpool_data *data)
 {
 	struct xpool_node *node, *list, *free, *prev, *next;
 	//acquire lock
-	xlock_acquire(&xp->lock, XLOCK_UNKNOWN_OWNER);
+	xlock_acquire(&xp->lock);
 	if (!__validate_idx(xp, idx)){ // idx < xp->size && node->prev != NULL
 		xlock_release(&xp->lock);
 		return NoIndex;
@@ -217,7 +217,7 @@ xpool_index __xpool_remove(struct xpool *xp, xpool_index idx, xpool_data *data)
 xpool_index xpool_remove(struct xpool *xp, xpool_index idx, xpool_data *data, uint32_t who)
 {
 	xpool_index ret;
-	xlock_acquire(&xp->lock, who);
+	xlock_acquire(&xp->lock);
 	ret = __xpool_remove(xp, idx, data);
 	xlock_release(&xp->lock);
 	return ret;
@@ -239,7 +239,7 @@ xpool_index __xpool_peek(struct xpool *xp, xpool_data *data)
 xpool_index xpool_peek(struct xpool *xp, xpool_data *data, uint32_t who)
 {
 	xpool_index ret;
-	xlock_acquire(&xp->lock, who);
+	xlock_acquire(&xp->lock);
 	ret = __xpool_peek(xp, data);
 	xlock_release(&xp->lock);
 	return ret;
@@ -259,7 +259,7 @@ xpool_index __xpool_peek_idx(struct xpool *xp, xpool_index idx, xpool_data *data
 xpool_index xpool_peek_idx(struct xpool *xp, xpool_index idx, xpool_data *data, uint32_t who)
 {
 	xpool_index ret;
-	xlock_acquire(&xp->lock, who);
+	xlock_acquire(&xp->lock);
 	ret = __xpool_peek_idx(xp,idx,data);
 	xlock_release(&xp->lock);
 	return ret;
@@ -282,7 +282,7 @@ xpool_index __xpool_peek_and_fwd(struct xpool *xp, xpool_data *data)
 xpool_index xpool_peek_and_fwd(struct xpool *xp, xpool_data *data, uint32_t who)
 {
 	xpool_index ret;
-	xlock_acquire(&xp->lock, who);
+	xlock_acquire(&xp->lock);
 	ret = __xpool_peek_and_fwd(xp,data);
 	xlock_release(&xp->lock);
 	return ret;
@@ -293,7 +293,7 @@ xpool_index xpool_peek_and_fwd(struct xpool *xp, xpool_data *data)
 {
 	struct xpool_node *list, *next;
 	//acquire lock
-	xlock_acquire(&xp->lock, XLOCK_UNKNOWN_OWNER);
+	xlock_acquire(&xp->lock);
 	list = XPTR(&xp->list);
 	if (!list){
 		xlock_release(&xp->lock);
@@ -323,7 +323,7 @@ xpool_index __xpool_set_idx(struct xpool *xp, xpool_index idx, xpool_data data)
 xpool_index xpool_set_idx(struct xpool *xp, xpool_index idx, xpool_data data, uint32_t who)
 {
 	xpool_index ret;
-	xlock_acquire(&xp->lock, who);
+	xlock_acquire(&xp->lock);
 	ret = __xpool_set_idx(xp, idx, data);
 	xlock_release(&xp->lock);
 	return ret;

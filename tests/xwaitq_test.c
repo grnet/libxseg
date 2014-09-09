@@ -35,7 +35,7 @@ int condfn(void *arg)
 void jobfn(void *q, void *arg)
 {
 	unsigned long c = (unsigned long) arg;
-	xlock_acquire(&lock, c);
+	xlock_acquire(&lock);
 	sum += c;
 	xlock_release(&lock);
 }

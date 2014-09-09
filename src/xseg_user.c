@@ -45,7 +45,7 @@ static struct xlock __lock = { .owner = XLOCK_NOONE};
 
 void __lock_domain(void)
 {
-	(void)xlock_acquire(&__lock, XLOCK_UNKNOWN_OWNER);
+	(void)xlock_acquire(&__lock);
 }
 
 void __unlock_domain(void)
