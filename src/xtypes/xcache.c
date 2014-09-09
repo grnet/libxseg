@@ -96,12 +96,12 @@ static int __table_remove(xhash_t *table, char *name)
 
 static xqindex alloc_cache_entry(struct xcache *cache)
 {
-	return xq_pop_head(&cache->free_nodes, XLOCK_UNKNOWN_OWNER);
+	return xq_pop_head(&cache->free_nodes);
 }
 
 static void __free_cache_entry(struct xcache *cache, xqindex idx)
 {
-	if (UNLIKELY(xq_append_head(&cache->free_nodes, idx, XLOCK_UNKNOWN_OWNER) == Noneidx))
+	if (UNLIKELY(xq_append_head(&cache->free_nodes, idx) == Noneidx))
 		XSEGLOG("BUG: Could not free cache entry node. Queue is full");
 }
 
