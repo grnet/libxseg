@@ -388,7 +388,7 @@ int posixfd_init_signal_desc(struct xseg *xseg, void *sd)
 		return -1;
 	psd->signal_file[0] = 0;
 	/* POSIXFD_FILENAME_LEN = 2 * sizeof(void *) */
-	hexlify(&sd, POSIXFD_FILENAME_LEN / 2, psd->signal_file);
+	hexlify((unsigned char *)&sd, POSIXFD_FILENAME_LEN / 2, psd->signal_file);
 	psd->flag = 0;
 	psd->fd = -1;
 

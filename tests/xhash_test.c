@@ -88,21 +88,21 @@ int test_string(xhashidx loops)
 	int ret;
         xhashidx r;
         //printf("insert(%lx, %lx)\n", i, -i);
-        rr = xhash_insert(h, string[i], i);
+        rr = xhash_insert(h, (xhashidx)string[i], i);
 	if (rr == -XHASH_ERESIZE){
 		h = my_resize(h, xhash_grow_size_shift(h));
-		rr = xhash_insert(h, string[i], i);
+		rr = xhash_insert(h, (xhashidx)string[i], i);
 		if (rr != 0)
 			printf("resize string insert error in %lx: %lx != %lx\n", i, r, i);
 	}
-        ret = xhash_lookup(h, string[i], &r);
+        ret = xhash_lookup(h, (xhashidx)string[i], &r);
         if (ret || (r != i)) {
             printf("string insert error in %lx (ret: %d): returned val %lx, expected val %lx\n ", i, ret, r, i);
         }
         //printf(" ->got(%lx, %lx)\n", i, r);
     }
     for (i = 10; i < loops; i++) {
-        int ret = xhash_lookup(h, string[i], &v);
+        int ret = xhash_lookup(h, (xhashidx)string[i], &v);
         //printf(" ->got(%lu, %lu)\n", i, v);
         if (ret || (i != v)) {
             printf("string error in %lu: %lu != %lu\n", i, i, v);
@@ -113,14 +113,14 @@ int test_string(xhashidx loops)
 	int ret;
         xhashidx r;
         //printf("insert(%lx, %lx)\n", i, -i);
-        rr = xhash_delete(h, string[i]);
+        rr = xhash_delete(h, (xhashidx)string[i]);
 	if (rr == -XHASH_ERESIZE){
 		h = my_resize(h, xhash_shrink_size_shift(h));
-		rr = xhash_delete(h, string[i]);
+		rr = xhash_delete(h, (xhashidx)string[i]);
 		if (rr != 0)
 			printf("resize string delele error in %lx: %lx != %lx\n", i, r, i);
 	}
-        ret = xhash_lookup(h, string[i], &r);
+        ret = xhash_lookup(h, (xhashidx)string[i], &r);
         if (!ret) {
             printf("string delete error in %lx: %lx != %lx\n", i, r, i);
         }
@@ -154,7 +154,7 @@ int test_string2()
         rr = xhash_insert(h, (xhashidx) string[i], (xhashidx) i);
 	if (rr == -XHASH_ERESIZE){
 		h = my_resize(h, xhash_grow_size_shift(h));
-		rr = xhash_insert(h, string[i], (xhashidx) i);
+		rr = xhash_insert(h, (xhashidx)string[i], (xhashidx) i);
 		if (rr != 0)
 			printf("resize string insert error in %lx: %lx != %lx\n", i, r, i);
 	}

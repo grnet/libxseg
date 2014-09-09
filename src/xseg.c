@@ -1507,6 +1507,7 @@ int xseg_resize_request (struct xseg *xseg, struct xseg_request *req,
 	return xseg_prep_request(xseg, req, new_targetlen, new_datalen);
 }
 
+#if 0
 static void __update_timestamp(struct xseg_request *xreq)
 {
 	struct timeval tv;
@@ -1528,6 +1529,7 @@ static void __update_timestamp(struct xseg_request *xreq)
 	xreq->timestamp.tv_sec = tv.tv_sec;
 	xreq->timestamp.tv_usec = tv.tv_usec;
 }
+#endif
 
 //FIXME should we add NON_BLOCK flag?
 xport xseg_submit (struct xseg *xseg, struct xseg_request *xreq,

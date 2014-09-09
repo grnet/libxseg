@@ -52,7 +52,7 @@ int test1(unsigned long n)
 
 	for (i = 0; i < n; i++) {
 		works[i].job_fn = jobfn;
-		works[i].job = 1;
+		works[i].job = (void *)1;
 	}
 
 	for (i = 0; i < n; i++) {
@@ -83,7 +83,7 @@ void *thread_test(void *arg)
 
 	for (i = 0; i < n; i++) {
 		works[i].job_fn = jobfn;
-		works[i].job = targ->num;
+		works[i].job = (void *)targ->num;
 	}
 
 	for (i = 0; i < n; i++) {

@@ -259,6 +259,7 @@ static xcache_handler __xcache_lookup_rm(struct xcache *cache, char *name)
 	return __table_lookup(cache->rm_entries, name);
 }
 
+/*
 static xcache_handler __xcache_lookup_and_get_rm(struct xcache *cache, char *name)
 {
 	xcache_handler h;
@@ -270,6 +271,7 @@ static xcache_handler __xcache_lookup_and_get_rm(struct xcache *cache, char *nam
 
 	return h;
 }
+*/
 
 static xcache_handler __xcache_lookup_entries(struct xcache *cache, char *name)
 {
