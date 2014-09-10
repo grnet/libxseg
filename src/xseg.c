@@ -1596,7 +1596,6 @@ xport xseg_submit (struct xseg *xseg, struct xseg_request *xreq,
 	serial = __xq_append_tail(q, xqi);
 	if (flags & X_ALLOC && serial == Noneidx) {
 		/* double up queue size */
-		XSEGLOG("Trying to double up queue");
 		newq = __alloc_queue(xseg, xq_size(q)*2);
 		if (!newq)
 			goto out_rel;
