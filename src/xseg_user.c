@@ -45,7 +45,7 @@ static struct xlock __lock = { .owner = XLOCK_NOONE};
 
 void __lock_domain(void)
 {
-	(void)xlock_acquire(&__lock, XLOCK_UNKNOWN_OWNER);
+	(void)xlock_acquire(&__lock);
 }
 
 void __unlock_domain(void)
@@ -273,14 +273,24 @@ void __xseg_log2(struct log_ctx *lc, enum log_level level, char *fmt, ...)
 	return;
 }
 
-/* FIXME: This is not async safe */
+/* TODO: Make an async-safe alternative */
 void xseg_printtrace(void)
 {
 	void *array[20];
+	char **bt;
 	size_t size;
+	int i;
+	pid_t tid = __get_id();
 
-	XSEGLOG("Backtrace:");
 	size = backtrace(array, 20);
-	/* stderr should be open since we don't close it */
-	backtrace_symbols_fd(array, size, 2);
+	bt = backtrace_symbols(array, size);
+	if (!bt) {
+		return;
+	}
+
+	XSEGLOG("Backtrace of tid %d:", tid);
+	for (i = 0; i < size; ++i)
+	{
+		XSEGLOG("\t%s", bt[i]);
+	}
 }

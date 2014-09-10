@@ -45,13 +45,13 @@ struct xpool {
 };
 
 void xpool_init(struct xpool *xp, uint64_t size, struct xpool_node* mem);
-void xpool_clear(struct xpool *xp, uint32_t who);
-xpool_index xpool_add(struct xpool *xp, xpool_data data, uint32_t who);
-xpool_index xpool_remove(struct xpool *xp, xpool_index idx, xpool_data *data, uint32_t who);
-xpool_index xpool_peek(struct xpool *xp, xpool_data *data, uint32_t who);
-xpool_index xpool_peek_idx(struct xpool *xp, xpool_index idx, xpool_data *data, uint32_t who);
-xpool_index xpool_peek_and_fwd(struct xpool *xp, xpool_data *data, uint32_t who);
-xpool_index xpool_set_idx(struct xpool *xp, xpool_index idx, xpool_data data, uint32_t who);
+void xpool_clear(struct xpool *xp);
+xpool_index xpool_add(struct xpool *xp, xpool_data data);
+xpool_index xpool_remove(struct xpool *xp, xpool_index idx, xpool_data *data);
+xpool_index xpool_peek(struct xpool *xp, xpool_data *data);
+xpool_index xpool_peek_idx(struct xpool *xp, xpool_index idx, xpool_data *data);
+xpool_index xpool_peek_and_fwd(struct xpool *xp, xpool_data *data);
+xpool_index xpool_set_idx(struct xpool *xp, xpool_index idx, xpool_data data);
 
 void __xpool_clear(struct xpool *xp);
 xpool_index __xpool_add(struct xpool *xp, xpool_data data);

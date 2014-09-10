@@ -39,48 +39,16 @@ void *race_thread(void *arg)
     long loops = th->loops;
     struct xlock *lock = th->lock;
     long *counter = th->counter;
-    unsigned long serial = 0, oldserial = 0, total = 0, maxdiff = 0, diff = 0;
-    double totaldiff = 0.0;
-    unsigned long *diffstat;
     long i;
 
-    diffstat = calloc((int)log2(loops), sizeof(unsigned long));
-    if (!diffstat) {
-        perror("malloc");
-        return NULL;
-    }
-
-    oldserial = xlock_acquire(lock, XLOCK_UNKNOWN_OWNER);
-    xlock_release(lock);
-
-    printf("%d: starting at %lu\n", th->id, oldserial);
     for (i = 0; i < loops; i++) {
-        //if ((i & 15) == 0)
-        //printf("%d: %lu\n", th->id, i);
         asm volatile ("#boo");
-        serial = xlock_acquire(lock, XLOCK_UNKNOWN_OWNER);
+        xlock_acquire(lock);
         asm volatile ("#bee");
-        //serial = oldserial +1;
         (*counter) ++;
-        diff = serial - oldserial;
-        oldserial = serial;
-        if (diff > maxdiff)
-            maxdiff = diff;
-        diffstat[(int)log2(diff)] ++;
-        if (diff > 1) {
-            total += 1;
-            totaldiff += diff;
-        }
         xlock_release(lock);
     }
 
-    xlock_acquire(lock, XLOCK_UNKNOWN_OWNER);
-    printf("%d: serial %lu, avediff: %.0lf/%lu = %lf maxdiff: %lu\n",
-            th->id, serial, totaldiff, total, totaldiff/total, maxdiff);
-    printf("stats:\n");
-    for (i = 0; i < (int)log2(loops); i++)
-        printf("    %012lu: %lu\n", (unsigned long)powl(2, i), diffstat[i]);
-    xlock_release(lock);
     return NULL;
 }
 

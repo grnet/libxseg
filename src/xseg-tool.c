@@ -1223,10 +1223,16 @@ int cmd_submit_reqs(long loops, long concurrent_reqs, int op)
 static void lock_status(struct xlock *lock, char *buf, int len)
 {
 	int r;
-	if (lock->owner == XLOCK_NOONE)
+	pid_t pid, tid;
+	void *pc, *full_pc;
+	if (lock->owner == XLOCK_NOONE) {
 		r = snprintf(buf, len, "Locked: No");
-	else
-		r = snprintf(buf, len, "Locked: Yes (Owner: %lu)", lock->owner);
+	} else {
+		unpack_owner(lock->owner, &pid, &tid, &pc);
+		full_pc = (void *)lock->pc;
+		r = snprintf(buf, len, "Locked: Yes (Owner: %d, %d, %p[%p])",
+					pid, tid, pc, full_pc);
+	}
 	if (r >= len)
 		buf[len-1] = 0;
 }
@@ -1262,7 +1268,7 @@ int cmd_report(uint32_t portno)
 		(unsigned long long)port->max_alloc_reqs,
 		xseg->path_next[portno],
 		xseg->dst_gw[portno],
-		port->owner,
+		(unsigned long long)port->owner,
 		(void *)fq, (unsigned long long)xq_count(fq), fls,
 		(void *)rq, (unsigned long long)xq_count(rq), rls,
 		(void *)pq, (unsigned long long)xq_count(pq), pls);
@@ -1413,19 +1419,19 @@ static int isDangling(struct xseg_request *req)
 			fq = xseg_get_queue(xseg, port, free_queue);
 			rq = xseg_get_queue(xseg, port, request_queue);
 			pq = xseg_get_queue(xseg, port, reply_queue);
-			xlock_acquire(&port->fq_lock, XLOCK_XSEGTOOL);
+			xlock_acquire(&port->fq_lock);
 			if (__xq_check(fq, XPTR_MAKE(req, xseg->segment))){
 					xlock_release(&port->fq_lock);
 					return 0;
 			}
 			xlock_release(&port->fq_lock);
-			xlock_acquire(&port->rq_lock, XLOCK_XSEGTOOL);
+			xlock_acquire(&port->rq_lock);
 			if (__xq_check(rq, XPTR_MAKE(req, xseg->segment))){
 					xlock_release(&port->rq_lock);
 					return 0;
 			}
 			xlock_release(&port->rq_lock);
-			xlock_acquire(&port->pq_lock, XLOCK_XSEGTOOL);
+			xlock_acquire(&port->pq_lock);
 			if (__xq_check(pq, XPTR_MAKE(req, xseg->segment))){
 					xlock_release(&port->pq_lock);
 					return 0;
@@ -1528,7 +1534,7 @@ int cmd_verify(int fix)
 	struct xobject_iter it;
 
 	struct xseg_request *req;
-	xlock_acquire(&obj_h->lock, XLOCK_XSEGTOOL);
+	xlock_acquire(&obj_h->lock);
 	xobj_iter_init(obj_h, &it);
 	while (xobj_iterate(obj_h, &it, (void **)&req)){
 		//FIXME this will not work cause obj->magic - req->serial is not
@@ -1546,42 +1552,37 @@ int cmd_verify(int fix)
 	return 0;
 }
 
-int cmd_recoverlocks(long p)
+int cmd_recoverlocks(int pid)
 {
-	xport portno = (xport)p;
+	xport i;
+	struct xseg_port *port;
+	pid_t p = (pid_t)pid;
 
 	if (cmd_join())
 		return -1;
 
-	if (xseg->shared->flags & XSEG_F_LOCK){
-		fprintf(stdout, "Segment lock: Locked\n");
-		fprintf(stdout, "Consider rebooting the node\n");
-		return -1;
+	if (xseg->shared->segment_lock.owner == p){
+		fprintf(stdout, "Segment lock locked by %d. Unlocking..\n", p);
+		xlock_release(&xseg->shared->segment_lock);
 	}
-	if (xseg->heap->lock.owner != XLOCK_NOONE){
-		fprintf(stdout, "Heap lock: Locked\n");
-		fprintf(stdout, "Consider rebooting the node\n");
-		return -1;
+	if (xseg->heap->lock.owner == p){
+		fprintf(stdout, "Heap lock locked by %d. Unlocking..\n", p);
+		xlock_release(&xseg->heap->lock);
 	}
-	//obj_h locks
-	if (xseg->request_h->lock.owner != XLOCK_NOONE){
-		fprintf(stdout, "Requests handler lock: Locked\n");
-		fprintf(stdout, "Consider rebooting the node\n");
-		return -1;
+	/* obj_h locks */
+	if (xseg->request_h->lock.owner == p){
+		fprintf(stdout, "Request handler lock locked by %d. Unlocking..\n", p);
+		xlock_release(&xseg->request_h->lock);
 	}
-	if (xseg->port_h->lock.owner != XLOCK_NOONE){
-		fprintf(stdout, "Ports handler lock: Locked\n");
-		fprintf(stdout, "Consider rebooting the node\n");
-		return -1;
+	if (xseg->port_h->lock.owner == p){
+		fprintf(stdout, "Port handler lock locked by %d. Unlocking..\n", p);
+		xlock_release(&xseg->port_h->lock);
 	}
-	if (xseg->object_handlers->lock.owner != XLOCK_NOONE){
-		fprintf(stdout, "Objects handler lock: Locked\n");
-		fprintf(stdout, "Consider rebooting the node\n");
-		return -1;
+	if (xseg->object_handlers->lock.owner == p){
+		fprintf(stdout, "Object handler lock locked by %d. Unlocking..\n", p);
+		xlock_release(&xseg->object_handlers->lock);
 	}
-	//take segment lock?
-	xport i;
-	struct xseg_port *port;
+
 	for (i = 0; i < xseg->config.nr_ports; i++) {
 		if (xseg->ports[i]){
 			port = xseg_get_port(xseg, i);
@@ -1590,16 +1591,22 @@ int cmd_recoverlocks(long p)
 				fprintf(stdout, "Consider rebooting the node\n");
 				return -1;
 			}
-			if (port->fq_lock.owner == portno) {
-				fprintf(stdout, "Free queue lock of port %u locked. Unlocking...\n", i);
+			if (port->fq_lock.owner == p) {
+				fprintf(stdout, "Free queue lock of port %u "
+						"locked by %d. Unlocking...\n",
+						i, p);
 				xlock_release(&port->fq_lock);
 			}
-			if (port->rq_lock.owner == portno) {
-				fprintf(stdout, "Request queue lock of port %u locked. Unlocking...\n", i);
+			if (port->rq_lock.owner == p) {
+				fprintf(stdout, "Request queue lock of port %u "
+						"locked by %d. Unlocking...\n",
+						i, p);
 				xlock_release(&port->rq_lock);
 			}
-			if (port->pq_lock.owner == portno) {
-				fprintf(stdout, "Reply queue lock of port %u locked. Unlocking...\n", i);
+			if (port->pq_lock.owner == p) {
+				fprintf(stdout, "Reply queue lock of port %u "
+						"locked by %d. Unlocking...\n",
+						i, p);
 				xlock_release(&port->pq_lock);
 			}
 		}
@@ -1616,12 +1623,12 @@ int cmd_recoverport(long portno)
 	struct xobject_iter it;
 
 	struct xseg_request *req;
-	xlock_acquire(&obj_h->lock, XLOCK_XSEGTOOL);
+	xlock_acquire(&obj_h->lock);
 	xobj_iter_init(obj_h, &it);
 	while (xobj_iterate(obj_h, &it, (void **)&req)){
+		/* if (obj->magic != MAGIC_REQ && t->src_portno == portno){ */
 		//FIXME this will not work cause obj->magic - req->serial is not
 		//touched when a request is get
-		/* if (obj->magic != MAGIC_REQ && t->src_portno == portno){ */
 		if (isDangling(req) && !__xobj_isFree(obj_h, req)){
 			if (req->transit_portno == (uint32_t)portno) {
 				report_request(req);
@@ -1659,7 +1666,7 @@ int cmd_inspectq(xport portno, enum queue qt)
 	}
 	else
 		return -1;
-	xlock_acquire(l, XLOCK_XSEGTOOL);
+	xlock_acquire(l);
 	xqindex i,c = xq_count(q);
 	if (c) {
 		struct xseg_request *req;
@@ -2043,7 +2050,7 @@ int main(int argc, char **argv)
 		}
 
 		if (!strcmp(argv[i], "recoverlocks") && (i + 1 < argc)) {
-			ret = cmd_recoverlocks(atol(argv[i+1]));
+			ret = cmd_recoverlocks(atoi(argv[i+1]));
 			i += 1;
 			continue;
 		}
