@@ -111,6 +111,7 @@ int __renew_logctx(struct log_ctx *lc, char *peer_name,
 		enum log_level log_level, char *logfile, uint32_t flags)
 {
 	int fd, tmp_fd;
+	mode_t old_mode;
 
 	if (peer_name){
 		strncpy(lc->peer_name, peer_name, MAX_PEER_NAME);
@@ -125,7 +126,10 @@ int __renew_logctx(struct log_ctx *lc, char *peer_name,
 	else if (!(flags & REOPEN_FILE) || lc->logfile == STDERR_FILENO)
 		return 0;
 
-	fd = open(lc->filename, O_WRONLY|O_CREAT|O_APPEND, S_IRUSR|S_IWUSR);
+	old_mode = umask(S_IWOTH);
+	fd = open(lc->filename, O_WRONLY|O_CREAT|O_APPEND,
+			S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
+	umask(old_mode);
 	if (fd < 0){
 		return -1;
 	}
