@@ -139,30 +139,36 @@ static int posixfd_local_signal_init(struct xseg *xseg, xport portno)
 	/* create or truncate POSIXFD+portno file */
 	int r, fd;
 	char filename[POSIXFD_DIR_LEN + POSIXFD_FILENAME_LEN + 1];
+	mode_t old_mode;
 
 	struct posixfd_signal_desc *psd = __get_signal_desc(xseg, portno);
 	if (!psd) {
 		return -1;
 	}
 	__get_filename(psd, filename);
+	old_mode = umask(S_IWOTH);
 
 retry:
-	r = mkfifo(filename, S_IRUSR|S_IWUSR);
+	r = mkfifo(filename, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
 	if (r < 0) {
 		if (errno == EEXIST) {
 			unlink(filename);
 			goto retry;
 		}
+		umask(old_mode);
 		return -1;
 	}
 
 	fd = open(filename, O_RDONLY | O_NONBLOCK);
 	if (fd < 0) {
 		unlink(filename);
+		umask(old_mode);
 		return -1;
 	}
 	psd->fd = fd;
 	open(filename, O_WRONLY | O_NONBLOCK);
+
+	umask(old_mode);
 
 	return 0;
 }
