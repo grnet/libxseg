@@ -25,6 +25,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <sys/types.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <signal.h>
+#include <errno.h>
+#include <time.h>
 
 #include <xseg/xhash.h>
 #include <xseg/xobj.h>
@@ -97,6 +100,42 @@ uint64_t reqs;
 
 xport sport = NoPort;
 void *sd;
+time_t previous_intr = 0;
+
+void handler(int signal)
+{
+	int r;
+	time_t t = time(NULL);
+
+	if (previous_intr && t - previous_intr < 2) {
+		exit(1);
+	}
+
+	char *msg = "You should not interrupt this program, as this may cause "
+			"irreversible segment corruption\n."
+			"If you really want to terminate this program, hit "
+			"Ctrl-C again withing 2 seconds\n";
+
+	write(2, msg, strlen(msg));
+	previous_intr = t;
+
+}
+
+int install_signal_handler()
+{
+	int r;
+	struct sigaction sa;
+
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+	sa.sa_handler = handler;
+
+	r = sigaction(SIGINT, &sa, NULL);
+	if (r < 0)
+		return -errno;
+
+	return 0;
+}
 
 static void init_local_signal() 
 {
@@ -1985,6 +2024,8 @@ int main(int argc, char **argv)
 		fprintf(stderr, "cannot initialize!\n");
 		return -1;
 	}
+
+	install_signal_handler();
 
 	for (i = 2; i < argc; i++) {
 
