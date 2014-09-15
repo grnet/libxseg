@@ -201,17 +201,12 @@ static int posixfd_remote_signal_init(void)
 	int r;
 	struct stat st;
 
-	oldumask = umask(0000);
-	r = mkdir(POSIXFD_DIR, S_IRWXU|S_IRWXG);
-	umask(oldumask);
-
-	if (r < 0) {
-		if (errno != EEXIST) // && isdir(POSIXFD_DIR)
-			return -1;
-	}
-
 	r = stat(POSIXFD_DIR, &st);
 	if (r < 0) {
+		return -1;
+	}
+
+	if (!S_ISDIR(st.st_mode)) {
 		return -1;
 	}
 
