@@ -43,7 +43,7 @@ int help(void)
 		"    signal <portno>\n"
 		"    bridge <portno1> <portno2> <logfile> {full|summary|stats}\n"
 		"    recoverport <portno>\n"
-		"    recoverlocks <portno>\n"
+		"    recoverlocks <pid>\n"
 		"    verify\n"
 		"    verify-fix\n"
 		"port commands:\n"
@@ -1552,64 +1552,51 @@ int cmd_verify(int fix)
 	return 0;
 }
 
+static void check_and_unlock(struct xlock *lock, char *name, pid_t pid)
+{
+	pid_t owner_pid;
+
+	xlock_unpack_owner(lock->owner, &owner_pid, NULL, NULL);
+	if (owner_pid == pid) {
+		fprintf(stdout, "%s locked by %d. Unlocking..\n", name, pid);
+		xlock_release(lock);
+	}
+}
+
 int cmd_recoverlocks(int pid)
 {
 	xport i;
 	struct xseg_port *port;
 	pid_t p = (pid_t)pid;
+	char buf[64];
 
 	if (cmd_join())
 		return -1;
 
-	if (xseg->shared->segment_lock.owner == p){
-		fprintf(stdout, "Segment lock locked by %d. Unlocking..\n", p);
-		xlock_release(&xseg->shared->segment_lock);
-	}
-	if (xseg->heap->lock.owner == p){
-		fprintf(stdout, "Heap lock locked by %d. Unlocking..\n", p);
-		xlock_release(&xseg->heap->lock);
-	}
-	/* obj_h locks */
-	if (xseg->request_h->lock.owner == p){
-		fprintf(stdout, "Request handler lock locked by %d. Unlocking..\n", p);
-		xlock_release(&xseg->request_h->lock);
-	}
-	if (xseg->port_h->lock.owner == p){
-		fprintf(stdout, "Port handler lock locked by %d. Unlocking..\n", p);
-		xlock_release(&xseg->port_h->lock);
-	}
-	if (xseg->object_handlers->lock.owner == p){
-		fprintf(stdout, "Object handler lock locked by %d. Unlocking..\n", p);
-		xlock_release(&xseg->object_handlers->lock);
-	}
+	check_and_unlock(&xseg->shared->segment_lock, "Segment lock", p);
+	check_and_unlock(&xseg->heap->lock, "Heap lock", p);
+	check_and_unlock(&xseg->request_h->lock, "Request handler lock", p);
+	check_and_unlock(&xseg->port_h->lock, "Port handler lock", p);
+	check_and_unlock(&xseg->object_handlers->lock, "Object handler lock", p);
 
 	for (i = 0; i < xseg->config.nr_ports; i++) {
-		if (xseg->ports[i]){
-			port = xseg_get_port(xseg, i);
-			if (!port){
-				fprintf(stdout, "Inconsisten port <-> portno mapping %u", i);
-				fprintf(stdout, "Consider rebooting the node\n");
-				return -1;
-			}
-			if (port->fq_lock.owner == p) {
-				fprintf(stdout, "Free queue lock of port %u "
-						"locked by %d. Unlocking...\n",
-						i, p);
-				xlock_release(&port->fq_lock);
-			}
-			if (port->rq_lock.owner == p) {
-				fprintf(stdout, "Request queue lock of port %u "
-						"locked by %d. Unlocking...\n",
-						i, p);
-				xlock_release(&port->rq_lock);
-			}
-			if (port->pq_lock.owner == p) {
-				fprintf(stdout, "Reply queue lock of port %u "
-						"locked by %d. Unlocking...\n",
-						i, p);
-				xlock_release(&port->pq_lock);
-			}
+		if (!xseg->ports[i])
+			continue;
+
+		port = xseg_get_port(xseg, i);
+		if (!port){
+			fprintf(stdout, "Inconsisten port <-> portno mapping %u", i);
+			fprintf(stdout, "Consider rebooting the node\n");
+			return -1;
 		}
+		snprintf(buf, 64, "Free queue lock of port %u", i);
+		check_and_unlock(&port->fq_lock, buf, p);
+
+		snprintf(buf, 64, "Request queue lock of port %u", i);
+		check_and_unlock(&port->rq_lock, buf, p);
+
+		snprintf(buf, 64, "Reply queue lock of port %u", i);
+		check_and_unlock(&port->pq_lock, buf, p);
 	}
 	return 0;
 }
