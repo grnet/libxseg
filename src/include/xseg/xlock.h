@@ -83,14 +83,14 @@ struct xlock {
 _Static_assert(PID_BITS + TID_BITS + PC_BITS == sizeof(xlock_owner_t),
 		"Invalid bit definitions")
 
-_Static_assert(PID_BITS < sizeof(pid_t) * 8,
-	"PID_BITS must be lower than the bits of pid_t")
+_Static_assert(PID_BITS <= sizeof(pid_t) * 8,
+	"PID_BITS must be lower or equal than the bits of pid_t")
 
-_Static_assert(TID_BITS < sizeof(pid_t) * 8,
-	"TID_BITS must be lower than the bits of pid_t")
+_Static_assert(TID_BITS <= sizeof(pid_t) * 8,
+	"TID_BITS must be lower or equal than the bits of pid_t")
 
-_Static_assert(PC_BITS < sizeof(void *) * 8,
-	"PC_BITS must be lower than the bits of a (void *)")
+_Static_assert(PC_BITS <= sizeof(void *) * 8,
+	"PC_BITS must be lower or equal than the bits of a (void *)")
 */
 
 static inline xlock_owner_t xlock_pack_owner(pid_t pid, pid_t tid, void *ip)
@@ -129,6 +129,18 @@ static inline void xlock_unpack_owner(uint64_t owner, pid_t *pid, pid_t *tid, vo
 	}
 }
 
+/* x86_64 specific
+ * TODO: Move to an arch specific directory
+ */
+static inline void * __get_pc()
+{
+	void * rip;
+
+	__asm__ volatile ("lea (%%rip, 1),  %0" : "=r"(rip));
+
+	return rip;
+}
+
 __attribute__((always_inline)) static inline unsigned long xlock_acquire(struct xlock *lock)
 {
 	xlock_owner_t owner, who;
@@ -139,10 +151,9 @@ __attribute__((always_inline)) static inline unsigned long xlock_acquire(struct 
 	unsigned long shift = MIN_SHIFT;
 #endif /* XLOCK_CONGESTION_NOTIFY */
 
-xlock_acquire_label:
 	pid = getpid();
 	tid = gettid();
-	pc = &&xlock_acquire_label;
+	pc = __get_pc();
 
 	who = xlock_pack_owner(pid, tid, pc);
 
@@ -185,10 +196,9 @@ __attribute__((always_inline)) static inline unsigned long xlock_try_lock(struct
 	pid_t pid, tid;
 	void *pc;
 
-xlock_try_lock_label:
 	pid = getpid();
 	tid = gettid();
-	pc = &&xlock_try_lock_label;
+	pc = __get_pc();
 
 	who = xlock_pack_owner(pid, tid, pc);
 
