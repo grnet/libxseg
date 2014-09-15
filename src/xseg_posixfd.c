@@ -194,19 +194,34 @@ static void posixfd_local_signal_quit(struct xseg *xseg, xport portno)
 
 /*
  * When this peer type is initialized, we must make sure the directory where the
- * named pipes will be created, exist.
+ * named pipes will be created, exist. Also make sure that th setgid bit is set.
  */
 static int posixfd_remote_signal_init(void)
 {
 	int r;
-	mode_t oldumask;
+	struct stat st;
+
 	oldumask = umask(0000);
-	r = mkdir(POSIXFD_DIR, 01777);
+	r = mkdir(POSIXFD_DIR, S_IRWXU|S_IRWXG);
 	umask(oldumask);
 
 	if (r < 0) {
 		if (errno != EEXIST) // && isdir(POSIXFD_DIR)
 			return -1;
+	}
+
+	r = stat(POSIXFD_DIR, &st);
+	if (r < 0) {
+		return -1;
+	}
+
+	if (st.st_mode & S_ISGID) {
+		return 0;
+	}
+
+	r = chmod(POSIXFD_DIR, st.st_mode | S_ISGID);
+	if (r < 0) {
+		return -1;
 	}
 
 	return 0;
