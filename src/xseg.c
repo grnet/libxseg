@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <xseg/util.h>
 #include <string.h>
 #include <pthread.h>
+#include <errno.h>
 
 #ifndef NULL
 #define NULL ((void *)0)
@@ -812,7 +813,7 @@ struct xseg *xseg_join(const char *segtypename,
 	struct xseg_private *priv;
 	struct xseg_operations *xops;
 	struct xseg_peer_operations *pops;
-	int r;
+	int r, err_no;
 
 	pthread_mutex_lock(&xseg_joinref_mutex);
 	xseg_join_ref++;
@@ -823,6 +824,7 @@ struct xseg *xseg_join(const char *segtypename,
 	if (!peertype) {
 		XSEGLOG("Peer type '%s' not found\n", peertypename);
 		__unlock_domain();
+		err_no = EINVAL;
 		goto err;
 	}
 
@@ -830,6 +832,7 @@ struct xseg *xseg_join(const char *segtypename,
 	if (!segtype) {
 		XSEGLOG("Segment type '%s' not found\n", segtypename);
 		__unlock_domain();
+		err_no = EINVAL;
 		goto err;
 	}
 
@@ -840,23 +843,27 @@ struct xseg *xseg_join(const char *segtypename,
 
 	xseg = pops->malloc(sizeof(struct xseg));
 	if (!xseg) {
+		err_no = errno;
 		XSEGLOG("Cannot allocate memory");
 		goto err;
 	}
 
 	priv = pops->malloc(sizeof(struct xseg_private));
 	if (!priv) {
+		err_no = errno;
 		XSEGLOG("Cannot allocate memory");
 		goto err_seg;
 	}
 
 	__xseg = xops->map(segname, XSEG_MIN_PAGE_SIZE, NULL);
 	if (!__xseg) {
+		err_no = errno;
 		XSEGLOG("Cannot map segment");
 		goto err_priv;
 	}
 
 	if (!(__xseg->version == XSEG_VERSION)) {
+		err_no = EPROTO;
 		XSEGLOG("Version mismatch. Expected %llu, segment version %llu",
 				XSEG_VERSION, __xseg->version);
 		goto err_priv;
@@ -868,6 +875,7 @@ struct xseg *xseg_join(const char *segtypename,
 
 	__xseg = xops->map(segname, size, xseg);
 	if (!__xseg) {
+		err_no = errno;
 		XSEGLOG("Cannot map segment");
 		goto err_priv;
 	}
@@ -876,20 +884,24 @@ struct xseg *xseg_join(const char *segtypename,
 	priv->peer_type = *peertype;
 	priv->wakeup = wakeup;
 	priv->req_data = xhash_new(3, 0, XHASH_INTEGER); //FIXME should be relative to XSEG_DEF_REQS
-	if (!priv->req_data)
+	if (!priv->req_data) {
+		errno = ENOMEM;
 		goto err_priv;
+	}
 	xlock_release(&priv->reqdatalock);
 
 	xseg->max_peer_types = __xseg->max_peer_types;
 
 	priv->peer_types = pops->malloc(sizeof(void *) * xseg->max_peer_types);
 	if (!priv->peer_types) {
+		err_no = errno;
 		XSEGLOG("Cannot allocate memory");
 		goto err_unmap;
 	}
 	memset(priv->peer_types, 0, sizeof(void *) * xseg->max_peer_types);
 	priv->peer_type_data = pops->malloc(sizeof(void *) * xseg->max_peer_types);
 	if (!priv->peer_types) {
+		err_no = errno;
 		XSEGLOG("Cannot allocate memory");
 		//FIXME wrong err handling
 		goto err_unmap;
@@ -913,6 +925,7 @@ struct xseg *xseg_join(const char *segtypename,
 
 	r = xseg_validate_pointers(xseg);
 	if (r) {
+		err_no = EFAULT;
 		XSEGLOG("found %d invalid xseg pointers!\n", r);
 		goto err_free_types;
 	}
@@ -940,6 +953,7 @@ err_seg:
 	pops->mfree(xseg);
 err:
 	pthread_mutex_unlock(&xseg_joinref_mutex);
+	errno = err_no;
 	return NULL;
 }
 
