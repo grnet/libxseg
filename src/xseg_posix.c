@@ -36,34 +36,45 @@ char errbuf[ERRSIZE];
 
 static long posix_allocate(const char *name, uint64_t size)
 {
+	long ret = 0;
 	int fd, r;
 	off_t lr;
+	int err_no = 0;
 	fd = shm_open(name, O_RDWR | O_CREAT | O_EXCL, 0770);
 	if (fd < 0) {
+		err_no = errno;
 		XSEGLOG("Cannot create shared segment: %s\n",
 			strerror_r(errno, errbuf, ERRSIZE));
-		return fd;
+		ret = fd;
+		goto exit;
 	}
 
 	lr = lseek(fd, size -1, SEEK_SET);
 	if (lr == (off_t)-1) {
+		err_no = errno;
 		close(fd);
 		XSEGLOG("Cannot seek into segment file: %s\n",
 			strerror_r(errno, errbuf, ERRSIZE));
-		return lr;
+		ret = lr;
+		goto exit;
 	}
 
 	errbuf[0] = 0;
 	r = write(fd, errbuf, 1);
 	if (r != 1) {
+		err_no = errno;
 		close(fd);
 		XSEGLOG("Failed to set segment size: %s\n",
 			strerror_r(errno, errbuf, ERRSIZE));
-		return r;
+		ret = r;
+		goto exit;
 	}
 
 	close(fd);
-	return 0;
+
+exit:
+	errno = err_no;
+	return ret;
 }
 
 static long posix_deallocate(const char *name)
@@ -74,15 +85,14 @@ static long posix_deallocate(const char *name)
 static void *posix_map(const char *name, uint64_t size, struct xseg *seg)
 {
 	struct xseg *xseg;
-	int fd;
-
-//	if (seg)
-//		XSEGLOG("struct xseg * is not NULL. Ignoring...\n");
+	int fd, err_no = 0;
 
 	fd = shm_open(name, O_RDWR, 0000);
 	if (fd < 0) {
+		err_no = errno;
 		XSEGLOG("Failed to open '%s' for mapping: %s\n",
 			name, strerror_r(errno, errbuf, ERRSIZE));
+		errno = err_no;
 		return NULL;
 	}
 
@@ -93,12 +103,16 @@ static void *posix_map(const char *name, uint64_t size, struct xseg *seg)
 			fd, 0	);
 
 	if (xseg == MAP_FAILED) {
+		err_no = errno;
 		XSEGLOG("Could not map segment: %s\n",
 			strerror_r(errno, errbuf, ERRSIZE));
+		errno = err_no;
 		return NULL;
 	}
 
 	close(fd);
+
+	err_no = errno;
 	return xseg;
 }
 
