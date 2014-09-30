@@ -126,10 +126,8 @@ int __renew_logctx(struct log_ctx *lc, char *peer_name,
 	else if (!(flags & REOPEN_FILE) || lc->logfile == STDERR_FILENO)
 		return 0;
 
-	old_mode = umask(S_IWOTH);
 	fd = open(lc->filename, O_WRONLY|O_CREAT|O_APPEND,
-			S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
-	umask(old_mode);
+			S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
 	if (fd < 0){
 		return -1;
 	}
@@ -193,7 +191,8 @@ int __init_logctx(struct log_ctx *lc, char *peer_name,
 
 	strncpy(lc->filename, logfile, MAX_LOGFILE_LEN);
 	lc->filename[MAX_LOGFILE_LEN - 1] = 0;
-	fd = open(lc->filename, O_WRONLY|O_CREAT|O_APPEND, S_IRUSR|S_IWUSR);
+	fd = open(lc->filename, O_WRONLY|O_CREAT|O_APPEND,
+			S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
 	if (fd < 1){
 //		lc->logfile = lc->stderr_orig;
 		return -1;
