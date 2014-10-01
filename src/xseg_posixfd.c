@@ -75,29 +75,24 @@ static int posixfd_local_signal_init(struct xseg *xseg, xport portno)
 		return -1;
 	}
 	__get_filename(psd, filename);
-	old_mode = umask(S_IWOTH);
 
 retry:
-	r = mkfifo(filename, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
+	r = mkfifo(filename, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
 	if (r < 0) {
 		if (errno == EEXIST) {
 			unlink(filename);
 			goto retry;
 		}
-		umask(old_mode);
 		return -1;
 	}
 
 	fd = open(filename, O_RDONLY | O_NONBLOCK);
 	if (fd < 0) {
 		unlink(filename);
-		umask(old_mode);
 		return -1;
 	}
 	psd->fd = fd;
 	open(filename, O_WRONLY | O_NONBLOCK);
-
-	umask(old_mode);
 
 	return 0;
 }
