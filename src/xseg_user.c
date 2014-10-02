@@ -89,8 +89,8 @@ uint64_t __get_id(void)
 
 void __xseg_log(const char *msg)
 {
-	(void)puts(msg);
-	fflush(stdout);
+	fprintf(stderr, "%s", msg);
+	fflush(stderr);
 }
 
 void *xtypes_malloc(unsigned long size)
