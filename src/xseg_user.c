@@ -89,8 +89,8 @@ uint64_t __get_id(void)
 
 void __xseg_log(const char *msg)
 {
-	(void)puts(msg);
-	fflush(stdout);
+	fprintf(stderr, "%s", msg);
+	fflush(stderr);
 }
 
 void *xtypes_malloc(unsigned long size)
@@ -111,6 +111,7 @@ int __renew_logctx(struct log_ctx *lc, char *peer_name,
 		enum log_level log_level, char *logfile, uint32_t flags)
 {
 	int fd, tmp_fd;
+	mode_t old_mode;
 
 	if (peer_name){
 		strncpy(lc->peer_name, peer_name, MAX_PEER_NAME);
@@ -125,7 +126,8 @@ int __renew_logctx(struct log_ctx *lc, char *peer_name,
 	else if (!(flags & REOPEN_FILE) || lc->logfile == STDERR_FILENO)
 		return 0;
 
-	fd = open(lc->filename, O_WRONLY|O_CREAT|O_APPEND, S_IRUSR|S_IWUSR);
+	fd = open(lc->filename, O_WRONLY|O_CREAT|O_APPEND,
+			S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
 	if (fd < 0){
 		return -1;
 	}
@@ -189,7 +191,8 @@ int __init_logctx(struct log_ctx *lc, char *peer_name,
 
 	strncpy(lc->filename, logfile, MAX_LOGFILE_LEN);
 	lc->filename[MAX_LOGFILE_LEN - 1] = 0;
-	fd = open(lc->filename, O_WRONLY|O_CREAT|O_APPEND, S_IRUSR|S_IWUSR);
+	fd = open(lc->filename, O_WRONLY|O_CREAT|O_APPEND,
+			S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
 	if (fd < 1){
 //		lc->logfile = lc->stderr_orig;
 		return -1;

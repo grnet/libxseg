@@ -83,17 +83,17 @@ struct xlock {
 _Static_assert(PID_BITS + TID_BITS + PC_BITS == sizeof(xlock_owner_t),
 		"Invalid bit definitions")
 
-_Static_assert(PID_BITS < sizeof(pid_t) * 8,
-	"PID_BITS must be lower than the bits of pid_t")
+_Static_assert(PID_BITS <= sizeof(pid_t) * 8,
+	"PID_BITS must be lower or equal than the bits of pid_t")
 
-_Static_assert(TID_BITS < sizeof(pid_t) * 8,
-	"TID_BITS must be lower than the bits of pid_t")
+_Static_assert(TID_BITS <= sizeof(pid_t) * 8,
+	"TID_BITS must be lower or equal than the bits of pid_t")
 
-_Static_assert(PC_BITS < sizeof(void *) * 8,
-	"PC_BITS must be lower than the bits of a (void *)")
+_Static_assert(PC_BITS <= sizeof(void *) * 8,
+	"PC_BITS must be lower or equal than the bits of a (void *)")
 */
 
-static inline xlock_owner_t pack_owner(pid_t pid, pid_t tid, void *ip)
+static inline xlock_owner_t xlock_pack_owner(pid_t pid, pid_t tid, void *ip)
 {
 	xlock_owner_t owner = 0;
 	unsigned long pc = (unsigned long)ip;
@@ -111,15 +111,34 @@ static inline xlock_owner_t pack_owner(pid_t pid, pid_t tid, void *ip)
 	return owner;
 }
 
-static inline void unpack_owner(uint64_t owner, pid_t *pid, pid_t *tid, void **ip)
+static inline void xlock_unpack_owner(uint64_t owner, pid_t *pid, pid_t *tid, void **ip)
 {
 	unsigned long pc;
-	pc = owner & (((xlock_owner_t)1 << PC_BITS) -1);
-	*ip = (void *)pc;
+	if (ip) {
+		pc = owner & (((xlock_owner_t)1 << PC_BITS) -1);
+		*ip = (void *)pc;
+	}
 	owner >>= PC_BITS;
-	*tid = owner & (((xlock_owner_t)1 << TID_BITS) -1);
+	if (tid) {
+		*tid = owner & (((xlock_owner_t)1 << TID_BITS) -1);
+	}
+
 	owner >>= TID_BITS;
-	*pid = owner & (((xlock_owner_t)1 << PID_BITS) -1);
+	if (pid) {
+		*pid = owner & (((xlock_owner_t)1 << PID_BITS) -1);
+	}
+}
+
+/* x86_64 specific
+ * TODO: Move to an arch specific directory
+ */
+static inline void * __get_pc()
+{
+	void * rip;
+
+	__asm__ volatile ("lea (%%rip, 1),  %0" : "=r"(rip));
+
+	return rip;
 }
 
 __attribute__((always_inline)) static inline unsigned long xlock_acquire(struct xlock *lock)
@@ -132,18 +151,17 @@ __attribute__((always_inline)) static inline unsigned long xlock_acquire(struct 
 	unsigned long shift = MIN_SHIFT;
 #endif /* XLOCK_CONGESTION_NOTIFY */
 
-xlock_acquire_label:
 	pid = getpid();
 	tid = gettid();
-	pc = &&xlock_acquire_label;
+	pc = __get_pc();
 
-	who = pack_owner(pid, tid, pc);
+	who = xlock_pack_owner(pid, tid, pc);
 
 	for (;;) {
 		for (; (owner = *(volatile xlock_owner_t*)(&lock->owner)) != XLOCK_NOONE;) {
 #ifdef XLOCK_CONGESTION_NOTIFY
 			if (!(times & ((1<<shift) -1))) {
-				unpack_owner(owner, &opid, &otid, &opc);
+				xlock_unpack_owner(owner, &opid, &otid, &opc);
 				XSEGLOG("xlock %p spinned for %llu times"
 					"\n\t who: (%d, %d, %p), "
 					"owner: (%d, %d, %p) (full pc: %p)",
@@ -178,12 +196,11 @@ __attribute__((always_inline)) static inline unsigned long xlock_try_lock(struct
 	pid_t pid, tid;
 	void *pc;
 
-xlock_try_lock_label:
 	pid = getpid();
 	tid = gettid();
-	pc = &&xlock_try_lock_label;
+	pc = __get_pc();
 
-	who = pack_owner(pid, tid, pc);
+	who = xlock_pack_owner(pid, tid, pc);
 
 	owner = *(volatile xlock_owner_t*)(&lock->owner);
 	if (owner == XLOCK_NOONE &&
