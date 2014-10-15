@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <xseg/util.h>
 #include <string.h>
 #include <pthread.h>
+#include <errno.h>
 
 #ifndef NULL
 #define NULL ((void *)0)
@@ -41,16 +42,12 @@ static int xseg_join_ref;
 
 static void __lock_segment(struct xseg *xseg)
 {
-	volatile uint64_t *flags;
-	flags = &xseg->shared->flags;
-	while (__sync_fetch_and_or(flags, XSEG_F_LOCK));
+	xlock_acquire(&xseg->shared->segment_lock);
 }
 
 static void __unlock_segment(struct xseg *xseg)
 {
-	volatile uint64_t *flags;
-	flags = &xseg->shared->flags;
-	__sync_fetch_and_and(flags, ~XSEG_F_LOCK);
+	xlock_release(&xseg->shared->segment_lock);
 }
 
 static struct xseg_type *__find_type(const char *name, long *index)
@@ -660,6 +657,7 @@ static long initialize_segment(struct xseg *xseg, struct xseg_config *cfg)
 	shared = (struct xseg_shared *) mem;
 	shared->flags = 0;
 	shared->nr_peer_types = 0;
+	xlock_release(&shared->segment_lock);
 	xseg->shared = (struct xseg_shared *) XPTR_MAKE(mem, segment);
 
 	mem = xheap_allocate(heap, page_size);
@@ -815,7 +813,7 @@ struct xseg *xseg_join(const char *segtypename,
 	struct xseg_private *priv;
 	struct xseg_operations *xops;
 	struct xseg_peer_operations *pops;
-	int r;
+	int r, err_no;
 
 	pthread_mutex_lock(&xseg_joinref_mutex);
 	xseg_join_ref++;
@@ -826,6 +824,7 @@ struct xseg *xseg_join(const char *segtypename,
 	if (!peertype) {
 		XSEGLOG("Peer type '%s' not found\n", peertypename);
 		__unlock_domain();
+		err_no = EINVAL;
 		goto err;
 	}
 
@@ -833,6 +832,7 @@ struct xseg *xseg_join(const char *segtypename,
 	if (!segtype) {
 		XSEGLOG("Segment type '%s' not found\n", segtypename);
 		__unlock_domain();
+		err_no = EINVAL;
 		goto err;
 	}
 
@@ -843,23 +843,27 @@ struct xseg *xseg_join(const char *segtypename,
 
 	xseg = pops->malloc(sizeof(struct xseg));
 	if (!xseg) {
+		err_no = errno;
 		XSEGLOG("Cannot allocate memory");
 		goto err;
 	}
 
 	priv = pops->malloc(sizeof(struct xseg_private));
 	if (!priv) {
+		err_no = errno;
 		XSEGLOG("Cannot allocate memory");
 		goto err_seg;
 	}
 
 	__xseg = xops->map(segname, XSEG_MIN_PAGE_SIZE, NULL);
 	if (!__xseg) {
+		err_no = errno;
 		XSEGLOG("Cannot map segment");
 		goto err_priv;
 	}
 
 	if (!(__xseg->version == XSEG_VERSION)) {
+		err_no = EPROTO;
 		XSEGLOG("Version mismatch. Expected %llu, segment version %llu",
 				XSEG_VERSION, __xseg->version);
 		goto err_priv;
@@ -871,6 +875,7 @@ struct xseg *xseg_join(const char *segtypename,
 
 	__xseg = xops->map(segname, size, xseg);
 	if (!__xseg) {
+		err_no = errno;
 		XSEGLOG("Cannot map segment");
 		goto err_priv;
 	}
@@ -879,20 +884,24 @@ struct xseg *xseg_join(const char *segtypename,
 	priv->peer_type = *peertype;
 	priv->wakeup = wakeup;
 	priv->req_data = xhash_new(3, 0, XHASH_INTEGER); //FIXME should be relative to XSEG_DEF_REQS
-	if (!priv->req_data)
+	if (!priv->req_data) {
+		errno = ENOMEM;
 		goto err_priv;
+	}
 	xlock_release(&priv->reqdatalock);
 
 	xseg->max_peer_types = __xseg->max_peer_types;
 
 	priv->peer_types = pops->malloc(sizeof(void *) * xseg->max_peer_types);
 	if (!priv->peer_types) {
+		err_no = errno;
 		XSEGLOG("Cannot allocate memory");
 		goto err_unmap;
 	}
 	memset(priv->peer_types, 0, sizeof(void *) * xseg->max_peer_types);
 	priv->peer_type_data = pops->malloc(sizeof(void *) * xseg->max_peer_types);
 	if (!priv->peer_types) {
+		err_no = errno;
 		XSEGLOG("Cannot allocate memory");
 		//FIXME wrong err handling
 		goto err_unmap;
@@ -916,6 +925,7 @@ struct xseg *xseg_join(const char *segtypename,
 
 	r = xseg_validate_pointers(xseg);
 	if (r) {
+		err_no = EFAULT;
 		XSEGLOG("found %d invalid xseg pointers!\n", r);
 		goto err_free_types;
 	}
@@ -943,6 +953,7 @@ err_seg:
 	pops->mfree(xseg);
 err:
 	pthread_mutex_unlock(&xseg_joinref_mutex);
+	errno = err_no;
 	return NULL;
 }
 
@@ -1245,7 +1256,7 @@ int xseg_alloc_requests(struct xseg *xseg, uint32_t portno, uint32_t nr)
 	if (!port)
 		return -1;
 
-	xlock_acquire(&port->fq_lock, portno);
+	xlock_acquire(&port->fq_lock);
 	q = XPTR_TAKE(port->free_queue, xseg->segment);
 	while ((req = xobj_get_obj(xseg->request_h, X_ALLOC)) != NULL && i < nr) {
 		xqi = XPTR_MAKE(req, xseg->segment);
@@ -1280,7 +1291,7 @@ int xseg_free_requests(struct xseg *xseg, uint32_t portno, int nr)
 	if (!port)
 		return -1;
 
-	xlock_acquire(&port->fq_lock, portno);
+	xlock_acquire(&port->fq_lock);
 	q = XPTR_TAKE(port->free_queue, xseg->segment);
 	while ((xqi = __xq_pop_head(q)) != Noneidx && i < nr) {
 		req = XPTR_TAKE(xqi, xseg->segment);
@@ -1291,7 +1302,7 @@ int xseg_free_requests(struct xseg *xseg, uint32_t portno, int nr)
 		return -1;
 	xlock_release(&port->fq_lock);
 
-	xlock_acquire(&port->port_lock, portno);
+	xlock_acquire(&port->port_lock);
 	port->alloc_reqs -= i;
 	xlock_release(&port->port_lock);
 
@@ -1346,7 +1357,7 @@ struct xseg_request *xseg_get_request(struct xseg *xseg, xport src_portno,
 	if (!port)
 		return NULL;
 	//try to allocate from free_queue
-	xlock_acquire(&port->fq_lock, src_portno);
+	xlock_acquire(&port->fq_lock);
 	q = XPTR_TAKE(port->free_queue, xseg->segment);
 	xqi = __xq_pop_head(q);
 	if (xqi != Noneidx){
@@ -1362,7 +1373,7 @@ struct xseg_request *xseg_get_request(struct xseg *xseg, xport src_portno,
 
 	//else try to allocate from global heap
 	//FIXME
-	xlock_acquire(&port->port_lock, src_portno);
+	xlock_acquire(&port->port_lock);
 	if (port->alloc_reqs < port->max_alloc_reqs) {
 		req = xobj_get_obj(xseg->request_h, flags & X_ALLOC);
 		if (req)
@@ -1442,7 +1453,7 @@ int xseg_put_request (struct xseg *xseg, struct xseg_request *xreq,
 
 
 	//try to put it in free_queue of the port
-	xlock_acquire(&port->fq_lock, portno);
+	xlock_acquire(&port->fq_lock);
 	q = XPTR_TAKE(port->free_queue, xseg->segment);
 	xqi = __xq_append_head(q, xqi);
 	xlock_release(&port->fq_lock);
@@ -1450,7 +1461,7 @@ int xseg_put_request (struct xseg *xseg, struct xseg_request *xreq,
 		return 0;
 	//else return it to segment
 	xobj_put_obj(xseg->request_h, (void *) xreq);
-	xlock_acquire(&port->port_lock, portno);
+	xlock_acquire(&port->port_lock);
 	port->alloc_reqs--;
 	xlock_release(&port->port_lock);
 	return 0;
@@ -1507,6 +1518,7 @@ int xseg_resize_request (struct xseg *xseg, struct xseg_request *req,
 	return xseg_prep_request(xseg, req, new_targetlen, new_datalen);
 }
 
+#if 0
 static void __update_timestamp(struct xseg_request *xreq)
 {
 	struct timeval tv;
@@ -1528,6 +1540,7 @@ static void __update_timestamp(struct xseg_request *xreq)
 	xreq->timestamp.tv_sec = tv.tv_sec;
 	xreq->timestamp.tv_usec = tv.tv_usec;
 }
+#endif
 
 //FIXME should we add NON_BLOCK flag?
 xport xseg_submit (struct xseg *xseg, struct xseg_request *xreq,
@@ -1592,12 +1605,11 @@ xport xseg_submit (struct xseg *xseg, struct xseg_request *xreq,
 		return NoPort;
 	}
 
-	xlock_acquire(&port->rq_lock, portno);
+	xlock_acquire(&port->rq_lock);
 	q = XPTR_TAKE(port->request_queue, xseg->segment);
 	serial = __xq_append_tail(q, xqi);
 	if (flags & X_ALLOC && serial == Noneidx) {
 		/* double up queue size */
-		XSEGLOG("Trying to double up queue");
 		newq = __alloc_queue(xseg, xq_size(q)*2);
 		if (!newq)
 			goto out_rel;
@@ -1640,10 +1652,10 @@ struct xseg_request *xseg_receive(struct xseg *xseg, xport portno, uint32_t flag
 		return NULL;
 retry:
 	if (flags & X_NONBLOCK) {
-		if (!xlock_try_lock(&port->pq_lock, portno))
+		if (!xlock_try_lock(&port->pq_lock))
 			return NULL;
 	} else {
-		xlock_acquire(&port->pq_lock, portno);
+		xlock_acquire(&port->pq_lock);
 	}
 	q = XPTR_TAKE(port->reply_queue, xseg->segment);
 	xqi = __xq_pop_head(q);
@@ -1681,10 +1693,10 @@ struct xseg_request *xseg_accept(struct xseg *xseg, xport portno, uint32_t flags
 	if (!port)
 		return NULL;
 	if (flags & X_NONBLOCK) {
-		if (!xlock_try_lock(&port->rq_lock, portno))
+		if (!xlock_try_lock(&port->rq_lock))
 			return NULL;
 	} else {
-		xlock_acquire(&port->rq_lock, portno);
+		xlock_acquire(&port->rq_lock);
 	}
 
 	q = XPTR_TAKE(port->request_queue, xseg->segment);
@@ -1732,7 +1744,7 @@ retry:
 
 	xqi = XPTR_MAKE(xreq, xseg->segment);
 
-	xlock_acquire(&port->pq_lock, portno);
+	xlock_acquire(&port->pq_lock);
 	q = XPTR_TAKE(port->reply_queue, xseg->segment);
 	serial = __xq_append_tail(q, xqi);
 	if (flags & X_ALLOC && serial == Noneidx) {
@@ -1804,7 +1816,7 @@ int xseg_set_req_data(struct xseg *xseg, struct xseg_request *xreq, void *data)
 		return -1;
 	}
 
-	xlock_acquire(&xseg->priv->reqdatalock, XLOCK_UNKNOWN_OWNER);
+	xlock_acquire(&xseg->priv->reqdatalock);
 
 	req_data = xseg->priv->req_data;
 	r = xhash_insert(req_data, (xhashidx) xreq, (xhashidx) data);
@@ -1835,7 +1847,7 @@ int xseg_get_req_data(struct xseg *xseg, struct xseg_request *xreq, void **data)
 		return -1;
 	}
 
-	xlock_acquire(&xseg->priv->reqdatalock, XLOCK_UNKNOWN_OWNER);
+	xlock_acquire(&xseg->priv->reqdatalock);
 
 	req_data = xseg->priv->req_data;
 	//maybe we need a xhash_delete with lookup...
@@ -2093,7 +2105,7 @@ int xseg_set_max_requests(struct xseg *xseg, xport portno, uint64_t nr_reqs)
 	if (!port)
 		return -1;
 
-	xlock_acquire(&port->fq_lock, portno);
+	xlock_acquire(&port->fq_lock);
 	q = XPTR_TAKE(port->free_queue, xseg->segment);
 	if (xq_size(q) <= nr_reqs){
 		port->max_alloc_reqs = nr_reqs;
@@ -2160,10 +2172,10 @@ int xseg_set_freequeue_size(struct xseg *xseg, xport portno, xqindex size,
 		return -1;
 
 	if (flags & X_NONBLOCK) {
-		if (!xlock_try_lock(&port->fq_lock, portno))
+		if (!xlock_try_lock(&port->fq_lock))
 			return -1;
 	} else {
-		xlock_acquire(&port->fq_lock, portno);
+		xlock_acquire(&port->fq_lock);
 	}
 
 	q = XPTR_TAKE(port->free_queue, xseg->segment);

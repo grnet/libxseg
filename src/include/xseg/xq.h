@@ -64,40 +64,33 @@ xqindex      __xq_append_head( struct xq  * xq,
                                xqindex      xqi );
 
 xqindex      xq_append_head  ( struct xq  * xq,
-                               xqindex      xqi,
-			       unsigned long who);
+                               xqindex      xqi );
 
-xqindex      __xq_pop_head   ( struct xq  * xq  );
-xqindex      xq_pop_head     ( struct xq  * xq,
-			       unsigned long who);
+xqindex      __xq_pop_head   ( struct xq  * xq );
+xqindex      xq_pop_head     ( struct xq  * xq );
 
 xqindex      __xq_append_tail( struct xq  * xq,
                                xqindex      xqi );
 
 xqindex      xq_append_tail  ( struct xq  * xq,
-                               xqindex      xqi,
-			       unsigned long who);
+                               xqindex      xqi );
 
 
 xqindex      __xq_peek_head    ( struct xq  * xq);
 
-xqindex      xq_peek_head    ( struct xq  * xq,
-			       unsigned long who);
+xqindex      xq_peek_head    ( struct xq  * xq );
 
 xqindex      __xq_peek_tail    ( struct xq  * xq);
 
-xqindex      xq_peek_tail    ( struct xq  * xq,
-			       unsigned long who);
+xqindex      xq_peek_tail    ( struct xq  * xq );
 
 xqindex      __xq_pop_tail   ( struct xq  * xq  );
 
-xqindex      xq_pop_tail     ( struct xq  * xq,
-			       unsigned long who);
+xqindex      xq_pop_tail     ( struct xq  * xq );
 
 int          xq_head_to_tail ( struct xq  * hq,
                                struct xq  * tq,
-                               xqindex      nr ,
-			       unsigned long who);
+                               xqindex      nr );
 
 xqindex      xq_size         ( struct xq  * xq  );
 
@@ -109,14 +102,12 @@ int 	     __xq_check      ( struct xq  * xq,
 		               xqindex      idx );
 
 int 	     xq_check        ( struct xq  * xq, 
-		               xqindex      idx,
-			       unsigned long who );
+		               xqindex      idx );
 
 xqindex      __xq_resize     ( struct xq  * xq,
 		               struct xq  * newxq);
 
 xqindex      xq_resize       ( struct xq  * xq,
-		               struct xq  * newxq,
-	                       unsigned long who );
+		               struct xq  * newxq );
 #endif
 

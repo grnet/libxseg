@@ -34,6 +34,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <sys/time.h>
 #include <xseg/version.h>
 #include <xseg/util.h>
+#include <xseg/xlock.h>
 #include <xseg/xq.h>
 #include <xseg/xobj.h>
 #include <xseg/xhash.h>
@@ -214,7 +215,7 @@ struct xseg_task {
 #define X_CREATE   18
 #define X_RENAME   19
 #define X_FLUSH    20
-#define X_TRUNCATE 21
+#define X_UPDATE   21
 
 /* REQ FLAGS */
 #define XF_NOSYNC    (1 << 0)
@@ -270,6 +271,7 @@ struct xseg_shared {
 	char (*peer_types)[XSEG_TNAMESIZE]; /* alignment? */
 	xptr *peer_type_data;
 	uint32_t nr_peer_types;
+	struct xlock segment_lock;
 };
 
 struct xseg_private {

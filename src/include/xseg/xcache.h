@@ -126,6 +126,7 @@ static void *xcache_get_entry(struct xcache *cache, xcache_handler h)
  * Return a pointer to a NULL terminated string holding the name of the
  * associated cache entry.
  */
+/*
 static char *xcache_get_name(struct xcache *cache, xcache_handler h)
 {
 	xqindex idx = (xqindex)h;
@@ -135,6 +136,7 @@ static char *xcache_get_name(struct xcache *cache, xcache_handler h)
 
 	return cache->nodes[idx].name;
 }
+*/
 
 int xcache_init(struct xcache *cache, uint32_t xcache_size,
 		struct xcache_ops *ops, uint32_t flags, void *priv);
