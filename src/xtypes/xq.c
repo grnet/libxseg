@@ -150,7 +150,7 @@ xqindex xq_append_heads(struct xq *xq,
 			xqindex *heads)
 {
 	xqindex i, mask, head;
-	xqindex serial = xlock_acquire(&xq->lock, nr);
+	xqindex serial = xlock_acquire(&xq->lock);
 
 	if (!(xq_count(xq) + nr <= xq->size)) {
 		serial = Noneidx;
@@ -176,10 +176,10 @@ xqindex __xq_append_head(struct xq *xq, xqindex xqi)
 	return xqi;
 
 }
-xqindex xq_append_head(struct xq *xq, xqindex xqi, unsigned long who)
+xqindex xq_append_head(struct xq *xq, xqindex xqi)
 {
 	xqindex serial;
-	xlock_acquire(&xq->lock, who);
+	xlock_acquire(&xq->lock);
 	serial = __xq_append_head(xq, xqi);
 	xlock_release(&xq->lock);
 	return serial;
@@ -198,7 +198,7 @@ xqindex xq_pop_heads(struct xq *xq,
 			xqindex *heads)
 {
 	xqindex i, mask, head;
-	xqindex serial = xlock_acquire(&xq->lock, nr);
+	xqindex serial = xlock_acquire(&xq->lock);
 
 	if (xq_count(xq) < nr) {
 		serial = Noneidx;
@@ -223,10 +223,10 @@ xqindex __xq_pop_head(struct xq *xq)
 	return XPTR(&xq->queue)[__xq_pop_head_idx(xq, 1) & (xq->size -1)];
 }
 
-xqindex xq_pop_head(struct xq *xq, unsigned long who)
+xqindex xq_pop_head(struct xq *xq)
 {
 	xqindex value = Noneidx;
-	(void)xlock_acquire(&xq->lock, who);
+	(void)xlock_acquire(&xq->lock);
 	value = __xq_pop_head(xq);
 	xlock_release(&xq->lock);
 	return value;
@@ -245,10 +245,10 @@ xqindex __xq_peek_head(struct xq *xq)
 	return XPTR(&xq->queue)[__xq_peek_head_idx(xq, 1) & (xq->size -1)];
 }
 
-xqindex xq_peek_head(struct xq *xq, unsigned long who)
+xqindex xq_peek_head(struct xq *xq)
 {
 	xqindex value;
-	(void)xlock_acquire(&xq->lock, who);
+	(void)xlock_acquire(&xq->lock);
 	value = __xq_peek_head(xq);
 	xlock_release(&xq->lock);
 	return value;
@@ -267,10 +267,10 @@ xqindex __xq_peek_tail(struct xq *xq)
 	return XPTR(&xq->queue)[__xq_peek_tail_idx(xq, 1) & (xq->size -1)];
 }
 
-xqindex xq_peek_tail(struct xq *xq, unsigned long who)
+xqindex xq_peek_tail(struct xq *xq)
 {
 	xqindex value;
-	(void)xlock_acquire(&xq->lock, who);
+	(void)xlock_acquire(&xq->lock);
 	value = __xq_peek_tail(xq);
 	xlock_release(&xq->lock);
 	return value;
@@ -289,7 +289,7 @@ xqindex xq_append_tails(struct xq *xq,
 			xqindex *tails)
 {
 	xqindex i, mask, tail;
-	xqindex serial = xlock_acquire(&xq->lock, nr);
+	xqindex serial = xlock_acquire(&xq->lock);
 
 	if (!(xq_count(xq) + nr <= xq->size)) {
 		serial = Noneidx;
@@ -315,10 +315,10 @@ xqindex __xq_append_tail(struct xq *xq, xqindex xqi)
 	return xqi;
 }
 
-xqindex xq_append_tail(struct xq *xq, xqindex xqi, unsigned long who)
+xqindex xq_append_tail(struct xq *xq, xqindex xqi)
 {
 	xqindex serial = Noneidx;
-	xlock_acquire(&xq->lock, who);
+	xlock_acquire(&xq->lock);
 	serial =__xq_append_tail(xq, xqi);
 	xlock_release(&xq->lock);
 	return serial;
@@ -335,7 +335,7 @@ xqindex __xq_pop_tail_idx(struct xq *xq, xqindex nr)
 xqindex xq_pop_tails(struct xq *xq, xqindex nr, xqindex *tails)
 {
 	xqindex i, mask, tail;
-	xqindex serial = xlock_acquire(&xq->lock, nr);
+	xqindex serial = xlock_acquire(&xq->lock);
 
 	if (xq_count(xq) < nr) {
 		serial = Noneidx;
@@ -359,25 +359,25 @@ xqindex __xq_pop_tail(struct xq *xq)
 	return XPTR(&xq->queue)[__xq_pop_tail_idx(xq, 1) & (xq->size -1)];
 }
 
-xqindex xq_pop_tail(struct xq *xq, unsigned long who)
+xqindex xq_pop_tail(struct xq *xq)
 {
 	xqindex value;
-	(void)xlock_acquire(&xq->lock, who);
+	(void)xlock_acquire(&xq->lock);
 	value = __xq_pop_tail(xq);
 	xlock_release(&xq->lock);
 	return value;
 }
 
-int xq_head_to_tail(struct xq *headq, struct xq *tailq, xqindex nr, unsigned long who)
+int xq_head_to_tail(struct xq *headq, struct xq *tailq, xqindex nr)
 {
 	xqindex head, tail, hmask, tmask, *hq, *tq, i, ret = -1;
 
 	if (headq >= tailq) {
-		xlock_acquire(&headq->lock, who);
-		xlock_acquire(&tailq->lock, who);
+		xlock_acquire(&headq->lock);
+		xlock_acquire(&tailq->lock);
 	} else {
-		xlock_acquire(&tailq->lock, who);
-		xlock_acquire(&headq->lock, who);
+		xlock_acquire(&tailq->lock);
+		xlock_acquire(&headq->lock);
 	}
 
 	if (xq_count(headq) < nr || xq_count(tailq) + nr > tailq->size)
@@ -411,10 +411,10 @@ int __xq_check(struct xq *xq, xqindex idx)
 	return 0;
 }
 
-int xq_check(struct xq *xq, xqindex idx, unsigned long who)
+int xq_check(struct xq *xq, xqindex idx)
 {
 	int r;
-	xlock_acquire(&xq->lock, who);
+	xlock_acquire(&xq->lock);
 	r = __xq_check(xq, idx);
 	xlock_release(&xq->lock);
 	return r;
@@ -441,11 +441,11 @@ xqindex __xq_resize(struct xq *xq, struct xq *newxq)
 	return nr;
 }
 
-xqindex xq_resize(struct xq *xq, struct xq *newxq, unsigned long who)
+xqindex xq_resize(struct xq *xq, struct xq *newxq)
 {
 	xqindex r = Noneidx;
-	xlock_acquire(&xq->lock, who);
-	xlock_acquire(&newxq->lock, who);
+	xlock_acquire(&xq->lock);
+	xlock_acquire(&newxq->lock);
 	r = __xq_resize(xq, newxq);
 	xlock_release(&newxq->lock);
 	xlock_release(&xq->lock);

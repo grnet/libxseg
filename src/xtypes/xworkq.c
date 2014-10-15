@@ -46,7 +46,7 @@ int __xworkq_enqueue(struct xworkq *wq, struct work *w)
 	//enqueue and resize if necessary
 	xqindex r;
 	struct xq *newq;
-	xlock_acquire(&wq->q_lock, 4);
+	xlock_acquire(&wq->q_lock);
 	r = __xq_append_tail(wq->q, (xqindex)w);
 	if (r == Noneidx){
 		newq = xtypes_malloc(sizeof(struct xq));
@@ -93,10 +93,10 @@ void xworkq_signal(struct xworkq *wq)
 	xqindex xqi;
 	struct work *w;
 	while (xq_count(wq->q)){
-		if (wq->lock && !xlock_try_lock(wq->lock, 2))
+		if (wq->lock && !xlock_try_lock(wq->lock))
 			return;
 
-		xlock_acquire(&wq->q_lock, 3);
+		xlock_acquire(&wq->q_lock);
 		xqi = __xq_pop_head(wq->q);
 		xlock_release(&wq->q_lock);
 
@@ -104,7 +104,7 @@ void xworkq_signal(struct xworkq *wq)
 			w = (struct work *)xqi;
 			w->job_fn(wq, w->job);
 			xtypes_free(w);
-			xlock_acquire(&wq->q_lock, 3);
+			xlock_acquire(&wq->q_lock);
 			xqi = __xq_pop_head(wq->q);
 			xlock_release(&wq->q_lock);
 		}

@@ -128,7 +128,7 @@ void xobj_put_obj(struct xobject_h * obj_h, void *ptr)
 	void *container = XPTR(&obj_h->container);
 	xptr list, objptr = XPTR_MAKE(obj, container);
 
-	xlock_acquire(&obj_h->lock, XLOCK_UNKNOWN_OWNER);
+	xlock_acquire(&obj_h->lock);
 	list = obj_h->list;
 	obj->magic = obj_h->magic;
 	obj->size = obj_h->obj_size;
@@ -146,7 +146,7 @@ void * xobj_get_obj(struct xobject_h * obj_h, uint32_t flags)
 	int r;
 	xptr list, objptr;
 
-	xlock_acquire(&obj_h->lock, XLOCK_UNKNOWN_OWNER);
+	xlock_acquire(&obj_h->lock);
 retry:
 	list = obj_h->list;
 	if (!list)
@@ -237,7 +237,7 @@ int __xobj_check(struct xobject_h *obj_h, void *ptr)
 int xobj_check(struct xobject_h *obj_h, void *ptr)
 {
 	int r;
-	xlock_acquire(&obj_h->lock, XLOCK_UNKNOWN_OWNER);
+	xlock_acquire(&obj_h->lock);
 	r = __xobj_check(obj_h, ptr);
 	xlock_release(&obj_h->lock);
 	return r;
@@ -266,7 +266,7 @@ int __xobj_isFree(struct xobject_h *obj_h, void *ptr)
 int xobj_isFree(struct xobject_h *obj_h, void *ptr)
 {
 	int r;
-	xlock_acquire(&obj_h->lock, XLOCK_UNKNOWN_OWNER);
+	xlock_acquire(&obj_h->lock);
 	r = __xobj_isFree(obj_h, ptr);
 	xlock_release(&obj_h->lock);
 	return r;
