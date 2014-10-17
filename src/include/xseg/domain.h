@@ -35,7 +35,6 @@ void __get_current_time(struct timeval *tv);
 
 extern char __xseg_errbuf[4096];
 void __xseg_log(const char *msg);
-extern int (*xseg_snprintf)(char *str, size_t size, const char *format, ...);
 
 struct log_ctx;
 enum log_level { E = 0, W = 1, I = 2, D = 3};
