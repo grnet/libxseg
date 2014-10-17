@@ -31,45 +31,45 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <xseg/xseg.h>
 #include <pthread.h>
 #include <xseg_pthread.h>
+
 #define ERRSIZE 512
 char errbuf[ERRSIZE];
 
 static void *pthread_malloc(uint64_t size);
 static void pthread_mfree(void *mem);
 
-static long pthread_allocate(const char *name, uint64_t size)
+static int pthread_allocate(const char *name, uint64_t size)
 {
-	int fd, r;
-	off_t lr;
+	int fd;
+    int ret = 0;
+    int serrno = 0;
+
 	fd = shm_open(name, O_RDWR | O_CREAT | O_EXCL, 0770);
 	if (fd < 0) {
+        serrno = errno;
 		XSEGLOG("Cannot create shared segment: %s\n",
 			strerror_r(errno, errbuf, ERRSIZE));
-		return fd;
+        ret = fd;
+		goto exit;
 	}
 
-	lr = lseek(fd, size -1, SEEK_SET);
-	if (lr == (off_t)-1) {
+	if (ftruncate(fd, size) != 0) {
+		serrno = errno;
 		close(fd);
 		XSEGLOG("Cannot seek into segment file: %s\n",
 			strerror_r(errno, errbuf, ERRSIZE));
-		return lr;
-	}
-
-	errbuf[0] = 0;
-	r = write(fd, errbuf, 1);
-	if (r != 1) {
-		close(fd);
-		XSEGLOG("Failed to set segment size: %s\n",
-			strerror_r(errno, errbuf, ERRSIZE));
-		return r;
+        ret = -1;
+        goto exit;
 	}
 
 	close(fd);
-	return 0;
+
+exit:
+	errno = serrno;
+	return ret;
 }
 
-static long pthread_deallocate(const char *name)
+static int pthread_deallocate(const char *name)
 {
 	return shm_unlink(name);
 }
