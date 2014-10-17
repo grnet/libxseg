@@ -451,9 +451,3 @@ xqindex xq_resize(struct xq *xq, struct xq *newxq)
 	xlock_release(&xq->lock);
 	return r;
 }
-
-#ifdef __KERNEL__
-#include <linux/module.h>
-#include <xtypes/xq_exports.h>
-#endif
-

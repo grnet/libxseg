@@ -36,7 +36,7 @@ int xworkq_init(struct xworkq *wq, struct xlock *lock, uint32_t flags)
 
 void xworkq_destroy(struct xworkq *wq)
 {
-	//what about pending works ? 
+	//what about pending works ?
 	xq_free(wq->q);
 	xtypes_free(wq->q);
 }
@@ -114,8 +114,3 @@ void xworkq_signal(struct xworkq *wq)
 
 	return;
 }
-
-#ifdef __KERNEL__
-#include <linux/module.h>
-#include <xtypes/xworkq_exports.h>
-#endif
