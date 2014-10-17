@@ -184,40 +184,47 @@ static int pthread_local_signal_init(struct xseg *xseg, xport portno)
 	struct sigaction *act, *old_act;
 
 	savedset = pthread_malloc(sizeof(sigset_t));
-	if (!savedset)
+	if (!savedset) {
 		goto err1;
+	}
 	set = pthread_malloc(sizeof(sigset_t));
-	if (!set)
+	if (!set) {
 		goto err2;
+	}
 
 	act = pthread_malloc(sizeof(struct sigaction));
-	if (!act)
+	if (!act) {
 		goto err3;
+	}
 	old_act = pthread_malloc(sizeof(struct sigaction));
-	if (!old_act)
+	if (!old_act) {
 		goto err4;
+	}
 
 	pthread_once(&once_init, keys_init);
-	if (!isInit)
+	if (!isInit) {
 		goto err5;
+	}
 
 	sigemptyset(set);
 	act->sa_handler = handler;
 	act->sa_mask = *set;
 	act->sa_flags = 0;
-	if(sigaction(SIGIO, act, old_act) < 0)
+	if(sigaction(SIGIO, act, old_act) < 0) {
 		goto err5;
+	}
 
 
 	sigaddset(set, SIGIO);
 
 	r = pthread_sigmask(SIG_BLOCK, set, savedset);
-	if (r < 0)
+	if (r < 0) {
 		goto err6;
+	}
 
 
 	my_id = *(volatile int *) &id;
-	while (!__sync_bool_compare_and_swap(&id, my_id, my_id+1)){
+	while (!__sync_bool_compare_and_swap(&id, my_id, my_id+1)) {
 		my_id = *(volatile int *) &id;
 	}
 	pid = syscall(SYS_gettid);
@@ -226,8 +233,9 @@ static int pthread_local_signal_init(struct xseg *xseg, xport portno)
 	if (pthread_setspecific(pid_key, tmp) ||
 			pthread_setspecific(mask_key, savedset) ||
 			pthread_setspecific(act_key, old_act) ||
-			pthread_setspecific(id_key, tmp2))
+			pthread_setspecific(id_key, tmp2)) {
 		goto err7;
+	}
 
 	return 0;
 
@@ -255,10 +263,12 @@ static void pthread_local_signal_quit(struct xseg *xseg, xport portno)
 
 	savedset = pthread_getspecific(act_key);
 	old_act = pthread_getspecific(mask_key);
-	if (old_act)
+	if (old_act) {
 		sigaction(SIGIO, old_act, NULL);
-	if (savedset)
+	}
+	if (savedset) {
 		pthread_sigmask(SIG_SETMASK, savedset, NULL);
+	}
 }
 
 static int pthread_remote_signal_init(void)
@@ -276,17 +286,21 @@ static int pthread_prepare_wait(struct xseg *xseg, uint32_t portno)
 	void * tmp;
 	pid_t pid;
 	int my_id;
+	struct pthread_signal_desc *psd;
 	struct xseg_port *port = xseg_get_port(xseg, portno);
-	if (!port)
+	if (!port) {
 		return -1;
-	struct pthread_signal_desc *psd = xseg_get_signal_desc(xseg, port);
-	if (!psd)
+	}
+	psd = xseg_get_signal_desc(xseg, port);
+	if (!psd) {
 		return -1;
+	}
 
 	tmp = pthread_getspecific(pid_key);
 	POINTER_TO_INT(pid, tmp);
-	if (!pid)
+	if (!pid) {
 		return -1;
+	}
 	tmp = pthread_getspecific(id_key);
 	POINTER_TO_INT(my_id, tmp);
 	psd->pids[my_id] = pid;
@@ -298,17 +312,21 @@ static int pthread_cancel_wait(struct xseg *xseg, uint32_t portno)
 	void * tmp;
 	int my_id;
 	pid_t pid;
+	struct pthread_signal_desc *psd;
 	struct xseg_port *port = xseg_get_port(xseg, portno);
-	if (!port)
+	if (!port) {
 		return -1;
-	struct pthread_signal_desc *psd = xseg_get_signal_desc(xseg, port);
-	if (!psd)
+	}
+	psd = xseg_get_signal_desc(xseg, port);
+	if (!psd) {
 		return -1;
+	}
 
 	tmp = pthread_getspecific(pid_key);
 	POINTER_TO_INT(pid, tmp);
-	if (!pid)
+	if (!pid) {
 		return -1;
+	}
 
 	tmp = pthread_getspecific(id_key);
 	POINTER_TO_INT(my_id, tmp);
@@ -330,8 +348,9 @@ static int pthread_wait_signal(struct xseg *xseg, void *sd, uint32_t usec_timeou
 	ts.tv_nsec = 1000 * (usec_timeout - ts.tv_sec * 1000000);
 
 	r = sigtimedwait(&set, &siginfo, &ts);
-	if (r < 0)
+	if (r < 0) {
 		return r;
+	}
 
 	return siginfo.si_signo;
 }
@@ -339,19 +358,22 @@ static int pthread_wait_signal(struct xseg *xseg, void *sd, uint32_t usec_timeou
 static int pthread_signal(struct xseg *xseg, uint32_t portno)
 {
 	int i;
-
+	struct pthread_signal_desc *psd;
 	struct xseg_port *port = xseg_get_port(xseg, portno);
-	if (!port)
+	if (!port) {
 		return -1;
-	struct pthread_signal_desc *psd = xseg_get_signal_desc(xseg, port);
-	if (!psd)
+	}
+	psd = xseg_get_signal_desc(xseg, port);
+	if (!psd) {
 		return -1;
+	}
 
 	pid_t cue;
 	for (i = 0; i < MAX_WAITERS; i++) {
 		cue = psd->pids[i];
-		if (cue)
+		if (cue) {
 			return syscall(SYS_tkill, cue, SIGIO);
+		}
 	}
 
 	/* no waiter found */
@@ -391,7 +413,7 @@ int pthread_init_signal_desc(struct xseg *xseg, void *sd)
 	int i;
 	struct pthread_signal_desc *psd = (struct pthread_signal_desc *)sd;
 	for (i = 0; i < MAX_WAITERS; i++) {
-		psd->pids[i]=0;
+		psd->pids[i] = 0;
 	}
 	return 0;
 }
@@ -401,7 +423,7 @@ void pthread_quit_signal_desc(struct xseg *xseg, void *sd)
 	int i;
 	struct pthread_signal_desc *psd = (struct pthread_signal_desc *)sd;
 	for (i = 0; i < MAX_WAITERS; i++) {
-		psd->pids[i]=0;
+		psd->pids[i] = 0;
 	}
 	return;
 }
@@ -415,18 +437,23 @@ void * pthread_alloc_data(struct xseg *xseg)
 
 void pthread_free_data(struct xseg *xseg, void *data)
 {
-	if (data)
+	if (data) {
 		xseg_put_objh(xseg, (struct xobject_h *)data);
+	}
+	return;
 }
 
 void *pthread_alloc_signal_desc(struct xseg *xseg, void *data)
 {
+	struct pthread_signal_desc *psd;
 	struct xobject_h *sd_h = (struct xobject_h *) data;
-	if (!sd_h)
+	if (!sd_h) {
 		return NULL;
-	struct pthread_signal_desc *psd = xobj_get_obj(sd_h, X_ALLOC);
-	if (!psd)
+	}
+	psd = xobj_get_obj(sd_h, X_ALLOC);
+	if (!psd) {
 		return NULL;
+	}
 	return psd;
 
 }
@@ -434,10 +461,12 @@ void *pthread_alloc_signal_desc(struct xseg *xseg, void *data)
 void pthread_free_signal_desc(struct xseg *xseg, void *data, void *sd)
 {
 	struct xobject_h *sd_h = (struct xobject_h *) data;
-	if (!sd_h)
+	if (!sd_h) {
 		return;
-	if (sd)
+	}
+	if (sd) {
 		xobj_put_obj(sd_h, sd);
+	}
 	return;
 }
 
