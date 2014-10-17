@@ -2266,9 +2266,3 @@ uint32_t xseg_portno_nonstatic(struct xseg *xseg, struct xseg_port *port)
 	}
 	return xseg_portno(xseg, port);
 }
-
-
-#ifdef __KERNEL__
-#include <linux/module.h>
-#include <xseg/xseg_exports.h>
-#endif

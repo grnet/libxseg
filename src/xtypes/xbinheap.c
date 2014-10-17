@@ -228,8 +228,3 @@ int xbinheap_decreasekey(struct xbinheap *h, xbinheap_handler idx,
 	}
 	return r;
 }
-
-#ifdef __KERNEL__
-#include <linux/module.h>
-#include <xtypes/xbinheap_exports.h>
-#endif 

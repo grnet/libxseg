@@ -910,8 +910,3 @@ uint64_t xcache_free_nodes(struct xcache *cache)
 {
 	return (uint64_t)__count_free_nodes(cache);
 }
-
-#ifdef __KERNEL__
-#include <linux/module.h>
-#include <xtypes/xcache_exports.h>
-#endif

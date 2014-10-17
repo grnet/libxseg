@@ -271,9 +271,3 @@ int xobj_isFree(struct xobject_h *obj_h, void *ptr)
 	xlock_release(&obj_h->lock);
 	return r;
 }
-
-
-#ifdef __KERNEL__
-#include <linux/module.h>
-#include <xtypes/xobj_exports.h>
-#endif

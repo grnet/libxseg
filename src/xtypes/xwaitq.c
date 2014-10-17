@@ -118,8 +118,3 @@ void xwaitq_signal(struct xwaitq *wq)
 	}
 	xlock_release(&wq->lock);
 }
-
-#ifdef __KERNEL__
-#include <linux/module.h>
-#include <xtypes/xwaitq_exports.h>
-#endif

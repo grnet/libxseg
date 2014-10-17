@@ -18,14 +18,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef __PHASH_H__
 #define __PHASH_H__
 
-#ifndef __KERNEL__
 #include <stdbool.h>
-#endif
-
 #include <xseg/xtypes.h>
 #include <xseg/util.h>
 #include <xseg/domain.h>
-/* based on: 
+/* based on:
  *
  * python hash for C
  *  originally by gtsouk@cslab.ece.ntua.gr
