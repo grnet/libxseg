@@ -34,9 +34,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <xseg/xobj.h>
 #include <xseg_posixfd.h>
 
-#define ERRSIZE 512
 #define FIFO_RDWR_UGO	S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH
-char errbuf[ERRSIZE];
 
 static struct posixfd_signal_desc * __get_signal_desc(struct xseg *xseg, xport portno)
 {
