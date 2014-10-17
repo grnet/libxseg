@@ -34,12 +34,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define ERRSIZE 512
 char errbuf[ERRSIZE];
 
-static long posix_allocate(const char *name, uint64_t size)
+static int posix_allocate(const char *name, uint64_t size)
 {
-	long ret = 0;
-	int fd, r;
-	off_t lr;
+	int ret = 0;
+	int fd;
 	int err_no = 0;
+
 	fd = shm_open(name, O_RDWR | O_CREAT | O_EXCL, 0770);
 	if (fd < 0) {
 		err_no = errno;
@@ -49,24 +49,12 @@ static long posix_allocate(const char *name, uint64_t size)
 		goto exit;
 	}
 
-	lr = lseek(fd, size -1, SEEK_SET);
-	if (lr == (off_t)-1) {
+	if (ftruncate(fd, size) != 0) {
 		err_no = errno;
 		close(fd);
 		XSEGLOG("Cannot seek into segment file: %s\n",
 			strerror_r(errno, errbuf, ERRSIZE));
-		ret = lr;
-		goto exit;
-	}
-
-	errbuf[0] = 0;
-	r = write(fd, errbuf, 1);
-	if (r != 1) {
-		err_no = errno;
-		close(fd);
-		XSEGLOG("Failed to set segment size: %s\n",
-			strerror_r(errno, errbuf, ERRSIZE));
-		ret = r;
+		ret = -1;
 		goto exit;
 	}
 
@@ -77,7 +65,7 @@ exit:
 	return ret;
 }
 
-static long posix_deallocate(const char *name)
+static int posix_deallocate(const char *name)
 {
 	return shm_unlink(name);
 }
