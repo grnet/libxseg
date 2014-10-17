@@ -126,15 +126,17 @@ static int posix_local_signal_init(struct xseg *xseg, xport portno)
 	void (*h)(int);
 	int r;
 	h = signal(SIGIO, handler);
-	if (h == SIG_ERR)
+	if (h == SIG_ERR) {
 		return -1;
+	}
 
 	sigemptyset(&set);
 	sigaddset(&set, SIGIO);
 
 	r = sigprocmask(SIG_BLOCK, &set, &savedset);
-	if (r < 0)
+	if (r < 0) {
 		return -1;
+	}
 
 	pid = syscall(SYS_gettid);
 	return 0;
@@ -159,24 +161,30 @@ static void posix_remote_signal_quit(void)
 
 static int posix_prepare_wait(struct xseg *xseg, uint32_t portno)
 {
+	struct posix_signal_desc *psd;
 	struct xseg_port *port = xseg_get_port(xseg, portno);
-	if (!port)
+	if (!port) {
 		return -1;
-	struct posix_signal_desc *psd = xseg_get_signal_desc(xseg, port);
-	if (!psd)
+	}
+	psd = xseg_get_signal_desc(xseg, port);
+	if (!psd) {
 		return -1;
+	}
 	psd->waitcue = pid;
 	return 0;
 }
 
 static int posix_cancel_wait(struct xseg *xseg, uint32_t portno)
 {
+	struct posix_signal_desc *psd;
 	struct xseg_port *port = xseg_get_port(xseg, portno);
-	if (!port)
+	if (!port) {
 		return -1;
-	struct posix_signal_desc *psd = xseg_get_signal_desc(xseg, port);
-	if (!psd)
+	}
+	psd = xseg_get_signal_desc(xseg, port);
+	if (!psd) {
 		return -1;
+	}
 	psd->waitcue = 0;
 	return 0;
 }
@@ -194,24 +202,29 @@ static int posix_wait_signal(struct xseg *xseg, void *sd, uint32_t usec_timeout)
 	 * and use a NULL timespec linux-specific)
 	 */
 	r = sigtimedwait(&set, &siginfo, &ts);
-	if (r < 0)
+	if (r < 0) {
 		return r;
+	}
 
 	return siginfo.si_signo;
 }
 
 static int posix_signal(struct xseg *xseg, uint32_t portno)
 {
+	struct posix_signal_desc *psd;
 	struct xseg_port *port = xseg_get_port(xseg, portno);
-	if (!port)
+	if (!port) {
 		return -1;
-	struct posix_signal_desc *psd = xseg_get_signal_desc(xseg, port);
-	if (!psd)
+	}
+	psd = xseg_get_signal_desc(xseg, port);
+	if (!psd) {
 		return -1;
+	}
 	pid_t cue = (pid_t)psd->waitcue;
-	if (!cue)
+	if (!cue) {
 		//HACKY!
 		return -2;
+	}
 
 	/* FIXME: Make calls to xseg_signal() check for errors */
 	return syscall(SYS_tkill, cue, SIGIO);
@@ -236,8 +249,9 @@ static void posix_mfree(void *mem)
 int posix_init_signal_desc(struct xseg *xseg, void *sd)
 {
 	struct posix_signal_desc *psd = sd;
-	if (!psd)
+	if (!psd) {
 		return -1;
+	}
 	psd->waitcue = 0;
 	return 0;
 }
@@ -256,18 +270,23 @@ void * posix_alloc_data(struct xseg *xseg)
 
 void posix_free_data(struct xseg *xseg, void *data)
 {
-	if (data)
+	if (data) {
 		xseg_put_objh(xseg, (struct xobject_h *)data);
+	}
+	return;
 }
 
 void *posix_alloc_signal_desc(struct xseg *xseg, void *data)
 {
+	struct posix_signal_desc *psd;
 	struct xobject_h *sd_h = (struct xobject_h *) data;
-	if (!sd_h)
+	if (!sd_h) {
 		return NULL;
-	struct posix_signal_desc *psd = xobj_get_obj(sd_h, X_ALLOC);
-	if (!psd)
+	}
+	psd = xobj_get_obj(sd_h, X_ALLOC);
+	if (!psd) {
 		return NULL;
+	}
 	psd->waitcue = 0;
 	return psd;
 
@@ -276,10 +295,12 @@ void *posix_alloc_signal_desc(struct xseg *xseg, void *data)
 void posix_free_signal_desc(struct xseg *xseg, void *data, void *sd)
 {
 	struct xobject_h *sd_h = (struct xobject_h *) data;
-	if (!sd_h)
+	if (!sd_h) {
 		return;
-	if (sd)
+	}
+	if (sd) {
 		xobj_put_obj(sd_h, sd);
+	}
 	return;
 }
 
