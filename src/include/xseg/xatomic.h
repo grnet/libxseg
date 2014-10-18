@@ -66,8 +66,9 @@ static inline void xatomic_write(xatomic *atomic, uint64_t newval)
 {
 	cas_begin(atomic, val);
 	val = newval;
-	if (!cas_update(val))
+	if (!cas_update(val)) {
 		cas_restart(val);
+	}
 }
 
 static inline uint64_t xatomic_inc(xatomic *atomic, uint64_t inc)
@@ -77,8 +78,9 @@ static inline uint64_t xatomic_inc(xatomic *atomic, uint64_t inc)
 	cas_begin(atomic, val);
 	retval = val;
 	val += inc;
-	if (!cas_update(val))
+	if (!cas_update(val)) {
 		cas_restart(val);
+	}
 
 	return retval;
 }
@@ -90,8 +92,9 @@ static inline uint64_t xatomic_dec(xatomic *atomic, uint64_t dec)
 	cas_begin(atomic, val);
 	retval = val;
 	val -= dec;
-	if (!cas_update(val))
+	if (!cas_update(val)) {
 		cas_restart(val);
+	}
 
 	return retval;
 }

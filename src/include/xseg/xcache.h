@@ -116,8 +116,9 @@ static void *xcache_get_entry(struct xcache *cache, xcache_handler h)
 {
 	xqindex idx = (xqindex)h;
 
-	if (!__validate_idx(cache, idx))
+	if (!__validate_idx(cache, idx)) {
 		return NULL;
+	}
 
 	return cache->nodes[idx].priv;
 }
