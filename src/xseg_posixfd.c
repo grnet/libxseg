@@ -68,9 +68,8 @@ static void __get_filename(struct posixfd_signal_desc *psd, char *filename)
 static int posixfd_local_signal_init(struct xseg *xseg, xport portno)
 {
 	/* create or truncate POSIXFD+portno file */
-	int r, fd;
+	int fd;
 	char filename[POSIXFD_DIR_LEN + POSIXFD_FILENAME_LEN + 1];
-	mode_t old_mode;
 
 	struct posixfd_signal_desc *psd = __get_signal_desc(xseg, portno);
 	if (!psd) {
