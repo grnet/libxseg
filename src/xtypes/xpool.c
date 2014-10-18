@@ -60,7 +60,7 @@ xpool_index __xpool_add(struct xpool *xp, xpool_data data)
 	xpool_index idx;
 
 	idx = xp->free;
-	if (idx == NoIndex){
+	if (idx == NoIndex) {
 		return NoIndex;
 	}
 	new = XPTR(&xp->mem) + idx;
@@ -190,17 +190,18 @@ xpool_index xpool_remove(struct xpool *xp, xpool_index idx, xpool_data *data)
 xpool_index __xpool_remove(struct xpool *xp, xpool_index idx, xpool_data *data)
 {
 	struct xpool_node *node, *prev, *next;
-	if (!__validate_idx(xp, idx)){ // idx < xp->size && node->prev != NULL
+	if (!__validate_idx(xp, idx)) { // idx < xp->size && node->prev != NULL
 		return NoIndex;
 	}
 	node = XPTR(&xp->mem) + idx;
 	*data = node->data;
 
-	if (idx == xp->list){
-		if ( idx == node->next)
+	if (idx == xp->list) {
+		if ( idx == node->next) {
 			xp->list = NoIndex;
-		else
+		} else {
 			xp->list = node->next;
+		}
 	}
 	prev = XPTR(&xp->mem) + node->prev;
 	prev->next = node->next;
@@ -227,7 +228,7 @@ xpool_index __xpool_peek(struct xpool *xp, xpool_data *data)
 {
 	struct xpool_node *list;
 	xpool_index ret;
-	if (xp->list == NoIndex){
+	if (xp->list == NoIndex) {
 		return NoIndex;
 	}
 	ret = xp->list;
@@ -248,7 +249,7 @@ xpool_index xpool_peek(struct xpool *xp, xpool_data *data)
 xpool_index __xpool_peek_idx(struct xpool *xp, xpool_index idx, xpool_data *data)
 {
 	struct xpool_node *node;
-	if (!__validate_idx(xp, idx)){
+	if (!__validate_idx(xp, idx)) {
 		return NoIndex;
 	}
 	node = XPTR(&xp->mem) + idx;
@@ -269,7 +270,7 @@ xpool_index __xpool_peek_and_fwd(struct xpool *xp, xpool_data *data)
 {
 	struct xpool_node *list;
 	xpool_index ret;
-	if (xp->list == NoIndex){
+	if (xp->list == NoIndex) {
 		return NoIndex;
 	}
 	ret = xp->list;
@@ -312,7 +313,7 @@ xpool_index xpool_peek_and_fwd(struct xpool *xp, xpool_data *data)
 xpool_index __xpool_set_idx(struct xpool *xp, xpool_index idx, xpool_data data)
 {
 	struct xpool_node *node;
-	if (!__validate_idx(xp, idx)){
+	if (!__validate_idx(xp, idx)) {
 		return NoIndex;
 	}
 	node = XPTR(&xp->mem) + idx;
