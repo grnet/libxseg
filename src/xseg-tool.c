@@ -540,7 +540,6 @@ int cmd_release(char *target)
 
 	xseg_signal(xseg, p);
 	return 0;
-	return 0;
 }
 
 int cmd_open(char *target)
@@ -610,7 +609,6 @@ int cmd_close(char *target)
 
 	xseg_signal(xseg, p);
 	return 0;
-	return 0;
 }
 
 int cmd_copy(char *src, char *dst)
@@ -653,7 +651,6 @@ int cmd_copy(char *src, char *dst)
 	}
 	xseg_signal(xseg, p);
 
-	return 0;
 	return 0;
 }
 
