@@ -26,16 +26,18 @@ int xobj_handler_init(struct xobject_h *obj_h, void *container,
 	xhash_t *xhash;
 	obj_h->magic = magic;
 	/* minimum object size */
-	if (size < sizeof(struct xobject))
+	if (size < sizeof(struct xobject)) {
 		obj_h->obj_size = sizeof(struct xobject);
-	else
+	} else {
 		obj_h->obj_size = size;
+	}
 
 	//TODO convert this to xset
 	/* request space of an xhash of sizeshift 3 */
 	xhash = (xhash_t *) xheap_allocate(heap, xhash_get_alloc_size(3));
-	if (!xhash)
+	if (!xhash) {
 		return -1;
+	}
 
 	//FIXME
 	/* but initialize an xhash with sizeshift based on
@@ -69,8 +71,9 @@ int xobj_alloc_obj(struct xobject_h * obj_h, uint64_t nr)
 	int r;
 
 	void *mem = xheap_allocate(heap, bytes);
-	if (!mem)
+	if (!mem) {
 		return -1;
+	}
 
 	bytes = xheap_get_chunk_size(mem);
 	used = 0;
@@ -82,8 +85,9 @@ int xobj_alloc_obj(struct xobject_h * obj_h, uint64_t nr)
 		obj->size = obj_h->obj_size;
 		obj->next = XPTR_MAKE(((unsigned long) mem) + used, container); //point to the next obj
 	}
-	if (!obj)
+	if (!obj) {
 		goto err;
+	}
 
 	/* keep track of allocated objects.
 	 * Since the whole allocated space is split up into objects,
@@ -99,16 +103,18 @@ int xobj_alloc_obj(struct xobject_h * obj_h, uint64_t nr)
 		xhash_t *new;
 		size = xhash_get_alloc_size(sizeshift);
 		new = xheap_allocate(heap, size);
-		if (!new)
+		if (!new) {
 			goto err;
+		}
 		xhash_resize(allocated, sizeshift, 0, new);
 		xheap_free(allocated);
 		allocated = new;
 		obj_h->allocated = XPTR_MAKE(allocated, container);
 		r = xhash_insert(allocated, ptr, ptr);
 	}
-	if (r < 0)
+	if (r < 0) {
 		goto err;
+	}
 
 	obj_h->allocated_space += bytes;
 	obj_h->nr_free += bytes/obj_h->obj_size;
@@ -149,8 +155,9 @@ void * xobj_get_obj(struct xobject_h * obj_h, uint32_t flags)
 	xlock_acquire(&obj_h->lock);
 retry:
 	list = obj_h->list;
-	if (!list)
+	if (!list) {
 		goto alloc;
+	}
 	obj = XPTR_TAKE(list, container);
 	objptr = obj->next;
 	obj_h->list = objptr;
@@ -158,12 +165,14 @@ retry:
 	goto out;
 
 alloc:
-	if (!(flags & X_ALLOC))
+	if (!(flags & X_ALLOC)) {
 		goto out;
+	}
 	//allocate minimum 64 objects
 	r = xobj_alloc_obj(obj_h, 64);
-	if (r<0)
+	if (r < 0) {
 		goto out;
+	}
 	goto retry;
 out:
 	xlock_release(&obj_h->lock);
@@ -194,8 +203,9 @@ int xobj_iterate(struct xobject_h *obj_h, struct xobject_iter *it, void **obj)
 	if (!it->chunk ||
 	     it->cnt >= xheap_get_chunk_size(it->chunk)/obj_h->obj_size){
 		r = xhash_iterate(allocated, &it->xhash_it, &key, &val);
-		if (!r)
+		if (!r) {
 			return 0;
+		}
 		it->chunk = XPTR_TAKE(key, container);
 		it->cnt = 0;
 	}
@@ -251,14 +261,13 @@ int __xobj_isFree(struct xobject_h *obj_h, void *ptr)
 
 
 	node = obj_h->list;
-	while (node){
+	while (node) {
 		obj = XPTR_TAKE(node, container);
-		if (obj == ptr){
+		if (obj == ptr) {
 			return 1;
 		}
 		node = obj->next;
 	}
-
 
 	return 0;
 }
