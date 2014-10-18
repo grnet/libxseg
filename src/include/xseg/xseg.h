@@ -18,17 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef _XSEG_H
 #define _XSEG_H
 
-#ifndef XSEG_PAGE_SHIFT
-#define XSEG_PAGE_SHIFT 12
-#endif
-
-#define XSEG_BASE (0x37fd0UL << XSEG_PAGE_SHIFT)
-#define XSEG_BASE_AS_PTR ((void *)XSEG_BASE)
-#define XSEG_BASE_AS_BUF ((char *)XSEG_BASE)
 #define XSEG_OFFSET(base, ptr) ((unsigned long)(ptr) - (unsigned long)(base))
 #define XSEG_PTR_CONVERT(ptr, src, dst) ((void *)((unsigned long)(dst) + XSEG_OFFSET(src, ptr)))
-#define XSEG_TAKE_PTR(ptr, base) XSEG_PTR_CONVERT(ptr, XSEG_BASE, base)
-#define XSEG_MAKE_PTR(ptr, base) XSEG_PTR_CONVERT(ptr, base, XSEG_BASE)
 
 #include <stdint.h>
 #include <sys/time.h>
