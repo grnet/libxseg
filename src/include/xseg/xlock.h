@@ -54,8 +54,9 @@ typedef uint64_t xlock_owner_t;
 static __thread pid_t tid=0;
 static pid_t gettid()
 {
-	if (tid)
+	if (tid) {
 		return tid;
+	}
 	tid = syscall(SYS_gettid);
 	return tid;
 }
@@ -168,10 +169,12 @@ __attribute__((always_inline)) static inline unsigned long xlock_acquire(struct 
 					(unsigned long) lock, times,
 					pid, tid, pc, opid, otid, opc,
 					lock->pc);
-				if (shift == STACKTRACE_SHIFT)
+				if (shift == STACKTRACE_SHIFT) {
 					xseg_printtrace();
-				if (shift < MAX_SHIFT)
+				}
+				if (shift < MAX_SHIFT) {
 					shift++;
+				}
 			}
 			times++;
 #endif /* XLOCK_CONGESTION_NOTIFY */
