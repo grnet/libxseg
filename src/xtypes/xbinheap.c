@@ -52,18 +52,19 @@ static int heapify_up(struct xbinheap *h, xbinheapidx i)
 	xbinheapidx parent;
 	struct xbinheap_node *n, *pn;
 	int cmp;
-	if (!i)
+	if (!i) {
 		return 0;
+	}
 	parent = (i-1)/2;
 	n = &h->nodes[i];
 	pn = &h->nodes[parent];
 	//XSEGLOG("i: %llu, p: %llu, count: %lu", n->key, pn->key, h->count);
-	if (isMaxHeap(h)){
+	if (isMaxHeap(h)) {
 		cmp = pn->key < n->key;
 	} else {
 		cmp = pn->key > n->key;
 	}
-	if (cmp){
+	if (cmp) {
 		swap_nodes(h, i, parent);
 		return heapify_up(h, parent);
 	}
@@ -74,38 +75,38 @@ static int heapify_down(struct xbinheap *h, xbinheapidx i)
 {
 	xbinheapidx left, right, largest;
 	struct xbinheap_node *n, *ln, *rn, *largest_n;
-	left = 2*i + 1;
-	right = 2*i + 1 + 1;
+	left = 2 * i + 1;
+	right = 2 * i + 1 + 1;
 	largest = i;
 	(void)n;
 	//n = &h->nodes[i];
 	ln = &h->nodes[left];
 	rn = &h->nodes[right];
 	largest_n = &h->nodes[largest];
-	if (isMaxHeap(h)){
+	if (isMaxHeap(h)) {
 	//	XSEGLOG("l: %llu, r: %llu, p: %llu, count: %lu", ln->key, rn->key, largest_n->key, h->count);
-		if (left < h->count && (ln->key > largest_n->key)){
+		if (left < h->count && (ln->key > largest_n->key)) {
 			largest = left;
 			largest_n = &h->nodes[largest];
 		}
-		if (right < h->count && (rn->key > largest_n->key)){
+		if (right < h->count && (rn->key > largest_n->key)) {
 			largest = right;
 			largest_n = &h->nodes[largest];
 		}
-		if (largest != i){
+		if (largest != i) {
 			swap_nodes(h, i, largest);
 			return heapify_down(h, largest);
 		}
 	} else {
-		if (left < h->count && ln->key < largest_n->key){
+		if (left < h->count && ln->key < largest_n->key) {
 			largest = left;
 			largest_n = &h->nodes[largest];
 		}
-		if (right < h->count && rn->key < largest_n->key){
+		if (right < h->count && rn->key < largest_n->key) {
 			largest = right;
 			largest_n = &h->nodes[largest];
 		}
-		if (largest != i){
+		if (largest != i) {
 			swap_nodes(h, i, largest);
 			return heapify_down(h, largest);
 		}
@@ -117,8 +118,9 @@ xbinheap_handler xbinheap_insert(struct xbinheap *h, xbinheapidx key,
 		xbinheapidx value)
 {
 	xbinheap_handler ret;
-	if (h->count + 1 > h->size)
+	if (h->count + 1 > h->size) {
 		return NoNode;
+	}
 	ret = h->nodes[h->count].h;
 	h->nodes[h->count].key = key;
 	h->nodes[h->count].value = value;
@@ -136,8 +138,9 @@ int xbinheap_empty(struct xbinheap *h)
 /* peek min or max */
 xbinheapidx xbinheap_peak(struct xbinheap *h)
 {
-	if (xbinheap_empty(h))
+	if (xbinheap_empty(h)) {
 		return NoNode;
+	}
 	return h->nodes[0].value;
 }
 
@@ -145,8 +148,9 @@ xbinheapidx xbinheap_peak(struct xbinheap *h)
 xbinheapidx xbinheap_extract(struct xbinheap *h)
 {
 	xbinheapidx ret = h->nodes[0].value;
-	if (xbinheap_empty(h))
+	if (xbinheap_empty(h)) {
 		return NoNode;
+	}
 	h->count--;
 	swap_nodes(h, 0, h->count);
 	heapify_down(h, 0);
@@ -163,7 +167,7 @@ int xbinheap_increasekey(struct xbinheap *h, xbinheap_handler idx,
 	//		idx, i, hn->key, newkey);
 	//assert newkey > hn->key
 	hn->key = newkey;
-	if (isMaxHeap(h)){
+	if (isMaxHeap(h)) {
 		r = heapify_up(h, i);
 	} else {
 		r = heapify_down(h, i);
@@ -174,18 +178,19 @@ int xbinheap_increasekey(struct xbinheap *h, xbinheap_handler idx,
 xbinheapidx xbinheap_getkey(struct xbinheap *h, xbinheap_handler idx)
 {
 	xbinheapidx i = h->indexes[idx];
-	if (i > h->count)
+	if (i > h->count) {
 		return NoNode;
+	}
 	return h->nodes[i].key;
 }
 
 int xbinheap_init(struct xbinheap *h, xbinheapidx size, uint32_t flags, void *mem)
 {
 	xbinheapidx i;
-	if (!mem){
+	if (!mem) {
 		h->indexes = xtypes_malloc(sizeof(xbinheapidx) * size);
 		h->nodes = xtypes_malloc(sizeof(struct xbinheap_node) * size);
-		if (!h->indexes || !h->nodes){
+		if (!h->indexes || !h->nodes) {
 			xtypes_free(h->indexes);
 			xtypes_free(h->nodes);
 			return -1;
@@ -221,15 +226,10 @@ int xbinheap_decreasekey(struct xbinheap *h, xbinheap_handler idx,
 	//		idx, i, hn->key, newkey);
 	//assert newkey > hn->key
 	hn->key = newkey;
-	if (isMaxHeap(h)){
+	if (isMaxHeap(h)) {
 		r = heapify_down(h, i);
 	} else {
 		r = heapify_up(h, i);
 	}
 	return r;
 }
-
-#ifdef __KERNEL__
-#include <linux/module.h>
-#include <xtypes/xbinheap_exports.h>
-#endif 

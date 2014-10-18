@@ -131,16 +131,17 @@ int install_signal_handler()
 	sa.sa_handler = handler;
 
 	r = sigaction(SIGINT, &sa, NULL);
-	if (r < 0)
+	if (r < 0) {
 		return -errno;
+	}
 
 	return 0;
 }
 
-static void init_local_signal() 
+static void init_local_signal()
 {
 	struct xseg_port *port;
-	if (xseg && sport != srcport){
+	if (xseg && sport != srcport) {
 		xseg_init_local_signal(xseg, srcport);
 		sport = srcport;
 		port = xseg_get_port(xseg, srcport);
@@ -155,8 +156,9 @@ void mkname_heavy(char *name, uint32_t namelen, uint32_t seed)
 	for (i = 0; i < namelen; i += 1) {
 		c = seed + (seed >> 8) + (seed >> 16) + (seed >> 24);
 		c = '0' + ((c + (c >> 4)) & 0xf);
-		if (c > '9')
+		if (c > '9') {
 			c += 'a'-'0'-10;
+		}
 		name[i] = c;
 		seed *= ((seed % 137911) | 1) * 137911;
 	}
@@ -186,8 +188,9 @@ void mkchunk(	char *chunk, uint32_t datalen,
 	r = datalen % bufsize;
 	snprintf(buf, bufsize, "%016llx%s", (unsigned long long)offset, target);
 
-	for (i = 0; i <= (long)datalen - bufsize; i += bufsize)
+	for (i = 0; i <= (long)datalen - bufsize; i += bufsize) {
 		memcpy(chunk + i, buf, bufsize);
+	}
 
 	memcpy(chunk + datalen - r, buf, r);
 }
@@ -201,16 +204,18 @@ int chkchunk(	char *chunk, uint32_t datalen,
 	r = datalen % targetlen;
 	snprintf(buf, bufsize, "%016llx%s", (unsigned long long)offset, target);
 
-	for (i = 0; i <= (long)datalen - bufsize; i += bufsize)
+	for (i = 0; i <= (long)datalen - bufsize; i += bufsize) {
 		if (memcmp(chunk + i, buf, bufsize)) {
 			/*printf("mismatch: '%*s'* vs '%*s'\n",
 				bufsize, buf, datalen, chunk);
 			*/
 			return 0;
 		}
+	}
 
-	if (memcmp(chunk + datalen - r, buf, r))
+	if (memcmp(chunk + datalen - r, buf, r)) {
 		return 0;
+	}
 
 	return 1;
 }
@@ -227,16 +232,19 @@ void inputbuf(FILE *fp, char **retbuf, uint64_t *retsize)
 	char *p;
 	size_t r;
 
-	if (alloc_size < ALLOC_MIN)
+	if (alloc_size < ALLOC_MIN) {
 		alloc_size = ALLOC_MIN;
+	}
 
-	if (alloc_size > ALLOC_MAX)
+	if (alloc_size > ALLOC_MAX) {
 		alloc_size = ALLOC_MAX;
+	}
 
 	p = realloc(buf, alloc_size);
 	if (!p) {
-		if (buf)
+		if (buf) {
 			free(buf);
+		}
 		buf = NULL;
 		goto out;
 	}
@@ -245,14 +253,16 @@ void inputbuf(FILE *fp, char **retbuf, uint64_t *retsize)
 
 	while (!feof(fp)) {
 		r = fread(buf + size, 1, alloc_size - size, fp);
-		if (!r)
+		if (!r) {
 			break;
+		}
 		size += r;
 		if (size >= alloc_size) {
 			p = realloc(buf, alloc_size * 2);
 			if (!p) {
-				if (buf)
+				if (buf) {
 					free(buf);
+				}
 				buf = NULL;
 				size = 0;
 				goto out;
@@ -325,8 +335,9 @@ int cmd_info(char *target)
 	req->op = X_INFO;
 
 	p = xseg_submit(xseg, req, srcport, X_ALLOC);
-	if (p == NoPort)
+	if (p == NoPort) {
 		return -1;
+	}
 
 	xseg_signal(xseg, p);
 
@@ -360,8 +371,9 @@ int cmd_read(char *target, uint64_t offset, uint64_t size)
 	req->op = X_READ;
 	report_request(req);
 	p = xseg_submit(xseg, req, srcport, X_ALLOC);
-	if (p == NoPort)
+	if (p == NoPort) {
 		return -1;
+	}
 
 	xseg_signal(xseg, p);
 	return 0;
@@ -399,7 +411,7 @@ int cmd_write(char *target, uint64_t offset)
 
 	req_target = xseg_get_target(xseg, req);
 	strncpy(req_target, target, targetlen);
-	
+
 	req_data = xseg_get_data(xseg, req);
 	memcpy(req_data, buf, size);
 	req->offset = offset;
@@ -423,38 +435,38 @@ int cmd_truncate(char *target, uint64_t offset)
 
 int cmd_delete(char *target)
 {
-        uint32_t targetlen = strlen(target);
-        int r;
-        struct xseg_request *req;
+	uint32_t targetlen = strlen(target);
+	int r;
+	struct xseg_request *req;
+	char *reqtarget;
 	init_local_signal();
-        xseg_bind_port(xseg, srcport, NULL);
+	xseg_bind_port(xseg, srcport, NULL);
 
-        req = xseg_get_request(xseg, srcport, dstport, X_ALLOC);
-        if (!req) {
-                fprintf(stderr, "No request!\n");
-                return -1;
-        }
+	req = xseg_get_request(xseg, srcport, dstport, X_ALLOC);
+	if (!req) {
+			fprintf(stderr, "No request!\n");
+			return -1;
+	}
 
-        r = xseg_prep_request(xseg, req, targetlen, 0);
-        if (r < 0) {
-                fprintf(stderr, "Cannot prepare request! (%lu, %lu)\n",
-                        (unsigned long) targetlen, (unsigned long) req->bufferlen - targetlen);
-                xseg_put_request(xseg, req, srcport);
-                return -1;
-        }
+	r = xseg_prep_request(xseg, req, targetlen, 0);
+	if (r < 0) {
+			fprintf(stderr, "Cannot prepare request! (%lu, %lu)\n",
+					(unsigned long) targetlen, (unsigned long) req->bufferlen - targetlen);
+			xseg_put_request(xseg, req, srcport);
+			return -1;
+	}
 
-	char *reqtarget = xseg_get_target(xseg, req);
-        strncpy(reqtarget, target, targetlen);
-        req->op = X_DELETE;
+	reqtarget = xseg_get_target(xseg, req);
+	strncpy(reqtarget, target, targetlen);
+	req->op = X_DELETE;
 
-        xport p = xseg_submit(xseg, req, srcport, X_ALLOC);
-        if (p == NoPort){
+	xport p = xseg_submit(xseg, req, srcport, X_ALLOC);
+	if (p == NoPort) {
 		fprintf(stderr, "Couldn't submit request\n");
                 xseg_put_request(xseg, req, srcport);
                 return -1;
 	}
-
-        xseg_signal(xseg, p);
+	xseg_signal(xseg, p);
 
 	return 0;
 }
@@ -486,8 +498,9 @@ int cmd_acquire(char *target)
 	req->op = X_ACQUIRE;
 	req->flags = XF_NOSYNC;
 	p = xseg_submit(xseg, req, srcport, X_ALLOC);
-	if (p == NoPort)
+	if (p == NoPort) {
 		return -1;
+	}
 
 	xseg_signal(xseg, p);
 	return 0;
@@ -521,11 +534,11 @@ int cmd_release(char *target)
 	//req->flags = XF_FORCE;
 	req->flags = 0;
 	p = xseg_submit(xseg, req, srcport, X_ALLOC);
-	if (p == NoPort)
+	if (p == NoPort) {
 		return -1;
+	}
 
 	xseg_signal(xseg, p);
-	return 0;
 	return 0;
 }
 
@@ -555,8 +568,9 @@ int cmd_open(char *target)
 	req->size = 0;
 	req->op = X_OPEN;
 	p = xseg_submit(xseg, req, srcport, X_ALLOC);
-	if (p == NoPort)
+	if (p == NoPort) {
 		return -1;
+	}
 
 	xseg_signal(xseg, p);
 	return 0;
@@ -589,44 +603,46 @@ int cmd_close(char *target)
 	req->op = X_CLOSE;
 	req->flags = XF_FORCE;
 	p = xseg_submit(xseg, req, srcport, X_ALLOC);
-	if (p == NoPort)
+	if (p == NoPort) {
 		return -1;
+	}
 
 	xseg_signal(xseg, p);
-	return 0;
 	return 0;
 }
 
 int cmd_copy(char *src, char *dst)
 {
-        uint32_t targetlen = strlen(dst);
+	uint32_t targetlen = strlen(dst);
 	uint32_t parentlen = strlen(src);
-        struct xseg_request *req;
-        struct xseg_request_copy *xcopy;
+	struct xseg_request *req;
+	struct xseg_request_copy *xcopy;
+	char *target, *data;
+
 	req = xseg_get_request(xseg, srcport, dstport, X_ALLOC);
-        if (!req) {
-                fprintf(stderr, "No request\n");
-                return -1;
-        }
+	if (!req) {
+		fprintf(stderr, "No request\n");
+		return -1;
+	}
 
 	int r = xseg_prep_request(xseg, req, targetlen,
 			sizeof(struct xseg_request_copy));
-        if (r < 0) {
-                fprintf(stderr, "Cannot prepare request!\n");
-                xseg_put_request(xseg, req, srcport);
-                return -1;
-        }
+	if (r < 0) {
+		fprintf(stderr, "Cannot prepare request!\n");
+		xseg_put_request(xseg, req, srcport);
+		return -1;
+	}
 
-	char *target = xseg_get_target(xseg, req);
-	char *data = xseg_get_data(xseg, req);
+	target = xseg_get_target(xseg, req);
+	data = xseg_get_data(xseg, req);
 
 	strncpy(target, dst, targetlen);
-        xcopy = (struct xseg_request_copy *) data;
-        strncpy(xcopy->target, src, parentlen);
+	xcopy = (struct xseg_request_copy *) data;
+	strncpy(xcopy->target, src, parentlen);
 	xcopy->targetlen = parentlen;
-        req->offset = 0;
-        req->size = sizeof(struct xseg_request_copy);
-        req->op = X_COPY;
+	req->offset = 0;
+	req->size = sizeof(struct xseg_request_copy);
+	req->op = X_COPY;
 
 	xport p = xseg_submit(xseg, req, srcport, X_ALLOC);
 	if (p == NoPort){
@@ -636,49 +652,50 @@ int cmd_copy(char *src, char *dst)
 	xseg_signal(xseg, p);
 
 	return 0;
-	return 0;
 }
 
 int cmd_clone(char *src, char *dst, long size)
 {
 
-        uint32_t targetlen = strlen(dst);
+	uint32_t targetlen = strlen(dst);
 	uint32_t parentlen = strlen(src);
-        struct xseg_request *req;
-        struct xseg_request_clone *xclone;
+	struct xseg_request *req;
+	struct xseg_request_clone *xclone;
+	char *target, *data;
+
 	xseg_bind_port(xseg, srcport, NULL);
 	req = xseg_get_request(xseg, srcport, dstport, X_ALLOC);
-        if (!req) {
-                fprintf(stderr, "No request\n");
-                return -1;
-        }
+	if (!req) {
+		fprintf(stderr, "No request\n");
+		return -1;
+	}
 
 	int r = xseg_prep_request(xseg, req, targetlen, sizeof(struct xseg_request_clone));
-        if (r < 0) {
-                fprintf(stderr, "Cannot prepare request!\n");
-                xseg_put_request(xseg, req, srcport);
-                return -1;
-        }
+	if (r < 0) {
+		fprintf(stderr, "Cannot prepare request!\n");
+		xseg_put_request(xseg, req, srcport);
+		return -1;
+	}
 
-	char *target = xseg_get_target(xseg, req);
-	char *data = xseg_get_data(xseg, req);
+	target = xseg_get_target(xseg, req);
+	data = xseg_get_data(xseg, req);
 
 	strncpy(target, dst, targetlen);
-        xclone = (struct xseg_request_clone *) data;
-        strncpy(xclone->target, src, parentlen);
+	xclone = (struct xseg_request_clone *) data;
+	strncpy(xclone->target, src, parentlen);
 	xclone->targetlen = parentlen;
 	if (size) {
 		xclone->size = (uint64_t)size;
-		xclone->size *= 1024*1024;
+		xclone->size *= 1024 * 1024;
 	} else {
 		xclone->size = 0;
 	}
-        req->offset = 0;
-        req->size = sizeof(struct xseg_request_clone);
-        req->op = X_CLONE;
+	req->offset = 0;
+	req->size = sizeof(struct xseg_request_clone);
+	req->op = X_CLONE;
 
 	xport p = xseg_submit(xseg, req, srcport, X_ALLOC);
-	if (p == NoPort){
+	if (p == NoPort) {
 		fprintf(stderr, "Cannot submit request\n");
 		return -1;
 	}
@@ -689,39 +706,40 @@ int cmd_clone(char *src, char *dst, long size)
 
 int cmd_snapshot(char *src, char *dst, long block_size)
 {
-
-        uint32_t targetlen = strlen(src);
+	uint32_t targetlen = strlen(src);
 	uint32_t parentlen = strlen(dst);
-        struct xseg_request *req;
-        struct xseg_request_snapshot *xsnapshot;
+	struct xseg_request *req;
+	struct xseg_request_snapshot *xsnapshot;
+	char *target, *data;
+
 	xseg_bind_port(xseg, srcport, NULL);
 	req = xseg_get_request(xseg, srcport, dstport, X_ALLOC);
-        if (!req) {
-                fprintf(stderr, "No request\n");
-                return -1;
-        }
+	if (!req) {
+		fprintf(stderr, "No request\n");
+		return -1;
+	}
 
 	int r = xseg_prep_request(xseg, req, targetlen, sizeof(struct xseg_request_snapshot));
-        if (r < 0) {
-                fprintf(stderr, "Cannot prepare request!\n");
-                xseg_put_request(xseg, req, srcport);
-                return -1;
-        }
+	if (r < 0) {
+		fprintf(stderr, "Cannot prepare request!\n");
+		xseg_put_request(xseg, req, srcport);
+		return -1;
+	}
 
-	char *target = xseg_get_target(xseg, req);
-	char *data = xseg_get_data(xseg, req);
+	target = xseg_get_target(xseg, req);
+	data = xseg_get_data(xseg, req);
 
 	fprintf(stdout, "Snapshotting %s(%u) to %s(%u)\n", src, targetlen, dst, parentlen);
 	strncpy(target, src, targetlen);
-        xsnapshot = (struct xseg_request_snapshot *) data;
-        strncpy(xsnapshot->target, dst, parentlen);
+	xsnapshot = (struct xseg_request_snapshot *) data;
+	strncpy(xsnapshot->target, dst, parentlen);
 	xsnapshot->targetlen = parentlen;
-        req->offset = 0;
-        req->size = (uint64_t) block_size;
-        req->op = X_SNAPSHOT;
+	req->offset = 0;
+	req->size = (uint64_t) block_size;
+	req->op = X_SNAPSHOT;
 
 	xport p = xseg_submit(xseg, req, srcport, X_ALLOC);
-	if (p == NoPort){
+	if (p == NoPort) {
 		fprintf(stderr, "Cannot submit request\n");
 		return -1;
 	}
@@ -741,13 +759,14 @@ void log_req(int logfd, uint32_t portno2, uint32_t portno1, int op, int method,
 	 * null
 	 */
 	unsigned int end = (req->targetlen > 63) ? 63 : req->targetlen;
-	
+
 	req_target = xseg_get_target(xseg, req);
 	req_data = xseg_get_data(xseg, req);
 
 	logfp = fdopen(logfd, "a");
-	if (!logfp)
+	if (!logfp) {
 		return;
+	}
 
 	switch(method) {
 	case 0:
@@ -855,8 +874,8 @@ int cmd_bridge(uint32_t portno1, uint32_t portno2, char *logfile, char *how)
 				xseg_wait_signal(xseg, 100000);
 				break;
 			} else {
-				xseg_cancel_wait(xseg, portno1);	
-				xseg_cancel_wait(xseg, portno2);	
+				xseg_cancel_wait(xseg, portno1);
+				xseg_cancel_wait(xseg, portno2);
 				reloop = 1;
 			}
 		}
@@ -869,6 +888,13 @@ int cmd_bridge(uint32_t portno1, uint32_t portno2, char *logfile, char *how)
 
 int cmd_rndwrite(long loops, int32_t seed, uint32_t targetlen, uint32_t chunksize, uint64_t size)
 {
+	struct xseg_request *submitted = NULL, *received;
+	long nr_submitted = 0, nr_received = 0, nr_failed = 0;
+	int reported = 0, r;
+	uint64_t offset;
+	xport port;
+	char *req_data, *req_target, *p;
+
 	if (loops < 0)
 		return help();
 
@@ -877,7 +903,7 @@ int cmd_rndwrite(long loops, int32_t seed, uint32_t targetlen, uint32_t chunksiz
 		return -1;
 	}
 
-	char *p = realloc(namebuf, targetlen+1);
+	p = realloc(namebuf, targetlen + 1);
 	if (!p) {
 		fprintf(stderr, "Cannot allocate memory\n");
 		return -1;
@@ -894,12 +920,6 @@ int cmd_rndwrite(long loops, int32_t seed, uint32_t targetlen, uint32_t chunksiz
 
 	srandom(seed);
 
-	struct xseg_request *submitted = NULL, *received;
-	long nr_submitted = 0, nr_received = 0, nr_failed = 0;
-	int reported = 0, r;
-	uint64_t offset;
-	xport port;
-	char *req_data, *req_target;
 	seed = random();
 	init_local_signal();
 
@@ -915,7 +935,7 @@ int cmd_rndwrite(long loops, int32_t seed, uint32_t targetlen, uint32_t chunksiz
 				xseg_put_request(xseg, submitted, srcport);
 				return -1;
 			}
-			
+
 			req_target = xseg_get_target(xseg, submitted);
 			req_data = xseg_get_data(xseg, submitted);
 
@@ -950,12 +970,14 @@ int cmd_rndwrite(long loops, int32_t seed, uint32_t targetlen, uint32_t chunksiz
 				nr_failed += 1;
 				report_request(received);
 			}
-			if (xseg_put_request(xseg, received, srcport))
+			if (xseg_put_request(xseg, received, srcport)) {
 				fprintf(stderr, "Cannot put request at port %u\n", received->src_portno);
+			}
 		}
 
-		if (!submitted && !received)
+		if (!submitted && !received) {
 			xseg_wait_signal(xseg, sd, 1000000);
+		}
 
 			if (nr_submitted % 1000 == 0 && !reported) {
 				reported = 1;
@@ -963,8 +985,9 @@ int cmd_rndwrite(long loops, int32_t seed, uint32_t targetlen, uint32_t chunksiz
 					nr_submitted, nr_received, nr_failed);
 			}
 
-			if (nr_received >= loops)
+			if (nr_received >= loops) {
 				break;
+			}
 	}
 
 	fprintf(stderr, "submitted %ld, received %ld, failed %ld\n",
@@ -974,9 +997,16 @@ int cmd_rndwrite(long loops, int32_t seed, uint32_t targetlen, uint32_t chunksiz
 
 int cmd_rnddelete(long loops, int32_t seed, uint32_t targetlen)
 {
-	if (loops < 0)
+	struct xseg_request *submitted = NULL, *received;
+	long nr_submitted = 0, nr_received = 0, nr_failed = 0;
+	int reported = 0, r;
+	xport port;
+	char *req_target, *p;
+
+	if (loops < 0) {
 		return help();
-	char *p = realloc(namebuf, targetlen+1);
+	}
+	p = realloc(namebuf, targetlen+1);
 	if (!p) {
 		fprintf(stderr, "Cannot allocate memory\n");
 		return -1;
@@ -985,11 +1015,6 @@ int cmd_rnddelete(long loops, int32_t seed, uint32_t targetlen)
 
 	srandom(seed);
 
-	struct xseg_request *submitted = NULL, *received;
-	long nr_submitted = 0, nr_received = 0, nr_failed = 0;
-	int reported = 0, r;
-	xport port;
-	char *req_target;
 	seed = random();
 	init_local_signal();
 
@@ -1005,7 +1030,7 @@ int cmd_rnddelete(long loops, int32_t seed, uint32_t targetlen)
 				xseg_put_request(xseg, submitted, srcport);
 				return -1;
 			}
-			
+
 			req_target = xseg_get_target(xseg, submitted);
 
 			reported = 0;
@@ -1036,12 +1061,14 @@ int cmd_rnddelete(long loops, int32_t seed, uint32_t targetlen)
 				nr_failed += 1;
 				report_request(received);
 			}
-			if (xseg_put_request(xseg, received, srcport))
+			if (xseg_put_request(xseg, received, srcport)) {
 				fprintf(stderr, "Cannot put request at port %u\n", received->src_portno);
+			}
 		}
 
-		if (!submitted && !received)
+		if (!submitted && !received) {
 			xseg_wait_signal(xseg, sd, 1000000);
+		}
 
 			if (nr_submitted % 1000 == 0 && !reported) {
 				reported = 1;
@@ -1049,8 +1076,9 @@ int cmd_rnddelete(long loops, int32_t seed, uint32_t targetlen)
 					nr_submitted, nr_received, nr_failed);
 			}
 
-			if (nr_received >= loops)
+			if (nr_received >= loops) {
 				break;
+			}
 	}
 
 	fprintf(stderr, "submitted %ld, received %ld, failed %ld\n",
@@ -1064,15 +1092,23 @@ int cmd_rnddelete(long loops, int32_t seed, uint32_t targetlen)
 
 int cmd_rndread(long loops, int32_t seed, uint32_t targetlen, uint32_t chunksize, uint64_t size)
 {
-	if (loops < 0)
+	struct xseg_request *submitted = NULL, *received;
+	long nr_submitted = 0, nr_received = 0, nr_failed = 0, nr_mismatch = 0;
+	int reported = 0, r;
+	uint64_t offset;
+	xport port;
+	char *req_data, *req_target, *p;
+
+	if (loops < 0) {
 		return help();
+	}
 
 	if (targetlen >= chunksize) {
 		fprintf(stderr, "targetlen >= chunksize\n");
 		return -1;
 	}
 
-	char *p = realloc(namebuf, targetlen+1);
+	p = realloc(namebuf, targetlen + 1);
 	if (!p) {
 		fprintf(stderr, "Cannot allocate memory\n");
 		return -1;
@@ -1089,12 +1125,6 @@ int cmd_rndread(long loops, int32_t seed, uint32_t targetlen, uint32_t chunksize
 
 	srandom(seed);
 
-	struct xseg_request *submitted = NULL, *received;
-	long nr_submitted = 0, nr_received = 0, nr_failed = 0, nr_mismatch = 0;
-	int reported = 0, r;
-	uint64_t offset;
-	xport port;
-	char *req_data, *req_target;
 	init_local_signal();
 
 	seed = random();
@@ -1148,12 +1178,14 @@ int cmd_rndread(long loops, int32_t seed, uint32_t targetlen, uint32_t chunksize
 				nr_mismatch += 1;
 			}
 
-			if (xseg_put_request(xseg, received, srcport))
+			if (xseg_put_request(xseg, received, srcport)) {
 				fprintf(stderr, "Cannot put request at port %u\n", received->src_portno);
+			}
 		}
 
-		if (!submitted && !received)
+		if (!submitted && !received) {
 			xseg_wait_signal(xseg, sd, 1000000);
+		}
 
 		if (nr_submitted % 1000 == 0 && !reported) {
 			reported = 1;
@@ -1161,8 +1193,9 @@ int cmd_rndread(long loops, int32_t seed, uint32_t targetlen, uint32_t chunksize
 			nr_submitted, nr_received, nr_failed, nr_mismatch);
 		}
 
-		if (nr_received >= loops)
+		if (nr_received >= loops) {
 			break;
+		}
 	}
 
 	fprintf(stderr, "submitted %ld, received %ld, failed %ld, mismatched %ld\n",
@@ -1172,17 +1205,20 @@ int cmd_rndread(long loops, int32_t seed, uint32_t targetlen, uint32_t chunksize
 
 int cmd_submit_reqs(long loops, long concurrent_reqs, int op)
 {
-	if (loops < 0)
-		return help();
 
 	struct xseg_request *submitted = NULL, *received;
-	long nr_submitted = 0, nr_received = 0, nr_failed = 0, nr_mismatch = 0, nr_flying = 0;
+	long nr_submitted = 0, nr_received = 0, nr_failed = 0, nr_mismatch = 0;
+	long nr_flying = 0;
 	int r;
 	uint64_t offset;
 	uint32_t targetlen = 10, chunksize = 4096;
 	struct timeval tv1, tv2;
 	xport p;
 	char *req_data, *req_target;
+
+	if (loops < 0) {
+		return help();
+	}
 
 	xseg_bind_port(xseg, srcport, NULL);
 
@@ -1200,7 +1236,7 @@ int cmd_submit_reqs(long loops, long concurrent_reqs, int op)
 				xseg_put_request(xseg, submitted, srcport);
 				return -1;
 			}
-			
+
 			//FIXME
 			++nr_flying;
 			nr_submitted += 1;
@@ -1211,50 +1247,56 @@ int cmd_submit_reqs(long loops, long concurrent_reqs, int op)
 			req_target = xseg_get_target(xseg, submitted);
 			req_data = xseg_get_data(xseg, submitted);
 
-			if (op == 0)
+			if (op == 0) {
 				submitted->op = X_INFO;
-			else if (op == 1)
+			} else if (op == 1) {
 				submitted->op = X_READ;
-			else if (op == 2) {
+			} else if (op == 2) {
 				submitted->op = X_WRITE;
 				mkchunk(req_data, submitted->datalen, req_target, submitted->targetlen, submitted->offset);
 			}
 
 			p = xseg_submit(xseg, submitted, srcport, X_ALLOC);
-			if ( p != NoPort){
-				if (xseg_signal(xseg, p) < 0)
+			if ( p != NoPort) {
+				if (xseg_signal(xseg, p) < 0) {
 					perror("Cannot signal peer");
+				}
 			}
 		}
 		received = xseg_receive(xseg, srcport, 0);
 		if (received) {
 			xseg_cancel_wait(xseg, srcport);
 			--nr_flying;
-			if (nr_received == 0)
+			if (nr_received == 0) {
 				fprintf(stderr, "latency (time for the first req to complete): %llu usecs\n",
 					(unsigned long long)received->elapsed);
+			}
 			nr_received += 1;
 			if (!(received->state & XS_SERVED)) {
 				nr_failed += 1;
 				//report_request(received);
 			}
 
-			if (xseg_put_request(xseg, received, srcport))
+			if (xseg_put_request(xseg, received, srcport)) {
 				fprintf(stderr, "Cannot put request at port %u\n", received->src_portno);
+			}
 		}
 
-		if (!submitted && !received)
+		if (!submitted && !received) {
 			xseg_wait_signal(xseg, sd, 10000000L);
+		}
 
-		if (nr_received >= loops)
+		if (nr_received >= loops) {
 			break;
+		}
 	}
 	gettimeofday(&tv2, NULL);
 
 	fprintf(stderr, "submitted %ld, received %ld, failed %ld, mismatched %ld\n",
 		nr_submitted, nr_received, nr_failed, nr_mismatch);
 	long t = (tv2.tv_sec - tv1.tv_sec)*1000000 + (tv2.tv_usec - tv1.tv_usec);
-	fprintf(stderr, "elpased time: %lf secs, throughput: %lf reqs/sec\n", (double) t / 1000000.0, (double) nr_submitted / (t / 1000000.0));
+	fprintf(stderr, "elpased time: %lf secs, throughput: %lf reqs/sec\n",
+			(double) t / 1000000.0, (double) nr_submitted / (t / 1000000.0));
 
 	return 0;
 }
@@ -1264,6 +1306,7 @@ static void lock_status(struct xlock *lock, char *buf, int len)
 	int r;
 	pid_t pid, tid;
 	void *pc, *full_pc;
+
 	if (lock->owner == XLOCK_NOONE) {
 		r = snprintf(buf, len, "Locked: No");
 	} else {
@@ -1272,25 +1315,25 @@ static void lock_status(struct xlock *lock, char *buf, int len)
 		r = snprintf(buf, len, "Locked: Yes (Owner: %d, %d, %p[%p])",
 					pid, tid, pc, full_pc);
 	}
-	if (r >= len)
-		buf[len-1] = 0;
+	if (r >= len) {
+		buf[len - 1] = 0;
+	}
 }
 
 int cmd_report(uint32_t portno)
 {
+	char *dynamic;
 	char fls[64], rls[64], pls[64]; // buffer to store lock status
+	struct xq *fq, *rq, *pq;
 	struct xseg_port *port = xseg_get_port(xseg, portno);
+
 	if (!port) {
 		printf("port %u is not assigned\n", portno);
 		return 0;
 	}
-	char *dynamic;
-	if (portno >= xseg->config.dynports) {
-		dynamic = "True";
-	} else {
-		dynamic = "False";
-	}
-	struct xq *fq, *rq, *pq;
+
+	dynamic = ((portno >= xseg->config.dynports) ? "True" : "False");
+
 	fq = xseg_get_queue(xseg, port, free_queue);
 	rq = xseg_get_queue(xseg, port, request_queue);
 	pq = xseg_get_queue(xseg, port, reply_queue);
@@ -1316,8 +1359,9 @@ int cmd_report(uint32_t portno)
 
 int cmd_join(void)
 {
-	if (xseg)
+	if (xseg) {
 		return 0;
+	}
 
 	xseg = xseg_join(cfg.type, cfg.name, "posix", NULL);
 	if (!xseg) {
@@ -1341,6 +1385,7 @@ static void print_hanlder(char *name, struct xobject_h *obj_h)
 //FIXME ugly
 static void print_heap(struct xseg *xseg)
 {
+	char ls[64];
 	char *UNIT[4];
 	UNIT[0] = "B";
 	UNIT[1] = "KiB";
@@ -1361,14 +1406,14 @@ static void print_heap(struct xseg *xseg)
 		t /= 1024;
 		u++;
 	}
-	if (!t)
+	if (!t) {
 		u--;
+	}
 	t = xseg->heap->cur / MULT[u];
-	if (t < 10){
+	if (t < 10) {
 		float tf = ((float)(xseg->heap->cur))/((float)MULT[u]);
 		fprintf(stderr, "%2.1f %s/", tf, UNIT[u]);
-	}
-	else {
+	} else {
 		unsigned int tu = xseg->heap->cur / MULT[u];
 		fprintf(stderr, "%3u %s/", tu, UNIT[u]);
 	}
@@ -1379,18 +1424,18 @@ static void print_heap(struct xseg *xseg)
 		t /= 1024;
 		u++;
 	}
-	if (!t)
+	if (!t) {
 		u--;
+	}
 	t = xseg->config.heap_size/MULT[u];
-	if (t < 10){
+
+	if (t < 10) {
 		float tf = ((float)(xseg->config.heap_size))/(float)MULT[u];
 		fprintf(stderr, "%2.1f %s ", tf, UNIT[u]);
-	}
-	else {
+	} else {
 		unsigned int tu = xseg->config.heap_size / MULT[u];
 		fprintf(stderr, "%3u %s ", tu, UNIT[u]);
 	}
-	char ls[64];
 	lock_status(&xseg->heap->lock, ls, 64);
 	fprintf(stderr, "(%llu / %llu), %s\n",
 			(unsigned long long)xseg->heap->cur,
@@ -1402,8 +1447,9 @@ int cmd_reportall(void)
 {
 	uint32_t t;
 
-	if (cmd_join())
+	if (cmd_join()) {
 		return -1;
+	}
 
 	fprintf(stderr, "Segment lock: %s\n",
 		(xseg->shared->flags & XSEG_F_LOCK) ? "Locked" : "Unlocked");
@@ -1417,8 +1463,9 @@ int cmd_reportall(void)
 	print_hanlder("Objects handler", xseg->object_handlers);
 	fprintf(stderr, "\n");
 
-	for (t = 0; t < xseg->config.nr_ports; t++)
+	for (t = 0; t < xseg->config.nr_ports; t++) {
 		cmd_report(t);
+	}
 
 	return 0;
 }
@@ -1426,7 +1473,7 @@ int cmd_reportall(void)
 
 int finish_req(struct xseg_request *req, enum req_action action)
 {
-	if (action == COMPLETE){
+	if (action == COMPLETE) {
 		req->state &= ~XS_FAILED;
 		req->state |= XS_SERVED;
 	} else {
@@ -1435,10 +1482,11 @@ int finish_req(struct xseg_request *req, enum req_action action)
 	}
 	req->serviced = 0;
 	xport p = xseg_respond(xseg, req, srcport, X_ALLOC);
-	if (p == NoPort)
+	if (p == NoPort) {
 		xseg_put_request(xseg, req, srcport);
-	else
+	} else {
 		xseg_signal(xseg, p);
+	}
 	return 0;
 }
 
@@ -1448,9 +1496,9 @@ static int isDangling(struct xseg_request *req)
 	xport i;
 	struct xseg_port *port;
 	for (i = 0; i < xseg->config.nr_ports; i++) {
-		if (xseg->ports[i]){
+		if (xseg->ports[i]) {
 			port = xseg_get_port(xseg, i);
-			if (!port){
+			if (!port) {
 				fprintf(stderr, "Inconsisten port <-> portno mapping %u", i);
 				continue;
 			}
@@ -1459,19 +1507,19 @@ static int isDangling(struct xseg_request *req)
 			rq = xseg_get_queue(xseg, port, request_queue);
 			pq = xseg_get_queue(xseg, port, reply_queue);
 			xlock_acquire(&port->fq_lock);
-			if (__xq_check(fq, XPTR_MAKE(req, xseg->segment))){
+			if (__xq_check(fq, XPTR_MAKE(req, xseg->segment))) {
 					xlock_release(&port->fq_lock);
 					return 0;
 			}
 			xlock_release(&port->fq_lock);
 			xlock_acquire(&port->rq_lock);
-			if (__xq_check(rq, XPTR_MAKE(req, xseg->segment))){
+			if (__xq_check(rq, XPTR_MAKE(req, xseg->segment))) {
 					xlock_release(&port->rq_lock);
 					return 0;
 			}
 			xlock_release(&port->rq_lock);
 			xlock_acquire(&port->pq_lock);
-			if (__xq_check(pq, XPTR_MAKE(req, xseg->segment))){
+			if (__xq_check(pq, XPTR_MAKE(req, xseg->segment))) {
 					xlock_release(&port->pq_lock);
 					return 0;
 			}
@@ -1487,15 +1535,16 @@ int prompt_user(char *msg)
 	printf("%s [y/n]: ", msg);
 	while (1) {
 		c = fgetc(stdin);
-		if (c == 'y' || c == 'Y')
+		if (c == 'y' || c == 'Y') {
 			r = 1;
-		else if (c == 'n' || c == 'N')
+		} else if (c == 'n' || c == 'N') {
 			r = 0;
-		else if (c == '\n'){
-			if (r == -1)
+		} else if (c == '\n') {
+			if (r == -1) {
 				printf("%s [y/n]: ", msg);
-			else
+			} else {
 				break;
+			}
 		}
 	}
 	return r;
@@ -1520,9 +1569,15 @@ static void verify_lock(struct xlock *lock, char *name, int fix)
 int cmd_verify(int fix)
 {
 	char buf[64];
+	struct xseg_port *port;
+	struct xobject_iter it;
+	struct xseg_request *req;
+	struct xobject_h *obj_h;
+	xport i;
 
-	if (cmd_join())
+	if (cmd_join()) {
 		return -1;
+	}
 	//segment lock
 	verify_lock(&xseg->shared->segment_lock, "Segment lock", fix);
 	verify_lock(&xseg->heap->lock, "Heap lock", fix);
@@ -1531,12 +1586,10 @@ int cmd_verify(int fix)
 	verify_lock(&xseg->object_handlers->lock, "Objects handler lock", fix);
 
 	//take segment lock?
-	xport i;
-	struct xseg_port *port;
 	for (i = 0; i < xseg->config.nr_ports; i++) {
 		if (xseg->ports[i]){
 			port = xseg_get_port(xseg, i);
-			if (!port){
+			if (!port) {
 				fprintf(stderr, "Inconsisten port <-> portno mapping %u", i);
 				continue;
 			}
@@ -1552,19 +1605,17 @@ int cmd_verify(int fix)
 		}
 	}
 
-	struct xobject_h *obj_h = xseg->request_h;
-	struct xobject_iter it;
+	obj_h = xseg->request_h;
 
-	struct xseg_request *req;
 	xlock_acquire(&obj_h->lock);
 	xobj_iter_init(obj_h, &it);
-	while (xobj_iterate(obj_h, &it, (void **)&req)){
+	while (xobj_iterate(obj_h, &it, (void **)&req)) {
 		//FIXME this will not work cause obj->magic - req->serial is not
 		//touched when a request is get
 		/* if (obj->magic != MAGIC_REQ && t->src_portno == portno){ */
-		if (isDangling(req) && !__xobj_isFree(obj_h, req)){
+		if (isDangling(req) && !__xobj_isFree(obj_h, req)) {
 			report_request(req);
-			if (fix && prompt_user("Fail it ?")){
+			if (fix && prompt_user("Fail it ?")) {
 				printf("Finishing ...\n");
 				finish_req(req, FAIL);
 			}
@@ -1592,8 +1643,9 @@ int cmd_recoverlocks(int pid)
 	pid_t p = (pid_t)pid;
 	char buf[64];
 
-	if (cmd_join())
+	if (cmd_join()) {
 		return -1;
+	}
 
 	check_and_unlock(&xseg->shared->segment_lock, "Segment lock", p);
 	check_and_unlock(&xseg->heap->lock, "Heap lock", p);
@@ -1602,11 +1654,12 @@ int cmd_recoverlocks(int pid)
 	check_and_unlock(&xseg->object_handlers->lock, "Object handler lock", p);
 
 	for (i = 0; i < xseg->config.nr_ports; i++) {
-		if (!xseg->ports[i])
+		if (!xseg->ports[i]) {
 			continue;
+		}
 
 		port = xseg_get_port(xseg, i);
-		if (!port){
+		if (!port) {
 			fprintf(stdout, "Inconsisten port <-> portno mapping %u", i);
 			fprintf(stdout, "Consider rebooting the node\n");
 			return -1;
@@ -1625,20 +1678,22 @@ int cmd_recoverlocks(int pid)
 
 int cmd_recoverport(long portno)
 {
-	if (cmd_join())
-		return -1;
-
-	struct xobject_h *obj_h = xseg->request_h;
 	struct xobject_iter it;
-
 	struct xseg_request *req;
+	struct xobject_h *obj_h;
+
+	if (cmd_join()) {
+		return -1;
+	}
+
+	obj_h = xseg->request_h;
 	xlock_acquire(&obj_h->lock);
 	xobj_iter_init(obj_h, &it);
-	while (xobj_iterate(obj_h, &it, (void **)&req)){
+	while (xobj_iterate(obj_h, &it, (void **)&req)) {
 		/* if (obj->magic != MAGIC_REQ && t->src_portno == portno){ */
 		//FIXME this will not work cause obj->magic - req->serial is not
 		//touched when a request is get
-		if (isDangling(req) && !__xobj_isFree(obj_h, req)){
+		if (isDangling(req) && !__xobj_isFree(obj_h, req)) {
 			if (req->transit_portno == (uint32_t)portno) {
 				report_request(req);
 				printf("Finishing...\n");
@@ -1653,29 +1708,32 @@ int cmd_recoverport(long portno)
 
 int cmd_inspectq(xport portno, enum queue qt)
 {
-	if (cmd_join())
-		return -1;
-
 	struct xq *q;
 	struct xlock *l;
-	struct xseg_port *port = xseg_get_port(xseg, portno);
-	if (!port)
+	struct xseg_port *port;
+
+	if (cmd_join()) {
 		return -1;
-	if (qt == FREE_QUEUE){
+	}
+
+	port = xseg_get_port(xseg, portno);
+	if (!port) {
+		return -1;
+	}
+	if (qt == FREE_QUEUE) {
 		q = xseg_get_queue(xseg, port, free_queue);
 		l = &port->fq_lock;
-	}
-	else if (qt == REQUEST_QUEUE){
+	} else if (qt == REQUEST_QUEUE) {
 		q = xseg_get_queue(xseg, port, request_queue);
 		l = &port->rq_lock;
-	}
-	else if (qt == REPLY_QUEUE) {
+	} else if (qt == REPLY_QUEUE) {
 		q = xseg_get_queue(xseg, port, reply_queue);
 		l = &port->rq_lock;
-	}
-	else
+	} else {
 		return -1;
+	}
 	xlock_acquire(l);
+
 	xqindex i,c = xq_count(q);
 	if (c) {
 		struct xseg_request *req;
@@ -1686,8 +1744,7 @@ int cmd_inspectq(xport portno, enum queue qt)
 			report_request(req);
 			__xq_append_tail(q, xqi);
 		}
-	}
-	else {
+	} else {
 		fprintf(stderr, "Queue is empty\n\n");
 	}
 	xlock_release(l);
@@ -1697,25 +1754,27 @@ int cmd_inspectq(xport portno, enum queue qt)
 
 int cmd_request(struct xseg_request *req, enum req_action action)
 {
-	if (cmd_join())
+	struct xobject_h *obj_h;
+	if (cmd_join()) {
 		return -1;
+	}
 
-	struct xobject_h *obj_h = xseg->request_h;
-	if (!xobj_check(obj_h, req))
+	obj_h = xseg->request_h;
+	if (!xobj_check(obj_h, req)) {
 		return -1;
+	}
 
-	if (action == REPORT)
+	if (action == REPORT) {
 		report_request(req);
-	else if (action == FAIL){
+	} else if (action == FAIL) {
 		report_request(req);
-		if (prompt_user("fail it ?")){
+		if (prompt_user("fail it ?")) {
 			printf("Finishing ...\n");
 			finish_req(req, FAIL);
 		}
-	}
-	else if (action == COMPLETE){
+	} else if (action == COMPLETE) {
 		report_request(req);
-		if (prompt_user("Complete it ?")){
+		if (prompt_user("Complete it ?")) {
 			printf("Finishing ...\n");
 			finish_req(req, COMPLETE);
 		}
@@ -1737,8 +1796,9 @@ int cmd_create(void)
 
 int cmd_destroy(void)
 {
-	if (!xseg && cmd_join())
+	if (!xseg && cmd_join()) {
 		return -1;
+	}
 	xseg_leave(xseg);
 	xseg_destroy(xseg);
 	xseg = NULL;
@@ -1762,10 +1822,12 @@ int cmd_put_requests(void)
 
 	for (;;) {
 		req = xseg_accept(xseg, dstport, 0);
-		if (!req)
+		if (!req) {
 			break;
-		if (xseg_put_request(xseg, req, srcport))
+		}
+		if (xseg_put_request(xseg, req, srcport)) {
 			fprintf(stderr, "Cannot put request at port %u\n", req->src_portno);
+		}
 	}
 
 	return 0;
@@ -1790,13 +1852,13 @@ int cmd_finish(unsigned long nr, int fail)
 			if (fail == 1)
 				req->state &= ~XS_SERVED;
 			else {
-				if (req->op == X_READ)
+				if (req->op == X_READ) {
 					mkchunk(req_data, req->datalen, req_target, req->targetlen, req->offset);
-				else if (req->op == X_WRITE) 
+				} else if (req->op == X_WRITE) {
 					memcpy(buf, req_data, (sizeof(*buf) > req->datalen) ? req->datalen : sizeof(*buf));
-				else if (req->op == X_INFO)
+				} else if (req->op == X_INFO) {
 					*((uint64_t *) req->data) = 4294967296;
-				
+				}
 				req->state |= XS_SERVED;
 				req->serviced = req->size;
 			}
@@ -1827,7 +1889,6 @@ void handle_reply(struct xseg_request *req)
 	case X_READ:
 		fwrite(req_data, 1, req->datalen, stdout);
 		break;
-
 	case X_WRITE:
 		fprintf(stdout, "wrote: ");
 		fwrite(req_data, 1, req->datalen, stdout);
@@ -1869,26 +1930,29 @@ int cmd_wait(uint32_t nr)
 {
 	struct xseg_request *req;
 	long ret;
-	init_local_signal(); 
+	init_local_signal();
 
 	for (;;) {
 		req = xseg_receive(xseg, srcport, 0);
 		if (req) {
 			handle_reply(req);
 			nr--;
-			if (nr == 0)
+			if (nr == 0) {
 				break;
+			}
 			continue;
 		}
 
 		ret = xseg_prepare_wait(xseg, srcport);
-		if (ret)
+		if (ret) {
 			return -1;
+		}
 
 		ret = xseg_wait_signal(xseg, sd, 1000000);
 		ret = xseg_cancel_wait(xseg, srcport);
-		if (ret)
+		if (ret) {
 			return -1;
+		}
 	}
 
 	return 0;
@@ -1900,8 +1964,9 @@ int cmd_put_replies(void)
 
 	for (;;) {
 		req = xseg_receive(xseg, dstport, 0);
-		if (!req)
+		if (!req) {
 			break;
+		}
 		fprintf(stderr, "request: %08llx%08llx\n"
 			"     op: %u\n"
 			"  state: %u\n",
@@ -1912,8 +1977,9 @@ int cmd_put_replies(void)
 
 		//fwrite(req->buffer, 1, req->bufferlen, stdout);
 
-		if (xseg_put_request(xseg, req, srcport))
+		if (xseg_put_request(xseg, req, srcport)) {
 			fprintf(stderr, "Cannot put reply\n");
+		}
 	}
 
 	return 0;
@@ -1972,8 +2038,9 @@ int parse_ports(char *str)
 	char *s = str;
 
 	for (;;) {
-		if (*s == 0)
+		if (*s == 0) {
 			return 0;
+		}
 
 		if (*s == ':') {
 			*s = 0;
@@ -2008,8 +2075,9 @@ int main(int argc, char **argv)
 	int i, ret = 0;
 	char *spec;
 
-	if (argc < 3)
+	if (argc < 3) {
 		return help();
+	}
 
 	srcport = -1;
 	dstport = -1;
@@ -2046,8 +2114,9 @@ int main(int argc, char **argv)
 			continue;
 		}
 
-		if (cmd_join())
+		if (cmd_join()) {
 			return -1;
+		}
 
 		if (!strcmp(argv[i], "reportall")) {
 			ret = cmd_reportall();
@@ -2202,7 +2271,7 @@ int main(int argc, char **argv)
 			i += 5;
 			continue;
 		}
-		
+
 		if (!strcmp(argv[i], "rnddelete") && (i + 3 < argc)) {
 			long nr_loops = atol(argv[i+1]);
 			unsigned int seed = atoi(argv[i+2]);
@@ -2310,8 +2379,9 @@ int main(int argc, char **argv)
 		}
 
 
-		if (!parse_ports(argv[i]))
+		if (!parse_ports(argv[i])) {
 			fprintf(stderr, "invalid argument: %s\n", argv[i]);
+		}
 	}
 
 	/* xseg_leave(); */

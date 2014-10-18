@@ -42,10 +42,10 @@ static inline int cmp_int(xhashidx key1, xhashidx key2)
 	return (key1 == key2);
 }
 
-static inline xhashidx hash_string(xhashidx key) 
+static inline xhashidx hash_string(xhashidx key)
 {
 	//assume a valid NULL terminated string
-	
+
 	//function to access key if in container
 	char *string = (char *) key;
 	unsigned int i, len = strlen(string);
@@ -58,7 +58,7 @@ static inline xhashidx hash_string(xhashidx key)
 
 //	XSEGLOG("String %s (%lx). Hash value: %llu",
 //			string, string, hv);
-	return hv; 
+	return hv;
 }
 
 static inline int cmp_string(xhashidx key1, xhashidx key2)
@@ -254,8 +254,8 @@ get_alloc_size(xhashidx size_shift, bool vals)
 
 
 xhash_t *
-xhash_new__(xhashidx size_shift, xhashidx minsize_shift, xhashidx limit, 
-		enum xhash_type type, bool vals) 
+xhash_new__(xhashidx size_shift, xhashidx minsize_shift, xhashidx limit,
+		enum xhash_type type, bool vals)
 {
     struct xhash *xhash;
     xhash = xtypes_malloc(get_alloc_size(size_shift, vals));
@@ -265,7 +265,7 @@ xhash_new__(xhashidx size_shift, xhashidx minsize_shift, xhashidx limit,
     }
 
     xhash_init__(xhash, size_shift, minsize_shift, limit, type, vals);
-    
+
     return xhash;
 }
 
@@ -274,7 +274,7 @@ xhash_t *
 xhash_resize__(struct xhash *xhash, xhashidx new_size_shift, xhashidx new_limit,
 		bool vals)
 {
-    return xhash_new__(new_size_shift, xhash->minsize_shift, new_limit, 
+    return xhash_new__(new_size_shift, xhash->minsize_shift, new_limit,
 		    	xhash->type, vals);
 }
 
@@ -283,7 +283,7 @@ xhash_delete__(xhash_t *xhash, xhashidx key, bool vals)
 {
 //    XSEGLOG("Deleting %lx", key);
     xhash_cmp_fun_t cmp_fun = types_fun[xhash->type].cmp_fun;
-    xhash_hash_fun_t hash_fun = types_fun[xhash->type].hash_fun; 
+    xhash_hash_fun_t hash_fun = types_fun[xhash->type].hash_fun;
     xhashidx perturb = hash_fun(key);
     xhashidx mask = xhash_size(xhash)-1;
     xhashidx idx = hash_fun(key) & mask;
@@ -362,7 +362,7 @@ shrink_check(xhash_t *xhash)
  * Phash functions
  */
 
-ssize_t 
+ssize_t
 xhash_get_alloc_size(xhashidx size_shift)
 {
 	return get_alloc_size(size_shift, true);
@@ -405,7 +405,7 @@ xhash_grow_check(xhash_t *xhash)
 {
     if (grow_check(xhash))
         return xhash_grow(xhash);
-    else 
+    else
 	return NULL;
 }
 */
@@ -522,7 +522,7 @@ xhash_resize(xhash_t *xhash, xhashidx new_size_shift, xhashidx new_limit,
 
     if (!new)
 	    return NULL;
-        
+
     //fprintf(stderr, "resizing: (%lu,%lu,%lu)\n", xhash->size_shift, xhash->used, xhash->dummies);
     for (i = 0; i < xhash_size(xhash); i++) {
         if (item_valid(xhash, i, true)){
@@ -564,7 +564,7 @@ int xhash_lookup__(xhash_t *xhash, xhashidx key, xhashidx *idx_ret, bool vals)
 {
     //XSEGLOG("looking up %lx", key);
     xhash_cmp_fun_t cmp_fun = types_fun[xhash->type].cmp_fun;
-    xhash_hash_fun_t hash_fun = types_fun[xhash->type].hash_fun; 
+    xhash_hash_fun_t hash_fun = types_fun[xhash->type].hash_fun;
     xhashidx size_shift = xhash->size_shift;
     xhashidx size = (1UL)<<size_shift;
     xhashidx perturb = hash_fun(key);
@@ -575,7 +575,7 @@ int xhash_lookup__(xhash_t *xhash, xhashidx key, xhashidx *idx_ret, bool vals)
     INCSTAT(xhash->lookups);
     for (;;) {
 	//XSEGLOG("size %llu, perturb %llu idx %llu mask %llu",
-	//	    size, perturb, idx, mask);		
+	//	    size, perturb, idx, mask);
         if ( item_unused(xhash, idx, vals) )
             return -XHASH_EEXIST;
 
@@ -961,9 +961,5 @@ int main(int argc, char **argv)
 
 #endif //if 0
 
-#ifdef __KERNEL__
-#include <linux/module.h>
-#include <xtypes/xhash_exports.h>
-#endif
 
 // vim:expandtab:tabstop=8:shiftwidth=4:softtabstop=4

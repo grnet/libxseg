@@ -34,12 +34,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define ERRSIZE 512
 char errbuf[ERRSIZE];
 
-static long posix_allocate(const char *name, uint64_t size)
+static int posix_allocate(const char *name, uint64_t size)
 {
-	long ret = 0;
-	int fd, r;
-	off_t lr;
+	int ret = 0;
+	int fd;
 	int err_no = 0;
+
 	fd = shm_open(name, O_RDWR | O_CREAT | O_EXCL, 0770);
 	if (fd < 0) {
 		err_no = errno;
@@ -49,24 +49,12 @@ static long posix_allocate(const char *name, uint64_t size)
 		goto exit;
 	}
 
-	lr = lseek(fd, size -1, SEEK_SET);
-	if (lr == (off_t)-1) {
+	if (ftruncate(fd, size) != 0) {
 		err_no = errno;
 		close(fd);
 		XSEGLOG("Cannot seek into segment file: %s\n",
 			strerror_r(errno, errbuf, ERRSIZE));
-		ret = lr;
-		goto exit;
-	}
-
-	errbuf[0] = 0;
-	r = write(fd, errbuf, 1);
-	if (r != 1) {
-		err_no = errno;
-		close(fd);
-		XSEGLOG("Failed to set segment size: %s\n",
-			strerror_r(errno, errbuf, ERRSIZE));
-		ret = r;
+		ret = -1;
 		goto exit;
 	}
 
@@ -77,7 +65,7 @@ exit:
 	return ret;
 }
 
-static long posix_deallocate(const char *name)
+static int posix_deallocate(const char *name)
 {
 	return shm_unlink(name);
 }
@@ -96,10 +84,10 @@ static void *posix_map(const char *name, uint64_t size, struct xseg *seg)
 		return NULL;
 	}
 
-	xseg = mmap (	XSEG_BASE_AS_PTR,
+	xseg = mmap(NULL,
 			size,
 			PROT_READ | PROT_WRITE,
-			MAP_SHARED | MAP_FIXED /* | MAP_LOCKED */,
+			MAP_SHARED /* | MAP_LOCKED */,
 			fd, 0	);
 
 	if (xseg == MAP_FAILED) {
@@ -138,15 +126,17 @@ static int posix_local_signal_init(struct xseg *xseg, xport portno)
 	void (*h)(int);
 	int r;
 	h = signal(SIGIO, handler);
-	if (h == SIG_ERR)
+	if (h == SIG_ERR) {
 		return -1;
+	}
 
 	sigemptyset(&set);
 	sigaddset(&set, SIGIO);
 
 	r = sigprocmask(SIG_BLOCK, &set, &savedset);
-	if (r < 0)
+	if (r < 0) {
 		return -1;
+	}
 
 	pid = syscall(SYS_gettid);
 	return 0;
@@ -171,24 +161,30 @@ static void posix_remote_signal_quit(void)
 
 static int posix_prepare_wait(struct xseg *xseg, uint32_t portno)
 {
+	struct posix_signal_desc *psd;
 	struct xseg_port *port = xseg_get_port(xseg, portno);
-	if (!port)
+	if (!port) {
 		return -1;
-	struct posix_signal_desc *psd = xseg_get_signal_desc(xseg, port);
-	if (!psd)
+	}
+	psd = xseg_get_signal_desc(xseg, port);
+	if (!psd) {
 		return -1;
+	}
 	psd->waitcue = pid;
 	return 0;
 }
 
 static int posix_cancel_wait(struct xseg *xseg, uint32_t portno)
 {
+	struct posix_signal_desc *psd;
 	struct xseg_port *port = xseg_get_port(xseg, portno);
-	if (!port)
+	if (!port) {
 		return -1;
-	struct posix_signal_desc *psd = xseg_get_signal_desc(xseg, port);
-	if (!psd)
+	}
+	psd = xseg_get_signal_desc(xseg, port);
+	if (!psd) {
 		return -1;
+	}
 	psd->waitcue = 0;
 	return 0;
 }
@@ -206,24 +202,29 @@ static int posix_wait_signal(struct xseg *xseg, void *sd, uint32_t usec_timeout)
 	 * and use a NULL timespec linux-specific)
 	 */
 	r = sigtimedwait(&set, &siginfo, &ts);
-	if (r < 0)
+	if (r < 0) {
 		return r;
+	}
 
 	return siginfo.si_signo;
 }
 
 static int posix_signal(struct xseg *xseg, uint32_t portno)
 {
+	struct posix_signal_desc *psd;
 	struct xseg_port *port = xseg_get_port(xseg, portno);
-	if (!port)
+	if (!port) {
 		return -1;
-	struct posix_signal_desc *psd = xseg_get_signal_desc(xseg, port);
-	if (!psd)
+	}
+	psd = xseg_get_signal_desc(xseg, port);
+	if (!psd) {
 		return -1;
+	}
 	pid_t cue = (pid_t)psd->waitcue;
-	if (!cue)
+	if (!cue) {
 		//HACKY!
 		return -2;
+	}
 
 	/* FIXME: Make calls to xseg_signal() check for errors */
 	return syscall(SYS_tkill, cue, SIGIO);
@@ -248,8 +249,9 @@ static void posix_mfree(void *mem)
 int posix_init_signal_desc(struct xseg *xseg, void *sd)
 {
 	struct posix_signal_desc *psd = sd;
-	if (!psd)
+	if (!psd) {
 		return -1;
+	}
 	psd->waitcue = 0;
 	return 0;
 }
@@ -268,18 +270,23 @@ void * posix_alloc_data(struct xseg *xseg)
 
 void posix_free_data(struct xseg *xseg, void *data)
 {
-	if (data)
+	if (data) {
 		xseg_put_objh(xseg, (struct xobject_h *)data);
+	}
+	return;
 }
 
 void *posix_alloc_signal_desc(struct xseg *xseg, void *data)
 {
+	struct posix_signal_desc *psd;
 	struct xobject_h *sd_h = (struct xobject_h *) data;
-	if (!sd_h)
+	if (!sd_h) {
 		return NULL;
-	struct posix_signal_desc *psd = xobj_get_obj(sd_h, X_ALLOC);
-	if (!psd)
+	}
+	psd = xobj_get_obj(sd_h, X_ALLOC);
+	if (!psd) {
 		return NULL;
+	}
 	psd->waitcue = 0;
 	return psd;
 
@@ -288,10 +295,12 @@ void *posix_alloc_signal_desc(struct xseg *xseg, void *data)
 void posix_free_signal_desc(struct xseg *xseg, void *data, void *sd)
 {
 	struct xobject_h *sd_h = (struct xobject_h *) data;
-	if (!sd_h)
+	if (!sd_h) {
 		return;
-	if (sd)
+	}
+	if (sd) {
 		xobj_put_obj(sd_h, sd);
+	}
 	return;
 }
 

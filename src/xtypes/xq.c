@@ -21,8 +21,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 static inline int __snap(xqindex size)
 {
-	if (!size)
+	if (!size) {
 		return 0;
+	}
 	return 1 << ((sizeof(size) * 8) - __builtin_clz(size) - 1);
 }
 
@@ -48,13 +49,15 @@ void xq_init_map(struct xq *xq,
 {
 	xqindex t, *qmem = mem;
 	xq->size = __snap(size);
-	if (count > xq->size)
+	if (count > xq->size) {
 		count = xq->size;
+	}
 	xq->head = count + 1;
 	xq->tail = 0;
 	XPTRSET(&xq->queue, qmem);
-	for (t = 0; t < count; t++)
+	for (t = 0; t < count; t++) {
 		qmem[t] = mapfn(t);
+	}
 	xlock_release(&xq->lock);
 }
 
@@ -62,21 +65,24 @@ void xq_init_seq(struct xq *xq, xqindex size, xqindex count, void *mem)
 {
 	xqindex t, *qmem = mem;
 	xq->size = __snap(size);
-	if (count > xq->size)
+	if (count > xq->size) {
 		count = xq->size;
+	}
 	xq->head = count + 1;
 	xq->tail = 0;
 	XPTRSET(&xq->queue, qmem);
-	for (t = 0; t < count; t++)
+	for (t = 0; t < count; t++) {
 		qmem[t] = t;
+	}
 	xlock_release(&xq->lock);
 }
 
 xqindex *xq_alloc_empty(struct xq *xq, xqindex size)
 {
 	xqindex *mem = xtypes_malloc(size * sizeof(xqindex));
-	if (!mem)
+	if (!mem) {
 		return mem;
+	}
 	xq_init_empty(xq, size, mem);
 	return mem;
 }
@@ -87,8 +93,9 @@ xqindex *xq_alloc_map(struct xq *xq,
 			xqindex (*mapfn)(xqindex)	)
 {
 	xqindex *mem = xtypes_malloc(size * sizeof(xqindex));
-	if (!mem)
+	if (!mem) {
 		return mem;
+	}
 	xq_init_map(xq, size, count, mapfn, mem);
 	return mem;
 }
@@ -96,8 +103,9 @@ xqindex *xq_alloc_map(struct xq *xq,
 xqindex *xq_alloc_seq(struct xq *xq, xqindex size, xqindex count)
 {
 	xqindex *mem = xtypes_malloc(size * sizeof(xqindex));
-	if (!mem)
+	if (!mem) {
 		return mem;
+	}
 	xq_init_seq(xq, size, count, mem);
 	return mem;
 }
@@ -128,8 +136,9 @@ void xq_print(struct xq *xq)
 	i = xq->tail + 1;
 
 	for (;;) {
-		if (i == xq->head)
+		if (i == xq->head) {
 			break;
+		}
 		XSEGLOG(	"%lu %lu\n",
 			(unsigned long)i,
 			(unsigned long)xq_element(xq, i) );
@@ -218,8 +227,9 @@ out:
 xqindex __xq_pop_head(struct xq *xq)
 {
 	xqindex value = Noneidx;
-	if (!xq_count(xq))
+	if (!xq_count(xq)) {
 		return value;
+	}
 	return XPTR(&xq->queue)[__xq_pop_head_idx(xq, 1) & (xq->size -1)];
 }
 
@@ -240,8 +250,9 @@ xqindex __xq_peek_head_idx(struct xq *xq, xqindex nr)
 
 xqindex __xq_peek_head(struct xq *xq)
 {
-	if (!xq_count(xq))
+	if (!xq_count(xq)) {
 		return Noneidx;
+	}
 	return XPTR(&xq->queue)[__xq_peek_head_idx(xq, 1) & (xq->size -1)];
 }
 
@@ -262,8 +273,9 @@ xqindex __xq_peek_tail_idx(struct xq *xq, xqindex nr)
 
 xqindex __xq_peek_tail(struct xq *xq)
 {
-	if (!xq_count(xq))
+	if (!xq_count(xq)) {
 		return Noneidx;
+	}
 	return XPTR(&xq->queue)[__xq_peek_tail_idx(xq, 1) & (xq->size -1)];
 }
 
@@ -354,8 +366,9 @@ out:
 
 xqindex __xq_pop_tail(struct xq *xq)
 {
-	if (!xq_count(xq))
+	if (!xq_count(xq)) {
 		return Noneidx;
+	}
 	return XPTR(&xq->queue)[__xq_pop_tail_idx(xq, 1) & (xq->size -1)];
 }
 
@@ -380,8 +393,9 @@ int xq_head_to_tail(struct xq *headq, struct xq *tailq, xqindex nr)
 		xlock_acquire(&headq->lock);
 	}
 
-	if (xq_count(headq) < nr || xq_count(tailq) + nr > tailq->size)
+	if (xq_count(headq) < nr || xq_count(tailq) + nr > tailq->size) {
 		goto out;
+	}
 
 	hmask = headq->size -1;
 	tmask = tailq->size -1;
@@ -390,8 +404,9 @@ int xq_head_to_tail(struct xq *headq, struct xq *tailq, xqindex nr)
 	hq = XPTR(&headq->queue);
 	tq = XPTR(&tailq->queue);
 
-	for (i = 0; i < nr; i++)
+	for (i = 0; i < nr; i++) {
 		tq[(tail + i) & tmask] = hq[(head + i) & hmask];
+	}
 
 	ret = 0;
 out:
@@ -405,8 +420,9 @@ int __xq_check(struct xq *xq, xqindex idx)
 	xqindex i, val;
 	for (i = xq->tail + 1; i != xq->head ; i++) {
 		val = XPTR(&xq->queue)[i & (xq->size -1)];
-		if (val == idx)
+		if (val == idx) {
 			return 1;
+		}
 	}
 	return 0;
 }
@@ -451,9 +467,3 @@ xqindex xq_resize(struct xq *xq, struct xq *newxq)
 	xlock_release(&xq->lock);
 	return r;
 }
-
-#ifdef __KERNEL__
-#include <linux/module.h>
-#include <xtypes/xq_exports.h>
-#endif
-
