@@ -84,10 +84,10 @@ static void *posix_map(const char *name, uint64_t size, struct xseg *seg)
 		return NULL;
 	}
 
-	xseg = mmap (	XSEG_BASE_AS_PTR,
+	xseg = mmap(NULL,
 			size,
 			PROT_READ | PROT_WRITE,
-			MAP_SHARED | MAP_FIXED /* | MAP_LOCKED */,
+			MAP_SHARED /* | MAP_LOCKED */,
 			fd, 0	);
 
 	if (xseg == MAP_FAILED) {
