@@ -22,10 +22,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <pthread.h>
 #include <errno.h>
 
-#ifndef NULL
-#define NULL ((void *)0)
-#endif
-
 #define XSEG_NR_TYPES 16
 #define XSEG_NR_PEER_TYPES 64
 #define XSEG_MIN_PAGE_SIZE 4096
