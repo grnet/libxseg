@@ -17,39 +17,8 @@ cmake_minimum_required(VERSION 2.8)
 
 project (xseg_lib)
 
-SET(OUT ${CMAKE_CURRENT_BINARY_DIR}/libxseg.map)
-SET(EXPORTS ${CMAKE_CURRENT_SOURCE_DIR}/exports/xseg_exports.h
-	    ${CMAKE_CURRENT_SOURCE_DIR}/exports/xq_exports.h
-	    ${CMAKE_CURRENT_SOURCE_DIR}/exports/xbinheap_exports.h
-	    ${CMAKE_CURRENT_SOURCE_DIR}/exports/xcache_exports.h
-	    ${CMAKE_CURRENT_SOURCE_DIR}/exports/xpool_exports.h
-	    ${CMAKE_CURRENT_SOURCE_DIR}/exports/xhash_exports.h
-	    ${CMAKE_CURRENT_SOURCE_DIR}/exports/xheap_exports.h
-	    ${CMAKE_CURRENT_SOURCE_DIR}/exports/xobj_exports.h
-	    ${CMAKE_CURRENT_SOURCE_DIR}/exports/xwaitq_exports.h
-	    ${CMAKE_CURRENT_SOURCE_DIR}/exports/xworkq_exports.h
-	    )
-SET(CMD cat ${EXPORTS} | ${CMAKE_CURRENT_SOURCE_DIR}/exports/make_symbol_map.sh > ${OUT})
-
-ADD_CUSTOM_COMMAND( OUTPUT ${OUT}
-	COMMAND ${CMD}
-	      # The following should be ${doxyfile} only but it
-	      # will break the dependency.
-	      # The optimal solution would be creating a
-	      # custom_command for ${doxyfile} generation
-	      # but I still have to figure out how...
-#        MAIN_DEPENDENCY ${doxyfile} ${doxyfile_in}
-#        DEPENDS xseg_lib ${OUT}
-	COMMENT "Generating libxseg map")
-
-#ADD_CUSTOM_TARGET( libmap DEPENDS ${out} )
-ADD_CUSTOM_TARGET( libmap DEPENDS ${OUT} )
-#ADD_CUSTOM_TARGET( libmap )
-
-
-set(CMAKE_C_FLAGS  "-O2 -finline -march=nocona -Wall -std=gnu99 -pedantic -g -rdynamic -DVAL_OVERLOAD -Wl,--version-script=${CMAKE_CURRENT_BINARY_DIR}/libxseg.map")
+set(CMAKE_C_FLAGS  "-O2 -finline -march=nocona -Wall -std=gnu99 -pedantic -g -rdynamic -DVAL_OVERLOAD")
 #add_subdirectory(exports)
-
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/xseg/version.h.in
 	${CMAKE_CURRENT_BINARY_DIR}/include/xseg/version.h)
@@ -67,7 +36,6 @@ target_link_libraries(xseg rt pthread dl)
 add_executable(xseg-tool xseg-tool.c)
 target_link_libraries(xseg-tool xseg)
 
-ADD_DEPENDENCIES(xseg libmap)
 SET_TARGET_PROPERTIES(
 	xseg
 	PROPERTIES
