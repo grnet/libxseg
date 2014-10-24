@@ -983,7 +983,7 @@ void xseg_leave(struct xseg *xseg)
 	__unlock_domain();
 
 	type->ops.unmap(xseg->segment, xseg->segment_size);
-	//FIXME free xseg?
+	free(xseg);
 	pthread_mutex_unlock(&xseg_joinref_mutex);
 }
 
