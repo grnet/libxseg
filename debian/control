@@ -1,0 +1,41 @@
+Source: libxseg0
+Section: otherosfs
+Priority: extra
+Maintainer: Filippos Giannakos <philipgian@grnet.gr>
+Build-Depends: debhelper (>= 7.0.50~), python, gccxml, python-ctypeslib
+Standards-Version: 3.9.1
+X-Python-Version: >=2.6
+
+Package: libxseg0
+Architecture: amd64
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Xseg library
+ Extended Description here
+
+Package: libxseg0-dbg
+Section: debug
+Architecture: amd64
+Depends: libxseg0(=${binary:Version}), ${misc:Depends}
+Description: Xseg library
+ Extended Description here
+
+Package: python-xseg
+Section: python
+Architecture: any
+Depends: ${misc:Depends}, ${python:Depends}, libxseg0(=${binary:Version})
+Provides: ${python:Provides}
+Description: Python xseg bindings
+ Extended Description here
+
+Package: libxseg-dev
+Section: libdevel
+Architecture: amd64
+Depends: libxseg0(=${binary:Version}), ${misc:Depends}
+Description: Xseg library devel files
+ Extended Description here
+
+Package: xseg-tools
+Architecture: amd64
+Depends: ${misc:Depends}, ${shlibs:Depends}, libxseg0(=${binary:Version})
+Description: Xseg tools
+ Extended Description here
