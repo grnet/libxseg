@@ -1,35 +1,18 @@
 /*
- * Copyright 2012 GRNET S.A. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or
- * without modification, are permitted provided that the following
- * conditions are met:
- *
- *   1. Redistributions of source code must retain the above
- *      copyright notice, this list of conditions and the following
- *      disclaimer.
- *   2. Redistributions in binary form must reproduce the above
- *      copyright notice, this list of conditions and the following
- *      disclaimer in the documentation and/or other materials
- *      provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY GRNET S.A. ``AS IS'' AND ANY EXPRESS
- * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL GRNET S.A OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- * The views and conclusions contained in the software and
- * documentation are those of the authors and should not be
- * interpreted as representing official policies, either expressed
- * or implied, of GRNET S.A.
+Copyright (C) 2010-2014 GRNET S.A.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <xseg/xpool.h>
@@ -56,9 +39,9 @@ void __xpool_clear(struct xpool *xp)
 	xp->free = 0;
 }
 
-void xpool_clear(struct xpool *xp, uint32_t who)
+void xpool_clear(struct xpool *xp)
 {
-	xlock_acquire(&xp->lock, who);
+	xlock_acquire(&xp->lock);
 	__xpool_clear(xp);
 	xlock_release(&xp->lock);
 }
@@ -112,10 +95,10 @@ xpool_index __xpool_add(struct xpool *xp, xpool_data data)
 	return idx;
 }
 
-xpool_index xpool_add(struct xpool *xp, xpool_data data, uint32_t who)
+xpool_index xpool_add(struct xpool *xp, xpool_data data)
 {
 	xpool_index idx;
-	xlock_acquire(&xp->lock, who);
+	xlock_acquire(&xp->lock);
 	idx = __xpool_add(xp, data);
 	xlock_release(&xp->lock);
 	return idx;
@@ -125,7 +108,7 @@ xpool_index xpool_add(struct xpool *xp, xpool_data data)
 {
 	struct xpool_node *new, *list, *free, *next, *prev;
 	//acquire lock
-	xlock_acquire(&xp->lock, 1);
+	xlock_acquire(&xp->lock);
 	free = XPTR(&xp->free);
 	list = XPTR(&xp->list);
 	new = free;
@@ -168,7 +151,7 @@ xpool_index xpool_remove(struct xpool *xp, xpool_index idx, xpool_data *data)
 {
 	struct xpool_node *node, *list, *free, *prev, *next;
 	//acquire lock
-	xlock_acquire(&xp->lock, 1);
+	xlock_acquire(&xp->lock);
 	if (!__validate_idx(xp, idx)){ // idx < xp->size && node->prev != NULL
 		xlock_release(&xp->lock);
 		return NoIndex;
@@ -231,10 +214,10 @@ xpool_index __xpool_remove(struct xpool *xp, xpool_index idx, xpool_data *data)
 	return idx;
 }
 
-xpool_index xpool_remove(struct xpool *xp, xpool_index idx, xpool_data *data, uint32_t who)
+xpool_index xpool_remove(struct xpool *xp, xpool_index idx, xpool_data *data)
 {
 	xpool_index ret;
-	xlock_acquire(&xp->lock, who);
+	xlock_acquire(&xp->lock);
 	ret = __xpool_remove(xp, idx, data);
 	xlock_release(&xp->lock);
 	return ret;
@@ -253,10 +236,10 @@ xpool_index __xpool_peek(struct xpool *xp, xpool_data *data)
 	return ret;
 }
 
-xpool_index xpool_peek(struct xpool *xp, xpool_data *data, uint32_t who)
+xpool_index xpool_peek(struct xpool *xp, xpool_data *data)
 {
 	xpool_index ret;
-	xlock_acquire(&xp->lock, who);
+	xlock_acquire(&xp->lock);
 	ret = __xpool_peek(xp, data);
 	xlock_release(&xp->lock);
 	return ret;
@@ -273,10 +256,10 @@ xpool_index __xpool_peek_idx(struct xpool *xp, xpool_index idx, xpool_data *data
 	return idx;
 }
 
-xpool_index xpool_peek_idx(struct xpool *xp, xpool_index idx, xpool_data *data, uint32_t who)
+xpool_index xpool_peek_idx(struct xpool *xp, xpool_index idx, xpool_data *data)
 {
 	xpool_index ret;
-	xlock_acquire(&xp->lock, who);
+	xlock_acquire(&xp->lock);
 	ret = __xpool_peek_idx(xp,idx,data);
 	xlock_release(&xp->lock);
 	return ret;
@@ -296,10 +279,10 @@ xpool_index __xpool_peek_and_fwd(struct xpool *xp, xpool_data *data)
 	return ret;
 }
 
-xpool_index xpool_peek_and_fwd(struct xpool *xp, xpool_data *data, uint32_t who)
+xpool_index xpool_peek_and_fwd(struct xpool *xp, xpool_data *data)
 {
 	xpool_index ret;
-	xlock_acquire(&xp->lock, who);
+	xlock_acquire(&xp->lock);
 	ret = __xpool_peek_and_fwd(xp,data);
 	xlock_release(&xp->lock);
 	return ret;
@@ -310,7 +293,7 @@ xpool_index xpool_peek_and_fwd(struct xpool *xp, xpool_data *data)
 {
 	struct xpool_node *list, *next;
 	//acquire lock
-	xlock_acquire(&xp->lock, 1);
+	xlock_acquire(&xp->lock);
 	list = XPTR(&xp->list);
 	if (!list){
 		xlock_release(&xp->lock);
@@ -337,10 +320,10 @@ xpool_index __xpool_set_idx(struct xpool *xp, xpool_index idx, xpool_data data)
 	return idx;
 }
 
-xpool_index xpool_set_idx(struct xpool *xp, xpool_index idx, xpool_data data, uint32_t who)
+xpool_index xpool_set_idx(struct xpool *xp, xpool_index idx, xpool_data data)
 {
 	xpool_index ret;
-	xlock_acquire(&xp->lock, who);
+	xlock_acquire(&xp->lock);
 	ret = __xpool_set_idx(xp, idx, data);
 	xlock_release(&xp->lock);
 	return ret;

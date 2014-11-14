@@ -1,35 +1,18 @@
 /*
- * Copyright 2012 GRNET S.A. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or
- * without modification, are permitted provided that the following
- * conditions are met:
- *
- *   1. Redistributions of source code must retain the above
- *      copyright notice, this list of conditions and the following
- *      disclaimer.
- *   2. Redistributions in binary form must reproduce the above
- *      copyright notice, this list of conditions and the following
- *      disclaimer in the documentation and/or other materials
- *      provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY GRNET S.A. ``AS IS'' AND ANY EXPRESS
- * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL GRNET S.A OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- * The views and conclusions contained in the software and
- * documentation are those of the authors and should not be
- * interpreted as representing official policies, either expressed
- * or implied, of GRNET S.A.
+Copyright (C) 2010-2014 GRNET S.A.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <xseg/xq.h>
@@ -167,7 +150,7 @@ xqindex xq_append_heads(struct xq *xq,
 			xqindex *heads)
 {
 	xqindex i, mask, head;
-	xqindex serial = xlock_acquire(&xq->lock, nr);
+	xqindex serial = xlock_acquire(&xq->lock);
 
 	if (!(xq_count(xq) + nr <= xq->size)) {
 		serial = Noneidx;
@@ -193,10 +176,10 @@ xqindex __xq_append_head(struct xq *xq, xqindex xqi)
 	return xqi;
 
 }
-xqindex xq_append_head(struct xq *xq, xqindex xqi, unsigned long who)
+xqindex xq_append_head(struct xq *xq, xqindex xqi)
 {
 	xqindex serial;
-	xlock_acquire(&xq->lock, who);
+	xlock_acquire(&xq->lock);
 	serial = __xq_append_head(xq, xqi);
 	xlock_release(&xq->lock);
 	return serial;
@@ -215,7 +198,7 @@ xqindex xq_pop_heads(struct xq *xq,
 			xqindex *heads)
 {
 	xqindex i, mask, head;
-	xqindex serial = xlock_acquire(&xq->lock, nr);
+	xqindex serial = xlock_acquire(&xq->lock);
 
 	if (xq_count(xq) < nr) {
 		serial = Noneidx;
@@ -240,10 +223,10 @@ xqindex __xq_pop_head(struct xq *xq)
 	return XPTR(&xq->queue)[__xq_pop_head_idx(xq, 1) & (xq->size -1)];
 }
 
-xqindex xq_pop_head(struct xq *xq, unsigned long who)
+xqindex xq_pop_head(struct xq *xq)
 {
 	xqindex value = Noneidx;
-	(void)xlock_acquire(&xq->lock, who);
+	(void)xlock_acquire(&xq->lock);
 	value = __xq_pop_head(xq);
 	xlock_release(&xq->lock);
 	return value;
@@ -262,10 +245,10 @@ xqindex __xq_peek_head(struct xq *xq)
 	return XPTR(&xq->queue)[__xq_peek_head_idx(xq, 1) & (xq->size -1)];
 }
 
-xqindex xq_peek_head(struct xq *xq, unsigned long who)
+xqindex xq_peek_head(struct xq *xq)
 {
 	xqindex value;
-	(void)xlock_acquire(&xq->lock, who);
+	(void)xlock_acquire(&xq->lock);
 	value = __xq_peek_head(xq);
 	xlock_release(&xq->lock);
 	return value;
@@ -284,10 +267,10 @@ xqindex __xq_peek_tail(struct xq *xq)
 	return XPTR(&xq->queue)[__xq_peek_tail_idx(xq, 1) & (xq->size -1)];
 }
 
-xqindex xq_peek_tail(struct xq *xq, unsigned long who)
+xqindex xq_peek_tail(struct xq *xq)
 {
 	xqindex value;
-	(void)xlock_acquire(&xq->lock, who);
+	(void)xlock_acquire(&xq->lock);
 	value = __xq_peek_tail(xq);
 	xlock_release(&xq->lock);
 	return value;
@@ -306,7 +289,7 @@ xqindex xq_append_tails(struct xq *xq,
 			xqindex *tails)
 {
 	xqindex i, mask, tail;
-	xqindex serial = xlock_acquire(&xq->lock, nr);
+	xqindex serial = xlock_acquire(&xq->lock);
 
 	if (!(xq_count(xq) + nr <= xq->size)) {
 		serial = Noneidx;
@@ -332,10 +315,10 @@ xqindex __xq_append_tail(struct xq *xq, xqindex xqi)
 	return xqi;
 }
 
-xqindex xq_append_tail(struct xq *xq, xqindex xqi, unsigned long who)
+xqindex xq_append_tail(struct xq *xq, xqindex xqi)
 {
 	xqindex serial = Noneidx;
-	xlock_acquire(&xq->lock, who);
+	xlock_acquire(&xq->lock);
 	serial =__xq_append_tail(xq, xqi);
 	xlock_release(&xq->lock);
 	return serial;
@@ -352,7 +335,7 @@ xqindex __xq_pop_tail_idx(struct xq *xq, xqindex nr)
 xqindex xq_pop_tails(struct xq *xq, xqindex nr, xqindex *tails)
 {
 	xqindex i, mask, tail;
-	xqindex serial = xlock_acquire(&xq->lock, nr);
+	xqindex serial = xlock_acquire(&xq->lock);
 
 	if (xq_count(xq) < nr) {
 		serial = Noneidx;
@@ -376,25 +359,25 @@ xqindex __xq_pop_tail(struct xq *xq)
 	return XPTR(&xq->queue)[__xq_pop_tail_idx(xq, 1) & (xq->size -1)];
 }
 
-xqindex xq_pop_tail(struct xq *xq, unsigned long who)
+xqindex xq_pop_tail(struct xq *xq)
 {
 	xqindex value;
-	(void)xlock_acquire(&xq->lock, who);
+	(void)xlock_acquire(&xq->lock);
 	value = __xq_pop_tail(xq);
 	xlock_release(&xq->lock);
 	return value;
 }
 
-int xq_head_to_tail(struct xq *headq, struct xq *tailq, xqindex nr, unsigned long who)
+int xq_head_to_tail(struct xq *headq, struct xq *tailq, xqindex nr)
 {
 	xqindex head, tail, hmask, tmask, *hq, *tq, i, ret = -1;
 
 	if (headq >= tailq) {
-		xlock_acquire(&headq->lock, who);
-		xlock_acquire(&tailq->lock, who);
+		xlock_acquire(&headq->lock);
+		xlock_acquire(&tailq->lock);
 	} else {
-		xlock_acquire(&tailq->lock, who);
-		xlock_acquire(&headq->lock, who);
+		xlock_acquire(&tailq->lock);
+		xlock_acquire(&headq->lock);
 	}
 
 	if (xq_count(headq) < nr || xq_count(tailq) + nr > tailq->size)
@@ -428,10 +411,10 @@ int __xq_check(struct xq *xq, xqindex idx)
 	return 0;
 }
 
-int xq_check(struct xq *xq, xqindex idx, unsigned long who)
+int xq_check(struct xq *xq, xqindex idx)
 {
 	int r;
-	xlock_acquire(&xq->lock, who);
+	xlock_acquire(&xq->lock);
 	r = __xq_check(xq, idx);
 	xlock_release(&xq->lock);
 	return r;
@@ -458,11 +441,11 @@ xqindex __xq_resize(struct xq *xq, struct xq *newxq)
 	return nr;
 }
 
-xqindex xq_resize(struct xq *xq, struct xq *newxq, unsigned long who)
+xqindex xq_resize(struct xq *xq, struct xq *newxq)
 {
 	xqindex r = Noneidx;
-	xlock_acquire(&xq->lock, who);
-	xlock_acquire(&newxq->lock, who);
+	xlock_acquire(&xq->lock);
+	xlock_acquire(&newxq->lock);
 	r = __xq_resize(xq, newxq);
 	xlock_release(&newxq->lock);
 	xlock_release(&xq->lock);

@@ -1,43 +1,22 @@
 /*
- * Copyright 2012 GRNET S.A. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or
- * without modification, are permitted provided that the following
- * conditions are met:
- *
- *   1. Redistributions of source code must retain the above
- *      copyright notice, this list of conditions and the following
- *      disclaimer.
- *   2. Redistributions in binary form must reproduce the above
- *      copyright notice, this list of conditions and the following
- *      disclaimer in the documentation and/or other materials
- *      provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY GRNET S.A. ``AS IS'' AND ANY EXPRESS
- * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL GRNET S.A OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- * The views and conclusions contained in the software and
- * documentation are those of the authors and should not be
- * interpreted as representing official policies, either expressed
- * or implied, of GRNET S.A.
+Copyright (C) 2010-2014 GRNET S.A.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef _XSEG_H
 #define _XSEG_H
-
-#ifndef XSEG_VERSION
-#define XSEG_VERSION 2012022601
-#endif
 
 #ifndef XSEG_PAGE_SHIFT
 #define XSEG_PAGE_SHIFT 12
@@ -53,7 +32,9 @@
 
 #include <stdint.h>
 #include <sys/time.h>
+#include <xseg/version.h>
 #include <xseg/util.h>
+#include <xseg/xlock.h>
 #include <xseg/xq.h>
 #include <xseg/xobj.h>
 #include <xseg/xhash.h>
@@ -64,6 +45,7 @@ typedef uint32_t xport;
 
 #define NoSerial ((xserial)-1)
 #define NoPort ((xport) -1)
+#define NoOwner ((uint64_t)-1)
 
 #ifndef XSEG_DEF_REQS
 #define XSEG_DEF_REQS 256
@@ -230,13 +212,17 @@ struct xseg_task {
 #define X_CLOSE    15
 #define	X_SNAPSHOT 16
 #define X_HASH	   17
+#define X_CREATE   18
+#define X_RENAME   19
+#define X_FLUSH    20
+#define X_UPDATE   21
 
 /* REQ FLAGS */
 #define XF_NOSYNC    (1 << 0)
 #define XF_FLUSH     (1 << 1)
 #define XF_FUA       (1 << 2)
 #define XF_FORCE     (1 << 3)
-#define XF_CONTADDR  (1 << 4)
+#define XF_ASSUMEV0  (1 << 4)
 
 /* PORT FLAGS */
 
@@ -255,8 +241,9 @@ struct xseg_task {
 struct xseg_request {
 	xserial serial;
 	uint64_t offset;
-	uint64_t size; 
+	uint64_t size;
 	uint64_t serviced;
+	uint64_t v0_size;
 	xptr data;
 	uint64_t datalen;
 	xptr target;
@@ -284,6 +271,7 @@ struct xseg_shared {
 	char (*peer_types)[XSEG_TNAMESIZE]; /* alignment? */
 	xptr *peer_type_data;
 	uint32_t nr_peer_types;
+	struct xlock segment_lock;
 };
 
 struct xseg_private {
@@ -363,9 +351,9 @@ struct xseg {
 /*                    \___________________/                       \_________/ */
 /*                     ___________________                         _________  */
 /*                    /                   \                       /         \ */
-        struct xseg *  xseg_join            ( char                * segtype,
-                                              char                * segname,
-                                              char                * peertype,
+        struct xseg *  xseg_join            ( const char          * segtype,
+                                              const char          * segname,
+                                              const char          * peertype,
                                               void               (* wakeup    )
                                              (uint32_t              portno   ));
 
@@ -398,19 +386,19 @@ struct xseg_request *  xseg_get_request     ( struct xseg         * xseg,
 /*                     ___________________                         _________  */
 /*                    /                   \                       /         \ */
               xport    xseg_submit          ( struct xseg         * xseg,
-                                              struct xseg_request * xreq,      
+                                              struct xseg_request * xreq,
                                               xport                 portno,
 					      uint32_t              flags     );
 
 struct xseg_request *  xseg_receive         ( struct xseg         * xseg,
-                                              xport                 portno,    
+                                              xport                 portno,
 					      uint32_t		    flags     );
 /*                    \___________________/                       \_________/ */
 /*                     ___________________                         _________  */
 /*                    /                   \                       /         \ */
 
 struct xseg_request *  xseg_accept          ( struct xseg         * xseg,
-                                              xport                 portno,    
+                                              xport                 portno,
 					      uint32_t		    flags     );
 
               xport    xseg_respond         ( struct xseg         * xseg,

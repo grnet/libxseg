@@ -1,35 +1,18 @@
 /*
- * Copyright 2012 GRNET S.A. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or
- * without modification, are permitted provided that the following
- * conditions are met:
- *
- *   1. Redistributions of source code must retain the above
- *      copyright notice, this list of conditions and the following
- *      disclaimer.
- *   2. Redistributions in binary form must reproduce the above
- *      copyright notice, this list of conditions and the following
- *      disclaimer in the documentation and/or other materials
- *      provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY GRNET S.A. ``AS IS'' AND ANY EXPRESS
- * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL GRNET S.A OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- * The views and conclusions contained in the software and
- * documentation are those of the authors and should not be
- * interpreted as representing official policies, either expressed
- * or implied, of GRNET S.A.
+Copyright (C) 2010-2014 GRNET S.A.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <stdio.h>
@@ -105,21 +88,21 @@ int test_string(xhashidx loops)
 	int ret;
         xhashidx r;
         //printf("insert(%lx, %lx)\n", i, -i);
-        rr = xhash_insert(h, string[i], i);
+        rr = xhash_insert(h, (xhashidx)string[i], i);
 	if (rr == -XHASH_ERESIZE){
 		h = my_resize(h, xhash_grow_size_shift(h));
-		rr = xhash_insert(h, string[i], i);
+		rr = xhash_insert(h, (xhashidx)string[i], i);
 		if (rr != 0)
 			printf("resize string insert error in %lx: %lx != %lx\n", i, r, i);
 	}
-        ret = xhash_lookup(h, string[i], &r);
+        ret = xhash_lookup(h, (xhashidx)string[i], &r);
         if (ret || (r != i)) {
             printf("string insert error in %lx (ret: %d): returned val %lx, expected val %lx\n ", i, ret, r, i);
         }
         //printf(" ->got(%lx, %lx)\n", i, r);
     }
     for (i = 10; i < loops; i++) {
-        int ret = xhash_lookup(h, string[i], &v);
+        int ret = xhash_lookup(h, (xhashidx)string[i], &v);
         //printf(" ->got(%lu, %lu)\n", i, v);
         if (ret || (i != v)) {
             printf("string error in %lu: %lu != %lu\n", i, i, v);
@@ -130,14 +113,14 @@ int test_string(xhashidx loops)
 	int ret;
         xhashidx r;
         //printf("insert(%lx, %lx)\n", i, -i);
-        rr = xhash_delete(h, string[i]);
+        rr = xhash_delete(h, (xhashidx)string[i]);
 	if (rr == -XHASH_ERESIZE){
 		h = my_resize(h, xhash_shrink_size_shift(h));
-		rr = xhash_delete(h, string[i]);
+		rr = xhash_delete(h, (xhashidx)string[i]);
 		if (rr != 0)
 			printf("resize string delele error in %lx: %lx != %lx\n", i, r, i);
 	}
-        ret = xhash_lookup(h, string[i], &r);
+        ret = xhash_lookup(h, (xhashidx)string[i], &r);
         if (!ret) {
             printf("string delete error in %lx: %lx != %lx\n", i, r, i);
         }
@@ -171,7 +154,7 @@ int test_string2()
         rr = xhash_insert(h, (xhashidx) string[i], (xhashidx) i);
 	if (rr == -XHASH_ERESIZE){
 		h = my_resize(h, xhash_grow_size_shift(h));
-		rr = xhash_insert(h, string[i], (xhashidx) i);
+		rr = xhash_insert(h, (xhashidx)string[i], (xhashidx) i);
 		if (rr != 0)
 			printf("resize string insert error in %lx: %lx != %lx\n", i, r, i);
 	}

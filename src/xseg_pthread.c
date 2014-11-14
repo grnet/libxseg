@@ -1,35 +1,18 @@
 /*
- * Copyright 2012 GRNET S.A. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or
- * without modification, are permitted provided that the following
- * conditions are met:
- *
- *   1. Redistributions of source code must retain the above
- *      copyright notice, this list of conditions and the following
- *      disclaimer.
- *   2. Redistributions in binary form must reproduce the above
- *      copyright notice, this list of conditions and the following
- *      disclaimer in the documentation and/or other materials
- *      provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY GRNET S.A. ``AS IS'' AND ANY EXPRESS
- * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL GRNET S.A OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- * The views and conclusions contained in the software and
- * documentation are those of the authors and should not be
- * interpreted as representing official policies, either expressed
- * or implied, of GRNET S.A.
+Copyright (C) 2010-2014 GRNET S.A.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #define _GNU_SOURCE
@@ -57,6 +40,7 @@ static void pthread_mfree(void *mem);
 static long pthread_allocate(const char *name, uint64_t size)
 {
 	int fd, r;
+	off_t lr;
 	fd = shm_open(name, O_RDWR | O_CREAT | O_EXCL, 0770);
 	if (fd < 0) {
 		XSEGLOG("Cannot create shared segment: %s\n",
@@ -64,12 +48,12 @@ static long pthread_allocate(const char *name, uint64_t size)
 		return fd;
 	}
 
-	r = lseek(fd, size -1, SEEK_SET);
-	if (r < 0) {
+	lr = lseek(fd, size -1, SEEK_SET);
+	if (lr == (off_t)-1) {
 		close(fd);
 		XSEGLOG("Cannot seek into segment file: %s\n",
 			strerror_r(errno, errbuf, ERRSIZE));
-		return r;
+		return lr;
 	}
 
 	errbuf[0] = 0;
@@ -124,7 +108,7 @@ static void *pthread_map(const char *name, uint64_t size, struct xseg *seg)
 static void pthread_unmap(void *ptr, uint64_t size)
 {
 	struct xseg *xseg = ptr;
-	(void)munmap(xseg, xseg->segment_size);
+	(void)munmap(xseg, size);
 }
 
 
@@ -224,11 +208,11 @@ static int pthread_local_signal_init(struct xseg *xseg, xport portno)
 	if(sigaction(SIGIO, act, old_act) < 0)
 		goto err5;
 
-	
+
 	sigaddset(set, SIGIO);
 
 	r = pthread_sigmask(SIG_BLOCK, set, savedset);
-	if (r < 0) 
+	if (r < 0)
 		goto err6;
 
 
@@ -293,7 +277,7 @@ static int pthread_prepare_wait(struct xseg *xseg, uint32_t portno)
 	pid_t pid;
 	int my_id;
 	struct xseg_port *port = xseg_get_port(xseg, portno);
-	if (!port) 
+	if (!port)
 		return -1;
 	struct pthread_signal_desc *psd = xseg_get_signal_desc(xseg, port);
 	if (!psd)
@@ -357,7 +341,7 @@ static int pthread_signal(struct xseg *xseg, uint32_t portno)
 	int i;
 
 	struct xseg_port *port = xseg_get_port(xseg, portno);
-	if (!port) 
+	if (!port)
 		return -1;
 	struct pthread_signal_desc *psd = xseg_get_signal_desc(xseg, port);
 	if (!psd)
