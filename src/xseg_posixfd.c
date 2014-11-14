@@ -33,79 +33,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <xseg/xseg.h>
 #include <xseg/xobj.h>
 #include <xseg_posixfd.h>
+
 #define ERRSIZE 512
+#define FIFO_RDWR_UGO	S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH
 char errbuf[ERRSIZE];
-
-static long posixfd_allocate(const char *name, uint64_t size)
-{
-	int fd, r;
-	off_t lr;
-	fd = shm_open(name, O_RDWR | O_CREAT | O_EXCL, 0770);
-	if (fd < 0) {
-		XSEGLOG("Cannot create shared segment: %s\n",
-			strerror_r(errno, errbuf, ERRSIZE));
-		return fd;
-	}
-
-	lr = lseek(fd, size -1, SEEK_SET);
-	if (lr == (off_t)-1) {
-		close(fd);
-		XSEGLOG("Cannot seek into segment file: %s\n",
-			strerror_r(errno, errbuf, ERRSIZE));
-		return lr;
-	}
-
-	errbuf[0] = 0;
-	r = write(fd, errbuf, 1);
-	if (r != 1) {
-		close(fd);
-		XSEGLOG("Failed to set segment size: %s\n",
-			strerror_r(errno, errbuf, ERRSIZE));
-		return r;
-	}
-
-	close(fd);
-	return 0;
-}
-
-static long posixfd_deallocate(const char *name)
-{
-	return shm_unlink(name);
-}
-
-static void *posixfd_map(const char *name, uint64_t size, struct xseg *seg)
-{
-	struct xseg *xseg;
-	int fd;
-
-	fd = shm_open(name, O_RDWR, 0000);
-	if (fd < 0) {
-		XSEGLOG("Failed to open '%s' for mapping: %s\n",
-			name, strerror_r(errno, errbuf, ERRSIZE));
-		return NULL;
-	}
-
-	xseg = mmap (	XSEG_BASE_AS_PTR,
-			size,
-			PROT_READ | PROT_WRITE,
-			MAP_SHARED | MAP_FIXED /* | MAP_LOCKED */,
-			fd, 0	);
-
-	if (xseg == MAP_FAILED) {
-		XSEGLOG("Could not map segment: %s\n",
-			strerror_r(errno, errbuf, ERRSIZE));
-		return NULL;
-	}
-
-	close(fd);
-	return xseg;
-}
-
-static void posixfd_unmap(void *ptr, uint64_t size)
-{
-	struct xseg *xseg = ptr;
-	(void)munmap(xseg, size);
-}
 
 static struct posixfd_signal_desc * __get_signal_desc(struct xseg *xseg, xport portno)
 {
@@ -139,6 +70,7 @@ static int posixfd_local_signal_init(struct xseg *xseg, xport portno)
 	/* create or truncate POSIXFD+portno file */
 	int r, fd;
 	char filename[POSIXFD_DIR_LEN + POSIXFD_FILENAME_LEN + 1];
+	mode_t old_mode;
 
 	struct posixfd_signal_desc *psd = __get_signal_desc(xseg, portno);
 	if (!psd) {
@@ -146,24 +78,17 @@ static int posixfd_local_signal_init(struct xseg *xseg, xport portno)
 	}
 	__get_filename(psd, filename);
 
-retry:
-	r = mkfifo(filename, S_IRUSR|S_IWUSR);
-	if (r < 0) {
-		if (errno == EEXIST) {
-			unlink(filename);
-			goto retry;
-		}
+
+	if (mkfifo(filename, FIFO_RDWR_UGO) < 0 && errno != EEXIST) {
 		return -1;
 	}
 
-	fd = open(filename, O_RDONLY | O_NONBLOCK);
-	if (fd < 0) {
+	/* Ensure that the count of connected readers/writers is above zero */
+	if ((fd = open(filename, O_RDWR | O_NONBLOCK)) < 0) {
 		unlink(filename);
 		return -1;
 	}
 	psd->fd = fd;
-	open(filename, O_WRONLY | O_NONBLOCK);
-
 	return 0;
 }
 
@@ -177,10 +102,12 @@ static void posixfd_local_signal_quit(struct xseg *xseg, xport portno)
 {
 	char filename[POSIXFD_DIR_LEN + POSIXFD_FILENAME_LEN + 1];
 	struct posixfd_signal_desc *psd = __get_signal_desc(xseg, portno);
+
 	if (psd->fd >=0) {
 		close(psd->fd);
 		psd->fd = -1;
 	}
+
 	__get_filename(psd, filename);
 	unlink(filename);
 	return;
@@ -188,19 +115,29 @@ static void posixfd_local_signal_quit(struct xseg *xseg, xport portno)
 
 /*
  * When this peer type is initialized, we must make sure the directory where the
- * named pipes will be created, exist.
+ * named pipes will be created, exist. Also make sure that th setgid bit is set.
  */
 static int posixfd_remote_signal_init(void)
 {
 	int r;
-	mode_t oldumask;
-	oldumask = umask(0000);
-	r = mkdir(POSIXFD_DIR, 01777);
-	umask(oldumask);
+	struct stat st;
 
+	r = stat(POSIXFD_DIR, &st);
 	if (r < 0) {
-		if (errno != EEXIST) // && isdir(POSIXFD_DIR)
-			return -1;
+		return -1;
+	}
+
+	if (!S_ISDIR(st.st_mode)) {
+		return -1;
+	}
+
+	if (st.st_mode & S_ISGID) {
+		return 0;
+	}
+
+	r = chmod(POSIXFD_DIR, st.st_mode | S_ISGID);
+	if (r < 0) {
+		return -1;
 	}
 
 	return 0;
@@ -214,27 +151,43 @@ static void posixfd_remote_signal_quit(void)
 static int posixfd_prepare_wait(struct xseg *xseg, uint32_t portno)
 {
 	char buf[512];
-	int buf_size = 512;
-	struct posixfd_signal_desc *psd = __get_signal_desc(xseg, portno);
-	if (!psd)
-		return -1;
-	psd->flag = 1;
-	while (read(psd->fd, buf, buf_size) > 0);
+	size_t len;
+	int value = 0;
 
-	return 0;
+	struct posixfd_signal_desc *psd = __get_signal_desc(xseg, portno);
+	if (!psd) {
+		return -1;
+	}
+	psd->flag = 1;
+
+	/* Drain the pipe */
+	do {
+		len = read(psd->fd, buf, sizeof(buf));
+		value |= (len > 0 ? 0 : -1);
+	} while ((len == -1 && errno == EINTR) || len == sizeof(buf));
+
+	return value;
 }
 
 static int posixfd_cancel_wait(struct xseg *xseg, uint32_t portno)
 {
 	char buf[512];
-	int buf_size = 512;
-	struct posixfd_signal_desc *psd = __get_signal_desc(xseg, portno);
-	if (!psd)
-		return -1;
-	psd->flag = 0;
-	while (read(psd->fd, buf, buf_size) > 0);
+	size_t len;
+	int value = 0;
 
-	return 0;
+	struct posixfd_signal_desc *psd = __get_signal_desc(xseg, portno);
+	if (!psd) {
+		return -1;
+	}
+	psd->flag = 0;
+
+	/* Drain the pipe */
+	do {
+		len = read(psd->fd, buf, sizeof(buf));
+		value |= (len > 0 ? 0 : -1);
+	} while ((len == -1 && errno == EINTR) || len == sizeof(buf));
+
+	return value;
 }
 
 /*
@@ -250,12 +203,14 @@ static int posixfd_wait_signal(struct xseg *xseg, void *sd, uint32_t usec_timeou
 	int r;
 	struct timeval tv;
 	char buf[512];
-	int buf_size = 512;
+	size_t len;
+	int value = 0;
 	fd_set fds;
 
 	struct posixfd_signal_desc *psd = (struct posixfd_signal_desc *)sd;
-	if (!psd)
+	if (!psd) {
 		return -1;
+	}
 
 	tv.tv_sec = usec_timeout / 1000000;
 	tv.tv_usec = usec_timeout - tv.tv_sec * 1000000;
@@ -275,11 +230,14 @@ static int posixfd_wait_signal(struct xseg *xseg, void *sd, uint32_t usec_timeou
 	}
 
 	if (r != 0) {
-		/* clean up pipe */
-		while (read(psd->fd, buf, buf_size) > 0);
+		/* Drain the pipe */
+		do {
+			len = read(psd->fd, buf, sizeof(buf));
+			value |= (len > 0 ? 0 : -1);
+		} while ((len == -1 && errno == EINTR) || len == sizeof(buf));
 	}
 
-	return 0;
+	return value;
 }
 
 /*
@@ -311,7 +269,11 @@ static int posixfd_signal(struct xseg *xseg, uint32_t portno)
 	if (fd < 0) {
 		return -1;
 	}
-	r = write(fd, "a", 1);
+
+	do {
+		r = write(fd, "a", 1);
+	} while (r < 0 && errno == EINTR);
+
 	if (r < 0) {
 		close(fd);
 		return -1;
@@ -388,7 +350,7 @@ int posixfd_init_signal_desc(struct xseg *xseg, void *sd)
 		return -1;
 	psd->signal_file[0] = 0;
 	/* POSIXFD_FILENAME_LEN = 2 * sizeof(void *) */
-	hexlify(&sd, POSIXFD_FILENAME_LEN / 2, psd->signal_file);
+	hexlify((unsigned char *)&sd, POSIXFD_FILENAME_LEN / 2, psd->signal_file);
 	psd->flag = 0;
 	psd->fd = -1;
 
@@ -435,19 +397,6 @@ void posixfd_free_signal_desc(struct xseg *xseg, void *data, void *sd)
 	return;
 }
 
-static struct xseg_type xseg_posixfd = {
-	/* xseg_operations */
-	{
-		.mfree		= posixfd_mfree,
-		.allocate	= posixfd_allocate,
-		.deallocate	= posixfd_deallocate,
-		.map		= posixfd_map,
-		.unmap		= posixfd_unmap,
-	},
-	/* name */
-	"posixfd"
-};
-
 static struct xseg_peer xseg_peer_posixfd = {
 	/* xseg_peer_operations */
 	{
@@ -475,7 +424,6 @@ static struct xseg_peer xseg_peer_posixfd = {
 
 void xseg_posixfd_init(void)
 {
-	xseg_register_type(&xseg_posixfd);
 	xseg_register_peer(&xseg_peer_posixfd);
 }
 

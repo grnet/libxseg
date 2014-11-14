@@ -45,7 +45,7 @@ static struct xlock __lock = { .owner = XLOCK_NOONE};
 
 void __lock_domain(void)
 {
-	(void)xlock_acquire(&__lock, XLOCK_UNKNOWN_OWNER);
+	(void)xlock_acquire(&__lock);
 }
 
 void __unlock_domain(void)
@@ -89,8 +89,8 @@ uint64_t __get_id(void)
 
 void __xseg_log(const char *msg)
 {
-	(void)puts(msg);
-	fflush(stdout);
+	fprintf(stderr, "%s", msg);
+	fflush(stderr);
 }
 
 void *xtypes_malloc(unsigned long size)
@@ -111,6 +111,7 @@ int __renew_logctx(struct log_ctx *lc, char *peer_name,
 		enum log_level log_level, char *logfile, uint32_t flags)
 {
 	int fd, tmp_fd;
+	mode_t old_mode;
 
 	if (peer_name){
 		strncpy(lc->peer_name, peer_name, MAX_PEER_NAME);
@@ -125,7 +126,8 @@ int __renew_logctx(struct log_ctx *lc, char *peer_name,
 	else if (!(flags & REOPEN_FILE) || lc->logfile == STDERR_FILENO)
 		return 0;
 
-	fd = open(lc->filename, O_WRONLY|O_CREAT|O_APPEND, S_IRUSR|S_IWUSR);
+	fd = open(lc->filename, O_WRONLY|O_CREAT|O_APPEND,
+			S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
 	if (fd < 0){
 		return -1;
 	}
@@ -189,7 +191,8 @@ int __init_logctx(struct log_ctx *lc, char *peer_name,
 
 	strncpy(lc->filename, logfile, MAX_LOGFILE_LEN);
 	lc->filename[MAX_LOGFILE_LEN - 1] = 0;
-	fd = open(lc->filename, O_WRONLY|O_CREAT|O_APPEND, S_IRUSR|S_IWUSR);
+	fd = open(lc->filename, O_WRONLY|O_CREAT|O_APPEND,
+			S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
 	if (fd < 1){
 //		lc->logfile = lc->stderr_orig;
 		return -1;
@@ -273,14 +276,24 @@ void __xseg_log2(struct log_ctx *lc, enum log_level level, char *fmt, ...)
 	return;
 }
 
-/* FIXME: This is not async safe */
+/* TODO: Make an async-safe alternative */
 void xseg_printtrace(void)
 {
 	void *array[20];
+	char **bt;
 	size_t size;
+	int i;
+	pid_t tid = __get_id();
 
-	XSEGLOG("Backtrace:");
 	size = backtrace(array, 20);
-	/* stderr should be open since we don't close it */
-	backtrace_symbols_fd(array, size, 2);
+	bt = backtrace_symbols(array, size);
+	if (!bt) {
+		return;
+	}
+
+	XSEGLOG("Backtrace of tid %d:", tid);
+	for (i = 0; i < size; ++i)
+	{
+		XSEGLOG("\t%s", bt[i]);
+	}
 }
