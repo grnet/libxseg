@@ -22,10 +22,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <pthread.h>
 #include <errno.h>
 
-#ifndef NULL
-#define NULL ((void *)0)
-#endif
-
 #define XSEG_NR_TYPES 16
 #define XSEG_NR_PEER_TYPES 64
 #define XSEG_MIN_PAGE_SIZE 4096
@@ -53,9 +49,11 @@ static void __unlock_segment(struct xseg *xseg)
 static struct xseg_type *__find_type(const char *name, long *index)
 {
 	long i;
-	for (i = 0; (*index = i) < __nr_types; i++)
-		if (!strncmp(__types[i]->name, name, XSEG_TNAMESIZE))
+	for (i = 0; (*index = i) < __nr_types; i++) {
+		if (!strncmp(__types[i]->name, name, XSEG_TNAMESIZE)) {
 			return __types[i];
+		}
+	}
 	return NULL;
 }
 
@@ -63,8 +61,9 @@ static struct xseg_peer *__find_peer_type(const char *name, int64_t *index)
 {
 	int64_t i;
 	for (i = 0; (*index = i) < __nr_peer_types; i++) {
-		if (!strncmp(__peer_types[i]->name, name, XSEG_TNAMESIZE))
+		if (!strncmp(__peer_types[i]->name, name, XSEG_TNAMESIZE)) {
 			return __peer_types[i];
+		}
 	}
 	return NULL;
 }
@@ -73,8 +72,9 @@ void xseg_report_peer_types(void)
 {
 	long i;
 	XSEGLOG("total %u peer types:\n", __nr_peer_types);
-	for (i = 0; i < __nr_peer_types; i++)
+	for (i = 0; i < __nr_peer_types; i++) {
 		XSEGLOG("%ld: '%s'\n", i, __peer_types[i]->name);
+	}
 }
 
 static struct xseg_type *__find_or_load_type(const char *name)
@@ -82,12 +82,14 @@ static struct xseg_type *__find_or_load_type(const char *name)
 	long i;
 	struct xseg_type *type;
 
-	if (!name)
+	if (!name) {
 		return NULL;
+	}
 
 	type = __find_type(name, &i);
-	if (type)
+	if (type) {
 		return type;
+	}
 
 	__load_plugin(name);
 	return __find_type(name, &i);
@@ -98,12 +100,14 @@ static struct xseg_peer *__find_or_load_peer_type(const char *name)
 	int64_t i;
 	struct xseg_peer *peer_type;
 
-	if (!name)
+	if (!name) {
 		return NULL;
+	}
 
 	peer_type = __find_peer_type(name, &i);
-	if (peer_type)
+	if (peer_type) {
 		return peer_type;
+	}
 
 	__load_plugin(name);
 	return __find_peer_type(name, &i);
@@ -116,8 +120,9 @@ static struct xseg_peer *__get_peer_type(struct xseg *xseg, uint32_t serial)
 	struct xseg_private *priv;
 	char (*shared_peer_types)[XSEG_TNAMESIZE];
 
-	if (!xseg)
+	if (!xseg) {
 		return NULL;
+	}
 
 	priv = xseg->priv;
 
@@ -128,8 +133,9 @@ static struct xseg_peer *__get_peer_type(struct xseg *xseg, uint32_t serial)
 	}
 
 	type = priv->peer_types[serial];
-	if (type)
+	if (type) {
 		return type;
+	}
 
 	/* xseg->shared->peer_types is an append-only array,
 	 * therefore this should be safe
@@ -142,9 +148,10 @@ static struct xseg_peer *__get_peer_type(struct xseg *xseg, uint32_t serial)
 	}
 
 	type = __find_or_load_peer_type(name);
-	if (!type)
+	if (!type) {
 		XSEGLOG("could not find driver for peer type %d [%s]\n",
 			 serial, name);
+	}
 
 	priv->peer_types[serial] = type;
 	return type;
@@ -158,8 +165,9 @@ static void * __get_peer_type_data(struct xseg *xseg, uint32_t serial)
 	char (*shared_peer_types)[XSEG_TNAMESIZE];
 	xptr *shared_peer_type_data;
 
-	if (!xseg)
+	if (!xseg) {
 		return 0;
+	}
 
 	priv = xseg->priv;
 	if (serial >= xseg->max_peer_types) {
@@ -169,8 +177,9 @@ static void * __get_peer_type_data(struct xseg *xseg, uint32_t serial)
 	}
 
 	data = priv->peer_type_data[serial];
-	if (data)
+	if (data) {
 		return data;
+	}
 
 	shared_peer_types = XPTR_TAKE(xseg->shared->peer_types, xseg->segment);
 	name = shared_peer_types[serial];
@@ -226,8 +235,9 @@ static unsigned long strul(char *s)
 	unsigned long n = 0;
 	for (;;) {
 		unsigned char c = *s - '0';
-		if (c >= 10)
+		if (c >= 10) {
 			break;
+		}
 		n = n * 10 + c;
 		s ++;
 	}
@@ -263,12 +273,12 @@ int xseg_parse_spec(char *segspec, struct xseg_config *config)
 	/* type */
 	TOK(s, sp, "posix");
 	strncpy(config->type, s, XSEG_TNAMESIZE);
-	config->type[XSEG_TNAMESIZE-1] = 0;
+	config->type[XSEG_TNAMESIZE - 1] = 0;
 
 	/* name */
 	TOK(s, sp, "globalxseg");
 	strncpy(config->name, s, XSEG_NAMESIZE);
-	config->name[XSEG_NAMESIZE-1] = 0;
+	config->name[XSEG_NAMESIZE - 1] = 0;
 
 	/* dynports */
 	TOK(s, sp, "64");
@@ -313,7 +323,7 @@ int xseg_register_type(struct xseg_type *type)
 		goto out;
 	}
 
-	type->name[XSEG_TNAMESIZE-1] = 0;
+	type->name[XSEG_TNAMESIZE - 1] = 0;
 	__types[__nr_types] = type;
 	__nr_types += 1;
 	r = 0;
@@ -353,8 +363,9 @@ int xseg_register_peer(struct xseg_peer *peer_type)
 	int r = -1;
 	struct xseg_peer *type;
 
-	if (!peer_type)
+	if (!peer_type) {
 		return r;
+	}
 
 	__lock_domain();
 
@@ -378,7 +389,7 @@ int xseg_register_peer(struct xseg_peer *peer_type)
 		goto out;
 	}
 
-	peer_type->name[XSEG_TNAMESIZE-1] = 0;
+	peer_type->name[XSEG_TNAMESIZE - 1] = 0;
 	__peer_types[__nr_peer_types] = peer_type;
 	__nr_peer_types += 1;
 	r = 0;
@@ -394,8 +405,9 @@ int xseg_unregister_peer(const char *name)
 	struct xseg_peer *driver;
 	int r = -1;
 
-	if (!name)
+	if (!name) {
 		return r;
+	}
 
 	__lock_domain();
 	driver = __find_peer_type(name, &i);
@@ -438,9 +450,10 @@ int64_t __enable_driver(struct xseg *xseg, struct xseg_peer *driver)
 
 	drivers = XPTR_TAKE(xseg->shared->peer_types, xseg->segment);
 	for (r = 0; r < max_drivers; r++) {
-		if (!*drivers[r])
+		if (!*drivers[r]) {
 			goto bind;
-		if (!strncmp(drivers[r], driver->name, XSEG_TNAMESIZE)){
+		}
+		if (!strncmp(drivers[r], driver->name, XSEG_TNAMESIZE)) {
 			data = __get_peer_type_data(xseg, r);
 			goto success;
 		}
@@ -452,14 +465,15 @@ int64_t __enable_driver(struct xseg *xseg, struct xseg_peer *driver)
 bind:
 	/* assert(xseg->shared->nr_peer_types == r); */
 	data = driver->peer_ops.alloc_data(xseg);
-	if (!data)
+	if (!data) {
 		return -1;
+	}
 	peer_type_data = XPTR_MAKE(data, xseg->segment);
 	ptd = XPTR_TAKE(xseg->shared->peer_type_data, xseg->segment);
 	ptd[r] = peer_type_data;
 	xseg->shared->nr_peer_types = r + 1;
 	strncpy(drivers[r], driver->name, XSEG_TNAMESIZE);
-	drivers[r][XSEG_TNAMESIZE-1] = 0;
+	drivers[r][XSEG_TNAMESIZE - 1] = 0;
 
 success:
 	xseg->priv->peer_types[r] = driver;
@@ -472,8 +486,9 @@ int64_t xseg_enable_driver(struct xseg *xseg, const char *name)
 	int64_t r = -1;
 	struct xseg_peer *driver;
 
-	if (!xseg || !name)
+	if (!xseg || !name) {
 		return r;
+	}
 
 	__lock_domain();
 	driver = __find_peer_type(name, &r);
@@ -497,8 +512,9 @@ int xseg_disable_driver(struct xseg *xseg, const char *name)
 	struct xseg_private *priv;
 	struct xseg_peer *driver;
 
-	if (!xseg || !name)
+	if (!xseg || !name) {
 		return r;
+	}
 
 	priv = xseg->priv;
 	__lock_domain();
@@ -508,9 +524,11 @@ int xseg_disable_driver(struct xseg *xseg, const char *name)
 		goto out;
 	}
 
-	for (i = 0; i < xseg->max_peer_types; i++)
-		if (priv->peer_types[i] == driver)
+	for (i = 0; i < xseg->max_peer_types; i++) {
+		if (priv->peer_types[i] == driver) {
 			priv->peer_types[i] = NULL;
+		}
+	}
 	r = 0;
 out:
 	__unlock_domain();
@@ -542,7 +560,7 @@ static uint64_t calculate_segment_size(struct xseg_config *config)
 	page_size = 1 << page_shift;
 
 	/* struct xseg itself + struct xheap */
-	size += 2*page_size + config->heap_size;
+	size += 2 * page_size + config->heap_size;
 	size = __align(size, page_shift);
 
 	return size;
@@ -566,8 +584,9 @@ static long initialize_segment(struct xseg *xseg, struct xseg_config *cfg)
 		return -1;
 	}
 
-	if (page_size < XSEG_MIN_PAGE_SIZE)
+	if (page_size < XSEG_MIN_PAGE_SIZE) {
 		return -1;
+	}
 
 	xseg->version = XSEG_VERSION;
 	xseg->segment_size = 2 * page_size + cfg->heap_size;
@@ -580,51 +599,59 @@ static long initialize_segment(struct xseg *xseg, struct xseg_config *cfg)
 
 	heap = XPTR_TAKE(xseg->heap, segment);
 	r = xheap_init(heap, cfg->heap_size, page_shift, segment+size);
-	if (r < 0)
+	if (r < 0) {
 		return -1;
+	}
 
 	/* build object_handler handler */
 	mem = xheap_allocate(heap, sizeof(struct xobject_h));
-	if (!mem)
+	if (!mem) {
 		return -1;
+	}
 	xseg->object_handlers = (struct xobject_h *) XPTR_MAKE(mem, segment);
 	obj_h = mem;
 	r = xobj_handler_init(obj_h, segment, MAGIC_OBJH,
 			sizeof(struct xobject_h), heap);
-	if (r < 0)
+	if (r < 0) {
 		return -1;
+	}
 
 	//now that we have object handlers handler, use that to allocate
 	//new object handlers
 
 	//allocate requests handler
 	mem = xobj_get_obj(obj_h, X_ALLOC);
-	if (!mem)
+	if (!mem) {
 		return -1;
+	}
 	obj_h = mem;
 	r = xobj_handler_init(obj_h, segment, MAGIC_REQ,
 			sizeof(struct xseg_request), heap);
-	if (r < 0)
+	if (r < 0) {
 		return -1;
+	}
 	xseg->request_h = (struct xobject_h *) XPTR_MAKE(obj_h, segment);
 
 	//allocate ports handler
 	obj_h = XPTR_TAKE(xseg->object_handlers, segment);
 	mem = xobj_get_obj(obj_h, X_ALLOC);
-	if (!mem)
+	if (!mem) {
 		return -1;
+	}
 	obj_h = mem;
 	r = xobj_handler_init(obj_h, segment, MAGIC_PORT,
 			sizeof(struct xseg_port), heap);
-	if (r < 0)
+	if (r < 0) {
 		return -1;
+	}
 	xseg->port_h = (struct xobject_h *) XPTR_MAKE(mem, segment);
 
 	//allocate xptr port array to be used as a map
 	//portno <--> xptr port
 	mem = xheap_allocate(heap, sizeof(xptr)*cfg->nr_ports);
-	if (!mem)
+	if (!mem) {
 		return -1;
+	}
 	ports = mem;
 	for (i = 0; i < cfg->nr_ports; i++) {
 		ports[i]=0;
@@ -633,8 +660,9 @@ static long initialize_segment(struct xseg *xseg, struct xseg_config *cfg)
 
 	//allocate {src,dst} gws
 	mem = xheap_allocate(heap, sizeof(xport) * cfg->nr_ports);
-	if (!mem)
+	if (!mem) {
 		return -1;
+	}
 	gw = mem;
 	for (i = 0; i < cfg->nr_ports; i++) {
 		gw[i] = NoPort;
@@ -642,8 +670,9 @@ static long initialize_segment(struct xseg *xseg, struct xseg_config *cfg)
 	xseg->path_next = (xport *) XPTR_MAKE(mem, segment);
 
 	mem = xheap_allocate(heap, sizeof(xport) * cfg->nr_ports);
-	if (!mem)
+	if (!mem) {
 		return -1;
+	}
 	gw = mem;
 	for (i = 0; i < cfg->nr_ports; i++) {
 		gw[i] = NoPort;
@@ -652,8 +681,9 @@ static long initialize_segment(struct xseg *xseg, struct xseg_config *cfg)
 
 	//allocate xseg_shared memory
 	mem = xheap_allocate(heap, sizeof(struct xseg_shared));
-	if (!mem)
+	if (!mem) {
 		return -1;
+	}
 	shared = (struct xseg_shared *) mem;
 	shared->flags = 0;
 	shared->nr_peer_types = 0;
@@ -661,13 +691,15 @@ static long initialize_segment(struct xseg *xseg, struct xseg_config *cfg)
 	xseg->shared = (struct xseg_shared *) XPTR_MAKE(mem, segment);
 
 	mem = xheap_allocate(heap, page_size);
-	if (!mem)
+	if (!mem) {
 		return -1;
+	}
 	shared->peer_types = (char **) XPTR_MAKE(mem, segment);
 	xseg->max_peer_types = xheap_get_chunk_size(mem) / XSEG_TNAMESIZE;
 	mem = xheap_allocate(heap, xseg->max_peer_types * sizeof(xptr));
-	if (!mem)
+	if (!mem) {
 		return -1;
+	}
 	memset(mem, 0, xheap_get_chunk_size(mem));
 	shared->peer_type_data = (xptr *) XPTR_MAKE(mem, segment);
 
@@ -699,7 +731,7 @@ int xseg_create(struct xseg_config *cfg)
 
 	type = __find_or_load_type(cfg->type);
 	if (!type) {
-		cfg->type[XSEG_TNAMESIZE-1] = 0;
+		cfg->type[XSEG_TNAMESIZE - 1] = 0;
 		XSEGLOG("type '%s' does not exist\n", cfg->type);
 		goto out_err;
 	}
@@ -711,7 +743,7 @@ int xseg_create(struct xseg_config *cfg)
 	}
 
 	xops = &type->ops;
-	cfg->name[XSEG_NAMESIZE-1] = 0;
+	cfg->name[XSEG_NAMESIZE - 1] = 0;
 //	XSEGLOG("creating segment of size %llu\n", size);
 	r = xops->allocate(cfg->name, size);
 	if (r) {
@@ -770,11 +802,12 @@ static int pointer_ok(	unsigned long ptr,
 			char *name)
 {
 	int ret = !(ptr >= base && ptr < base + size);
-	if (ret)
+	if (ret) {
 		XSEGLOG("invalid pointer '->%s' [%llx on %llx]!\n",
 			(unsigned long long)ptr,
 			(unsigned long long)base,
 			name);
+	}
 	return ret;
 }
 
@@ -788,8 +821,9 @@ static int xseg_validate_pointers(struct xseg *xseg)
 {
 	int r = 0;
 
-	if (!xseg)
+	if (!xseg) {
 		return r;
+	}
 
 	r += POINTER_OK(xseg, object_handlers, xseg->segment);
 	r += POINTER_OK(xseg, request_h, xseg->segment);
@@ -996,13 +1030,15 @@ struct xseg_port* xseg_get_port(struct xseg *xseg, uint32_t portno)
 		return NULL;
 	}
 
-	if (!__validate_port(xseg, portno))
+	if (!__validate_port(xseg, portno)) {
 		return NULL;
+	}
 	p = xseg->ports[portno];
-	if (p)
+	if (p) {
 		return XPTR_TAKE(p, xseg->segment);
-	else
+	} else {
 		return NULL;
+	}
 }
 
 struct xq * __alloc_queue(struct xseg *xseg, uint64_t nr_reqs)
@@ -1020,8 +1056,9 @@ struct xq * __alloc_queue(struct xseg *xseg, uint64_t nr_reqs)
 	//how many bytes to allocate for a queue
 	bytes = sizeof(struct xq) + nr_reqs*sizeof(xqindex);
 	mem = xheap_allocate(heap, bytes);
-	if (!mem)
+	if (!mem) {
 		return NULL;
+	}
 
 	//how many bytes did we got, and calculate what's left of buffer
 	bytes = xheap_get_chunk_size(mem) - sizeof(struct xq);
@@ -1038,33 +1075,40 @@ struct xq * __alloc_queue(struct xseg *xseg, uint64_t nr_reqs)
 //maybe add parameters of initial free_queue size and max_alloc_reqs
 struct xseg_port *xseg_alloc_port(struct xseg *xseg, uint32_t flags, uint64_t nr_reqs)
 {
+	struct xq *q;
+	struct xobject_h *obj_h;
+	struct xseg_port *port;
+
 	if (!xseg) {
 		XSEGLOG("Invalid xseg argument");
 		return NULL;
 	}
 
-	struct xq *q;
-	struct xobject_h *obj_h = xseg->port_h;
-	struct xseg_port *port = xobj_get_obj(obj_h, flags);
-	if (!port)
+	obj_h = xseg->port_h;
+	port = xobj_get_obj(obj_h, flags);
+	if (!port) {
 		return NULL;
+	}
 
 	//alloc free queue
 	q = __alloc_queue(xseg, nr_reqs);
-	if (!q)
+	if (!q) {
 		goto err_free;
+	}
 	port->free_queue = XPTR_MAKE(q, xseg->segment);
 
 	//and for request queue
 	q = __alloc_queue(xseg, nr_reqs);
-	if (!q)
+	if (!q) {
 		goto err_req;
+	}
 	port->request_queue = XPTR_MAKE(q, xseg->segment);
 
 	//and for reply queue
 	q = __alloc_queue(xseg, nr_reqs);
-	if (!q)
+	if (!q) {
 		goto err_reply;
+	}
 	port->reply_queue = XPTR_MAKE(q, xseg->segment);
 
 	xlock_release(&port->fq_lock);
@@ -1078,7 +1122,6 @@ struct xseg_port *xseg_alloc_port(struct xseg *xseg, uint32_t flags, uint64_t nr
 	port->max_alloc_reqs = XSEG_DEF_MAX_ALLOCATED_REQS;
 	port->flags = 0;
 	port->signal_desc = 0;
-
 
 	return port;
 
@@ -1152,8 +1195,9 @@ int xseg_prepare_wait(struct xseg *xseg, uint32_t portno)
 		return -1;
 	}
 
-	if (!__validate_port(xseg, portno))
+	if (!__validate_port(xseg, portno)) {
 		return -1;
+	}
 
 	return xseg->priv->peer_type.peer_ops.prepare_wait(xseg, portno);
 }
@@ -1165,8 +1209,9 @@ int xseg_cancel_wait(struct xseg *xseg, uint32_t portno)
 		return -1;
 	}
 
-	if (!__validate_port(xseg, portno))
+	if (!__validate_port(xseg, portno)) {
 		return -1;
+	}
 	return xseg->priv->peer_type.peer_ops.cancel_wait(xseg, portno);
 }
 
@@ -1185,12 +1230,14 @@ int xseg_signal(struct xseg *xseg, xport portno)
 		return -1;
 	}
 	port = xseg_get_port(xseg, portno);
-	if (!port)
+	if (!port) {
 		return -1;
+	}
 
 	type = __get_peer_type(xseg, port->peer_type);
-	if (!type)
+	if (!type) {
 		return -1;
+	}
 
 	return type->peer_ops.signal(xseg, portno);
 }
@@ -1206,12 +1253,14 @@ int xseg_init_local_signal(struct xseg *xseg, xport portno)
 	}
 	port = xseg_get_port(xseg, portno);
 
-	if (!port)
+	if (!port) {
 		return -1;
+	}
 
 	type = __get_peer_type(xseg, port->peer_type);
-	if (!type)
+	if (!type) {
 		return -1;
+	}
 
 	return type->peer_ops.local_signal_init(xseg, portno);
 }
@@ -1227,12 +1276,14 @@ void xseg_quit_local_signal(struct xseg *xseg, xport portno)
 	}
 	port = xseg_get_port(xseg, portno);
 
-	if (!port)
+	if (!port) {
 		return;
+	}
 
 	type = __get_peer_type(xseg, port->peer_type);
-	if (!type)
+	if (!type) {
 		return;
+	}
 
 	type->peer_ops.local_signal_quit(xseg, portno);
 }
@@ -1253,8 +1304,9 @@ int xseg_alloc_requests(struct xseg *xseg, uint32_t portno, uint32_t nr)
 	}
 	port = xseg_get_port(xseg, portno);
 
-	if (!port)
+	if (!port) {
 		return -1;
+	}
 
 	xlock_acquire(&port->fq_lock);
 	q = XPTR_TAKE(port->free_queue, xseg->segment);
@@ -1269,9 +1321,7 @@ int xseg_alloc_requests(struct xseg *xseg, uint32_t portno, uint32_t nr)
 	}
 	xlock_release(&port->fq_lock);
 
-	if (i == 0)
-		i = -1;
-	return i;
+	return (i == 0 ? -1 : i);
 }
 
 int xseg_free_requests(struct xseg *xseg, uint32_t portno, int nr)
@@ -1288,8 +1338,9 @@ int xseg_free_requests(struct xseg *xseg, uint32_t portno, int nr)
 	}
 	port = xseg_get_port(xseg, portno);
 
-	if (!port)
+	if (!port) {
 		return -1;
+	}
 
 	xlock_acquire(&port->fq_lock);
 	q = XPTR_TAKE(port->free_queue, xseg->segment);
@@ -1298,8 +1349,9 @@ int xseg_free_requests(struct xseg *xseg, uint32_t portno, int nr)
 		xobj_put_obj(xseg->request_h, (void *) req);
 		i++;
 	}
-	if (i == 0)
+	if (i == 0) {
 		return -1;
+	}
 	xlock_release(&port->fq_lock);
 
 	xlock_acquire(&port->port_lock);
@@ -1317,11 +1369,13 @@ int xseg_prep_ports (struct xseg *xseg, struct xseg_request *xreq,
 		return -1;
 	}
 
-	if (!__validate_port(xseg, src_portno))
+	if (!__validate_port(xseg, src_portno)) {
 		return -1;
+	}
 
-	if (!__validate_port(xseg, dst_portno))
+	if (!__validate_port(xseg, dst_portno)) {
 		return -1;
+	}
 
 	xreq->src_portno = src_portno;
 	xreq->transit_portno = src_portno;
@@ -1354,13 +1408,14 @@ struct xseg_request *xseg_get_request(struct xseg *xseg, xport src_portno,
 	}
 
 	port = xseg_get_port(xseg, src_portno);
-	if (!port)
+	if (!port) {
 		return NULL;
+	}
 	//try to allocate from free_queue
 	xlock_acquire(&port->fq_lock);
 	q = XPTR_TAKE(port->free_queue, xseg->segment);
 	xqi = __xq_pop_head(q);
-	if (xqi != Noneidx){
+	if (xqi != Noneidx) {
 		xlock_release(&port->fq_lock);
 		ptr = xqi;
 		req = XPTR_TAKE(ptr, xseg->segment);
@@ -1368,20 +1423,23 @@ struct xseg_request *xseg_get_request(struct xseg *xseg, xport src_portno,
 	}
 	xlock_release(&port->fq_lock);
 
-	if (flags & X_LOCAL)
+	if (flags & X_LOCAL) {
 		return NULL;
+	}
 
 	//else try to allocate from global heap
 	//FIXME
 	xlock_acquire(&port->port_lock);
 	if (port->alloc_reqs < port->max_alloc_reqs) {
 		req = xobj_get_obj(xseg->request_h, flags & X_ALLOC);
-		if (req)
+		if (req) {
 			port->alloc_reqs++;
+		}
 	}
 	xlock_release(&port->port_lock);
-	if (!req)
+	if (!req) {
 		return NULL;
+	}
 
 done:
 
@@ -1421,10 +1479,11 @@ int xseg_put_request (struct xseg *xseg, struct xseg_request *xreq,
 	xqindex xqi = XPTR_MAKE(xreq, xseg->segment);
 	struct xq *q;
 	struct xseg_port *port = xseg_get_port(xseg, xreq->src_portno);
-	if (!port)
+	if (!port) {
 		return -1;
+	}
 
-	if (xreq->buffer){
+	if (xreq->buffer) {
 		void *ptr = XPTR_TAKE(xreq->buffer, xseg->segment);
 		xseg_free_buffer(xseg, ptr);
 	}
@@ -1457,8 +1516,9 @@ int xseg_put_request (struct xseg *xseg, struct xseg_request *xreq,
 	q = XPTR_TAKE(port->free_queue, xseg->segment);
 	xqi = __xq_append_head(q, xqi);
 	xlock_release(&port->fq_lock);
-	if (xqi != Noneidx)
+	if (xqi != Noneidx) {
 		return 0;
+	}
 	//else return it to segment
 	xobj_put_obj(xseg->request_h, (void *) xreq);
 	xlock_acquire(&port->port_lock);
@@ -1481,8 +1541,9 @@ int xseg_prep_request ( struct xseg* xseg, struct xseg_request *req,
 	}
 
 	buf = xseg_alloc_buffer(xseg, bufferlen);
-	if (!buf)
+	if (!buf) {
 		return -1;
+	}
 	req->bufferlen = xheap_get_chunk_size(buf);
 	req->buffer = XPTR_MAKE(buf, xseg->segment);
 
@@ -1509,7 +1570,7 @@ int xseg_resize_request (struct xseg *xseg, struct xseg_request *req,
 		return 0;
 	}
 
-	if (req->buffer){
+	if (req->buffer) {
 		void *ptr = XPTR_TAKE(req->buffer, xseg->segment);
 		xseg_free_buffer(xseg, ptr);
 	}
@@ -1559,12 +1620,12 @@ xport xseg_submit (struct xseg *xseg, struct xseg_request *xreq,
 
 	/* discover where to submit */
 
-	if (!__validate_port(xseg, xreq->transit_portno)){
+	if (!__validate_port(xseg, xreq->transit_portno)) {
 		XSEGLOG("Couldn't validate transit_portno (portno: %lu)",
 				xreq->transit_portno);
 		return NoPort;
 	}
-	if (!__validate_port(xseg, xreq->effective_dst_portno)){
+	if (!__validate_port(xseg, xreq->effective_dst_portno)) {
 		XSEGLOG("Couldn't validate effective_dst_portno (portno: %lu)",
 				xreq->effective_dst_portno);
 		return NoPort;
@@ -1574,19 +1635,19 @@ xport xseg_submit (struct xseg *xseg, struct xseg_request *xreq,
 	next = cur;
 	//FIXME assert(cur == portno);
 	do {
-		if (next == xreq->effective_dst_portno){
+		if (next == xreq->effective_dst_portno) {
 			XSEGLOG("Path ended with no one willing to accept");
 			return NoPort;
 		}
 
-		if (xseg->path_next[next] != NoPort){
+		if (xseg->path_next[next] != NoPort) {
 			next = xseg->path_next[next];
 		} else {
 			next = xreq->effective_dst_portno;
 		}
 
 		port = xseg_get_port(xseg, next);
-		if (!port){
+		if (!port) {
 			XSEGLOG("Couldnt get port (next :%u)", next);
 			return NoPort;
 		}
@@ -1600,7 +1661,7 @@ xport xseg_submit (struct xseg *xseg, struct xseg_request *xreq,
 
 	/* add current port to path */
 	serial = __xq_append_head(&xreq->path, cur);
-	if (serial == Noneidx){
+	if (serial == Noneidx) {
 		XSEGLOG("Couldn't append path head");
 		return NoPort;
 	}
@@ -1611,10 +1672,11 @@ xport xseg_submit (struct xseg *xseg, struct xseg_request *xreq,
 	if (flags & X_ALLOC && serial == Noneidx) {
 		/* double up queue size */
 		newq = __alloc_queue(xseg, xq_size(q)*2);
-		if (!newq)
+		if (!newq) {
 			goto out_rel;
+		}
 		r = __xq_resize(q, newq);
-		if (r == Noneidx){
+		if (r == Noneidx) {
 			xheap_free(newq);
 			goto out_rel;
 		}
@@ -1625,7 +1687,7 @@ xport xseg_submit (struct xseg *xseg, struct xseg_request *xreq,
 
 out_rel:
 	xlock_release(&port->rq_lock);
-	if (serial == Noneidx){
+	if (serial == Noneidx) {
 		XSEGLOG("Couldn't append request to queue");
 		__xq_pop_head(&xreq->path);
 		next = NoPort;
@@ -1648,12 +1710,14 @@ struct xseg_request *xseg_receive(struct xseg *xseg, xport portno, uint32_t flag
 	}
 	port = xseg_get_port(xseg, portno);
 
-	if (!port)
+	if (!port) {
 		return NULL;
+	}
 retry:
 	if (flags & X_NONBLOCK) {
-		if (!xlock_try_lock(&port->pq_lock))
+		if (!xlock_try_lock(&port->pq_lock)) {
 			return NULL;
+		}
 	} else {
 		xlock_acquire(&port->pq_lock);
 	}
@@ -1661,18 +1725,18 @@ retry:
 	xqi = __xq_pop_head(q);
 	xlock_release(&port->pq_lock);
 
-	if (xqi == Noneidx)
+	if (xqi == Noneidx) {
 		return NULL;
+	}
 
 	req = XPTR_TAKE(xqi, xseg->segment);
 //	__update_timestamp(req);
 	serial = __xq_pop_head(&req->path);
-	if (serial == Noneidx){
+	if (serial == Noneidx) {
                 /* this should never happen */
 		XSEGLOG("pop head of path queue returned Noneidx\n");
                 goto retry;
         }
-
 
 	return req;
 }
@@ -1690,8 +1754,10 @@ struct xseg_request *xseg_accept(struct xseg *xseg, xport portno, uint32_t flags
 	}
 	port = xseg_get_port(xseg, portno);
 
-	if (!port)
+	if (!port) {
 		return NULL;
+	}
+
 	if (flags & X_NONBLOCK) {
 		if (!xlock_try_lock(&port->rq_lock))
 			return NULL;
@@ -1702,8 +1768,9 @@ struct xseg_request *xseg_accept(struct xseg *xseg, xport portno, uint32_t flags
 	q = XPTR_TAKE(port->request_queue, xseg->segment);
 	xqi = __xq_pop_head(q);
 	xlock_release(&port->rq_lock);
-	if (xqi == Noneidx)
+	if (xqi == Noneidx) {
 		return NULL;
+	}
 
 	req = XPTR_TAKE(xqi, xseg->segment);
 	req->transit_portno = portno;
@@ -1728,14 +1795,16 @@ xport xseg_respond (struct xseg *xseg, struct xseg_request *xreq,
 
 retry:
 	serial = __xq_peek_head(&xreq->path);
-	if (serial == Noneidx)
+	if (serial == Noneidx) {
 		return NoPort;
+	}
 	dst = (xport) serial;
 
 	port = xseg_get_port(xseg, dst);
-	if (!port)
+	if (!port) {
 		return NoPort;
-	if (!(port->flags & CAN_RECEIVE)){
+	}
+	if (!(port->flags & CAN_RECEIVE)) {
 		//XSEGLOG("Port %u cannot receive", dst);
 		/* Port cannot receive. Try next one in path */
 		__xq_pop_head(&xreq->path);
@@ -1749,8 +1818,9 @@ retry:
 	serial = __xq_append_tail(q, xqi);
 	if (flags & X_ALLOC && serial == Noneidx) {
 		newq = __alloc_queue(xseg, xq_size(q)*2);
-		if (!newq)
+		if (!newq) {
 			goto out_rel;
+		}
 		r = __xq_resize(q, newq);
 		if (r == Noneidx) {
 			xheap_free(newq);
@@ -1764,10 +1834,10 @@ retry:
 out_rel:
 	xlock_release(&port->pq_lock);
 
-	if (serial == Noneidx)
+	if (serial == Noneidx) {
 		dst = NoPort;
+	}
 	return dst;
-
 }
 
 xport xseg_forward(struct xseg *xseg, struct xseg_request *req, xport new_dst,
@@ -1778,14 +1848,13 @@ xport xseg_forward(struct xseg *xseg, struct xseg_request *req, xport new_dst,
 		return NoPort;
 	}
 
-	if (!__validate_port(xseg, new_dst)){
+	if (!__validate_port(xseg, new_dst)) {
 		XSEGLOG("Couldn't validate new destination (new_dst %lu)",
 				new_dst);
 		return NoPort;
 	}
 	req->effective_dst_portno = new_dst;
 	return xseg_submit(xseg, req, portno, flags);
-
 }
 
 int xseg_set_path_next(struct xseg *xseg, xport portno, xport next)
@@ -1794,10 +1863,12 @@ int xseg_set_path_next(struct xseg *xseg, xport portno, xport next)
 		XSEGLOG("Invalid xseg argument");
 		return -1;
 	}
-	if (!__validate_port(xseg, portno))
+	if (!__validate_port(xseg, portno)) {
 		return -1;
-	if (!__validate_port(xseg, next))
+	}
+	if (!__validate_port(xseg, next)) {
 		return -1;
+	}
 	xseg->path_next[portno] = next;
 	return 0;
 }
@@ -1858,7 +1929,7 @@ int xseg_get_req_data(struct xseg *xseg, struct xseg_request *xreq, void **data)
 		r = xhash_delete(req_data, (xhashidx) xreq);
 		if (r == -XHASH_ERESIZE) {
 			req_data = xhash_resize(req_data, xhash_shrink_size_shift(req_data), 0, NULL);
-			if (req_data){
+			if (req_data) {
 				xseg->priv->req_data = req_data;
 				r = xhash_delete(req_data, (xhashidx) xreq);
 			}
@@ -1877,8 +1948,9 @@ struct xobject_h * xseg_get_objh(struct xseg *xseg, uint32_t magic, uint64_t siz
 		return NULL;
 	}
 	struct xobject_h *obj_h = xobj_get_obj(xseg->object_handlers, X_ALLOC);
-	if (!obj_h)
+	if (!obj_h) {
 		return NULL;
+	}
 	r = xobj_handler_init(obj_h, xseg->segment, magic, size, xseg->heap);
 	if (r < 0) {
 		xobj_put_obj(xseg->object_handlers, obj_h);
@@ -1942,27 +2014,32 @@ struct xseg_port *xseg_bind_port(struct xseg *xseg, uint32_t req, void * sd)
 	for (; portno < maxno; portno++) {
 		if (!xseg->ports[portno]) {
 			port = xseg_alloc_port(xseg, X_ALLOC, XSEG_DEF_REQS);
-			if (!port)
+			if (!port) {
 				goto out;
+			}
 		} else if (force) {
 			port = xseg_get_port(xseg, portno);
-			if (!port)
+			if (!port) {
 				goto out;
+			}
 		} else {
 			continue;
 		}
 		driver = __enable_driver(xseg, &xseg->priv->peer_type);
-		if (driver < 0)
+		if (driver < 0) {
 			break;
-		if (!sd){
+		}
+		if (!sd) {
 			peer_data = __get_peer_type_data(xseg, (uint64_t) driver);
-			if (!peer_data)
+			if (!peer_data) {
 				break;
+			}
 			sigdesc = xseg->priv->peer_type.peer_ops.alloc_signal_desc(xseg, peer_data);
-			if (!sigdesc)
+			if (!sigdesc) {
 				break;
+			}
 			r = xseg->priv->peer_type.peer_ops.init_signal_desc(xseg, sigdesc);
-			if (r < 0){
+			if (r < 0) {
 				xseg->priv->peer_type.peer_ops.free_signal_desc(xseg, peer_data, sigdesc);
 				break;
 			}
@@ -2004,22 +2081,26 @@ struct xseg_port *xseg_bind_dynport(struct xseg *xseg)
 
 	__lock_segment(xseg);
 	driver = __enable_driver(xseg, &xseg->priv->peer_type);
-	if (driver < 0)
+	if (driver < 0) {
 		return NULL;
+	}
 
 	for (portno = xseg->config.dynports; portno < maxno; portno++) {
 		if (!xseg->ports[portno]) {
 			port = xseg_alloc_port(xseg, X_ALLOC, XSEG_DEF_REQS);
-			if (!port)
+			if (!port) {
 				goto out;
+			}
 			xseg->ports[portno] = XPTR_MAKE(port, xseg->segment);
 			port_allocated = 1;
 		} else {
 			port = xseg_get_port(xseg, portno);
-			if (!port)
+			if (!port) {
 				goto out;
-			if (port->owner != NoOwner)
+			}
+			if (port->owner != NoOwner) {
 				continue;
+			}
 
 			if (port->signal_desc) {
 				if (port->peer_type == driver) {
@@ -2036,13 +2117,15 @@ struct xseg_port *xseg_bind_dynport(struct xseg *xseg)
 		}
 		if (!has_sd){
 			peer_data = __get_peer_type_data(xseg, (uint64_t) driver);
-			if (!peer_data)
+			if (!peer_data) {
 				break;
+			}
 			sigdesc = xseg->priv->peer_type.peer_ops.alloc_signal_desc(xseg, peer_data);
-			if (!sigdesc)
+			if (!sigdesc) {
 				break;
+			}
 			r = xseg->priv->peer_type.peer_ops.init_signal_desc(xseg, sigdesc);
-			if (r < 0){
+			if (r < 0) {
 				xseg->priv->peer_type.peer_ops.free_signal_desc(xseg, peer_data, sigdesc);
 				break;
 			}
@@ -2070,8 +2153,9 @@ int xseg_leave_dynport(struct xseg *xseg, struct xseg_port *port)
 		XSEGLOG("Invalid argument");
 		return -1;
 	}
-	if (!port)
+	if (!port) {
 		return -1;
+	}
 
 	__lock_segment(xseg);
 	port->owner = NoOwner;
@@ -2098,16 +2182,18 @@ int xseg_set_max_requests(struct xseg *xseg, xport portno, uint64_t nr_reqs)
 		XSEGLOG("Invalid argument");
 		return -1;
 	}
-	if (nr_reqs > XSEG_MAX_ALLOCATED_REQS)
+	if (nr_reqs > XSEG_MAX_ALLOCATED_REQS) {
 		return -1;
+	}
 
 	port = xseg_get_port(xseg, portno);
-	if (!port)
+	if (!port) {
 		return -1;
+	}
 
 	xlock_acquire(&port->fq_lock);
 	q = XPTR_TAKE(port->free_queue, xseg->segment);
-	if (xq_size(q) <= nr_reqs){
+	if (xq_size(q) <= nr_reqs) {
 		port->max_alloc_reqs = nr_reqs;
 		r = 0;
 	}
@@ -2128,20 +2214,24 @@ uint64_t xseg_get_max_requests(struct xseg *xseg, xport portno)
 		return -1;
 	}
 	struct xseg_port *port = xseg_get_port(xseg, portno);
-	if (!port)
+	if (!port) {
 		return -1;
+	}
 	return port->max_alloc_reqs;
 }
 
 uint64_t xseg_get_allocated_requests(struct xseg *xseg, xport portno)
 {
+	struct xseg_port *port;
 	if (!xseg) {
 		XSEGLOG("Invalid argument");
 		return -1;
 	}
-	struct xseg_port *port = xseg_get_port(xseg, portno);
-	if (!port)
+
+	port = xseg_get_port(xseg, portno);
+	if (!port) {
 		return -1;
+	}
 	return port->alloc_reqs;
 }
 
@@ -2168,12 +2258,14 @@ int xseg_set_freequeue_size(struct xseg *xseg, xport portno, xqindex size,
 		return -1;
 
 	newq = __alloc_queue(xseg, size);
-	if (!newq)
+	if (!newq) {
 		return -1;
+	}
 
 	if (flags & X_NONBLOCK) {
-		if (!xlock_try_lock(&port->fq_lock))
+		if (!xlock_try_lock(&port->fq_lock)) {
 			return -1;
+		}
 	} else {
 		xlock_acquire(&port->fq_lock);
 	}
@@ -2183,14 +2275,14 @@ int xseg_set_freequeue_size(struct xseg *xseg, xport portno, xqindex size,
 	/* put requests that don't fit in the new queue */
 	while (xq_count(q) > xq_size(newq)){
 		xqi = __xq_pop_head(q);
-		if (xqi != Noneidx){
+		if (xqi != Noneidx) {
 			xreq = XPTR_TAKE(xqi, xseg->segment);
 			xobj_put_obj(xseg->request_h, (void *) xreq);
 		}
 	}
 
 	r = __xq_resize(q, newq);
-	if (r == Noneidx){
+	if (r == Noneidx) {
 		xheap_free(newq);
 		ret = -1;
 		goto out_rel;
@@ -2206,7 +2298,7 @@ out_rel:
 
 int xseg_leave_port(struct xseg *xseg, struct xseg_port *port)
 {
-	/* To be implemented */
+	/* FIXME To be implemented */
 	return -1;
 }
 
@@ -2266,9 +2358,3 @@ uint32_t xseg_portno_nonstatic(struct xseg *xseg, struct xseg_port *port)
 	}
 	return xseg_portno(xseg, port);
 }
-
-
-#ifdef __KERNEL__
-#include <linux/module.h>
-#include <xseg/xseg_exports.h>
-#endif

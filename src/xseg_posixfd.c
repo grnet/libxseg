@@ -34,25 +34,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <xseg/xobj.h>
 #include <xseg_posixfd.h>
 
-#define ERRSIZE 512
 #define FIFO_RDWR_UGO	S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH
-char errbuf[ERRSIZE];
 
 static struct posixfd_signal_desc * __get_signal_desc(struct xseg *xseg, xport portno)
 {
 	struct xseg_port *port = xseg_get_port(xseg, portno);
-	if (!port)
+	if (!port) {
 		return NULL;
+	}
 	struct posixfd_signal_desc *psd = xseg_get_signal_desc(xseg, port);
-	if (!psd)
+	if (!psd) {
 		return NULL;
+	}
 	return psd;
 }
 
 static void __get_filename(struct posixfd_signal_desc *psd, char *filename)
 {
 	int pos = 0;
-	strncpy(filename+pos, POSIXFD_DIR, POSIXFD_DIR_LEN);
+	strncpy(filename + pos, POSIXFD_DIR, POSIXFD_DIR_LEN);
 	pos += POSIXFD_DIR_LEN;
 	strncpy(filename + pos, psd->signal_file, POSIXFD_FILENAME_LEN);
 	pos += POSIXFD_FILENAME_LEN;
@@ -68,9 +68,8 @@ static void __get_filename(struct posixfd_signal_desc *psd, char *filename)
 static int posixfd_local_signal_init(struct xseg *xseg, xport portno)
 {
 	/* create or truncate POSIXFD+portno file */
-	int r, fd;
+	int fd;
 	char filename[POSIXFD_DIR_LEN + POSIXFD_FILENAME_LEN + 1];
-	mode_t old_mode;
 
 	struct posixfd_signal_desc *psd = __get_signal_desc(xseg, portno);
 	if (!psd) {
@@ -256,8 +255,9 @@ static int posixfd_signal(struct xseg *xseg, uint32_t portno)
 	char filename[POSIXFD_DIR_LEN + POSIXFD_FILENAME_LEN + 1] = POSIXFD_DIR;
 
 	struct posixfd_signal_desc *psd = __get_signal_desc(xseg, portno);
-	if (!psd)
+	if (!psd) {
 		return -1;
+	}
 
 	if (!psd->flag) {
 		/* If the peer advises not to signal, we respect it. */
@@ -302,31 +302,30 @@ static void posixfd_mfree(void *mem)
 /* taken from user/hash.c */
 static char get_hex(unsigned int h)
 {
-	switch (h)
-	{
-		case 0:
-		case 1:
-		case 2:
-		case 3:
-		case 4:
-		case 5:
-		case 6:
-		case 7:
-		case 8:
-		case 9:
-			return h + '0';
-		case 10:
-			return 'a';
-		case 11:
-			return 'b';
-		case 12:
-			return 'c';
-		case 13:
-			return 'd';
-		case 14:
-			return 'e';
-		case 15:
-			return 'f';
+	switch (h) {
+	case 0:
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+	case 5:
+	case 6:
+	case 7:
+	case 8:
+	case 9:
+		return h + '0';
+	case 10:
+		return 'a';
+	case 11:
+		return 'b';
+	case 12:
+		return 'c';
+	case 13:
+		return 'd';
+	case 14:
+		return 'e';
+	case 15:
+		return 'f';
 	}
 	/* not reachable */
 	return '0';
@@ -336,8 +335,8 @@ static void hexlify(unsigned char *data, long datalen, char *hex)
 {
 	long i;
 	for (i = 0; i < datalen; i++) {
-		hex[2*i] = get_hex((data[i] & 0xF0) >> 4);
-		hex[2*i + 1] = get_hex(data[i] & 0x0F);
+		hex[2 * i] = get_hex((data[i] & 0xF0) >> 4);
+		hex[2 * i + 1] = get_hex(data[i] & 0x0F);
 	}
 }
 
@@ -346,8 +345,9 @@ static void hexlify(unsigned char *data, long datalen, char *hex)
 int posixfd_init_signal_desc(struct xseg *xseg, void *sd)
 {
 	struct posixfd_signal_desc *psd = sd;
-	if (!psd)
+	if (!psd) {
 		return -1;
+	}
 	psd->signal_file[0] = 0;
 	/* POSIXFD_FILENAME_LEN = 2 * sizeof(void *) */
 	hexlify((unsigned char *)&sd, POSIXFD_FILENAME_LEN / 2, psd->signal_file);
@@ -371,18 +371,22 @@ void * posixfd_alloc_data(struct xseg *xseg)
 
 void posixfd_free_data(struct xseg *xseg, void *data)
 {
-	if (data)
+	if (data) {
 		xseg_put_objh(xseg, (struct xobject_h *)data);
+	}
+	return;
 }
 
 void *posixfd_alloc_signal_desc(struct xseg *xseg, void *data)
 {
 	struct xobject_h *sd_h = (struct xobject_h *) data;
-	if (!sd_h)
+	if (!sd_h) {
 		return NULL;
+	}
 	struct posixfd_signal_desc *psd = xobj_get_obj(sd_h, X_ALLOC);
-	if (!psd)
+	if (!psd) {
 		return NULL;
+	}
 	return psd;
 
 }
@@ -390,10 +394,12 @@ void *posixfd_alloc_signal_desc(struct xseg *xseg, void *data)
 void posixfd_free_signal_desc(struct xseg *xseg, void *data, void *sd)
 {
 	struct xobject_h *sd_h = (struct xobject_h *) data;
-	if (!sd_h)
+	if (!sd_h) {
 		return;
-	if (sd)
+	}
+	if (sd) {
 		xobj_put_obj(sd_h, sd);
+	}
 	return;
 }
 

@@ -37,8 +37,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <xseg/xlock.h>
 
-int (*xseg_snprintf)(char *str, size_t size, const char *format, ...) = snprintf;
-
 char __xseg_errbuf[4096];
 
 static struct xlock __lock = { .owner = XLOCK_NOONE};
@@ -111,7 +109,6 @@ int __renew_logctx(struct log_ctx *lc, char *peer_name,
 		enum log_level log_level, char *logfile, uint32_t flags)
 {
 	int fd, tmp_fd;
-	mode_t old_mode;
 
 	if (peer_name){
 		strncpy(lc->peer_name, peer_name, MAX_PEER_NAME);
@@ -219,7 +216,7 @@ int (*init_logctx)(struct log_ctx *lc, char *peer_name,
 void __xseg_log2(struct log_ctx *lc, enum log_level level, char *fmt, ...)
 {
 	va_list ap;
-	time_t timeval;	
+	time_t timeval;
 	char timebuf[1024], buffer[4096];
 	char *buf = buffer;
 	char *t = NULL, *pn = NULL;

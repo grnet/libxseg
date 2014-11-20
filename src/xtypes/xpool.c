@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <xseg/xpool.h>
 
-static inline int __validate_idx(struct xpool *xp, xpool_index idx) 
+static inline int __validate_idx(struct xpool *xp, xpool_index idx)
 {
 	struct xpool_node *node = XPTR(&xp->mem)+idx;
 	return (idx < xp->size && node->prev != NoIndex);
@@ -60,7 +60,7 @@ xpool_index __xpool_add(struct xpool *xp, xpool_data data)
 	xpool_index idx;
 
 	idx = xp->free;
-	if (idx == NoIndex){
+	if (idx == NoIndex) {
 		return NoIndex;
 	}
 	new = XPTR(&xp->mem) + idx;
@@ -91,7 +91,7 @@ xpool_index __xpool_add(struct xpool *xp, xpool_data data)
 	}while(idx != xp->list);
 	printf("\n");
 	*/
-	
+
 	return idx;
 }
 
@@ -129,7 +129,7 @@ xpool_index xpool_add(struct xpool *xp, xpool_data data)
 		next = XPTR(&prev->next);
 		XPTRSET(&prev->next, new);
 		//xp->list->prev->next = new;
-		
+
 		XPTRSET(&list->prev, new);
 		//xp->list->prev = new;
 	} else {
@@ -181,7 +181,7 @@ xpool_index xpool_remove(struct xpool *xp, xpool_index idx, xpool_data *data)
 	free = node;
 	XPTRSET(&xp->free, free);
 	//xp->free = node;
-	
+
 	//release lock
 	xlock_release(&xp->lock);
 	return idx;
@@ -190,21 +190,22 @@ xpool_index xpool_remove(struct xpool *xp, xpool_index idx, xpool_data *data)
 xpool_index __xpool_remove(struct xpool *xp, xpool_index idx, xpool_data *data)
 {
 	struct xpool_node *node, *prev, *next;
-	if (!__validate_idx(xp, idx)){ // idx < xp->size && node->prev != NULL
+	if (!__validate_idx(xp, idx)) { // idx < xp->size && node->prev != NULL
 		return NoIndex;
 	}
 	node = XPTR(&xp->mem) + idx;
 	*data = node->data;
 
-	if (idx == xp->list){
-		if ( idx == node->next)
+	if (idx == xp->list) {
+		if ( idx == node->next) {
 			xp->list = NoIndex;
-		else
+		} else {
 			xp->list = node->next;
+		}
 	}
 	prev = XPTR(&xp->mem) + node->prev;
 	prev->next = node->next;
-	
+
 	next = XPTR(&xp->mem) + node->next;
 	next->prev = node->prev;
 
@@ -227,7 +228,7 @@ xpool_index __xpool_peek(struct xpool *xp, xpool_data *data)
 {
 	struct xpool_node *list;
 	xpool_index ret;
-	if (xp->list == NoIndex){
+	if (xp->list == NoIndex) {
 		return NoIndex;
 	}
 	ret = xp->list;
@@ -248,7 +249,7 @@ xpool_index xpool_peek(struct xpool *xp, xpool_data *data)
 xpool_index __xpool_peek_idx(struct xpool *xp, xpool_index idx, xpool_data *data)
 {
 	struct xpool_node *node;
-	if (!__validate_idx(xp, idx)){
+	if (!__validate_idx(xp, idx)) {
 		return NoIndex;
 	}
 	node = XPTR(&xp->mem) + idx;
@@ -269,7 +270,7 @@ xpool_index __xpool_peek_and_fwd(struct xpool *xp, xpool_data *data)
 {
 	struct xpool_node *list;
 	xpool_index ret;
-	if (xp->list == NoIndex){
+	if (xp->list == NoIndex) {
 		return NoIndex;
 	}
 	ret = xp->list;
@@ -312,7 +313,7 @@ xpool_index xpool_peek_and_fwd(struct xpool *xp, xpool_data *data)
 xpool_index __xpool_set_idx(struct xpool *xp, xpool_index idx, xpool_data data)
 {
 	struct xpool_node *node;
-	if (!__validate_idx(xp, idx)){
+	if (!__validate_idx(xp, idx)) {
 		return NoIndex;
 	}
 	node = XPTR(&xp->mem) + idx;
@@ -328,9 +329,3 @@ xpool_index xpool_set_idx(struct xpool *xp, xpool_index idx, xpool_data data)
 	xlock_release(&xp->lock);
 	return ret;
 }
-
-
-#ifdef __KERNEL__
-#include <linux/module.h>
-#include <xtypes/xpool_exports.h>
-#endif

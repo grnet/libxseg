@@ -47,8 +47,9 @@ static void __free_cache_entry(struct xcache *cache, xqindex idx)
 static xcache_handler __table_lookup(xhash_t *table, char *name)
 {
 	xqindex xqi = Noneidx;
-	if (xhash_lookup(table, (xhashidx)name, &xqi) < 0)
+	if (xhash_lookup(table, (xhashidx)name, &xqi) < 0) {
 		return NoEntry;
+	}
 	return (xcache_handler)xqi;
 }
 
@@ -60,7 +61,7 @@ static int __table_insert(xhash_t **table, struct xcache * cache, xcache_handler
 	int r = 0;
 
 	r = xhash_insert(*table, (xhashidx)ce->name, idx);
-	if (r == -XHASH_ERESIZE){
+	if (r == -XHASH_ERESIZE) {
 		XSEGLOG("Rebuilding internal hash table");
 		new = xhash_resize(*table, (*table)->size_shift, (*table)->limit, NULL);
 		if (!new) {
@@ -85,11 +86,12 @@ static int __table_remove(xhash_t *table, char *name)
 	int r;
 
 	r = xhash_delete(table, (xhashidx)name);
-	if (UNLIKELY(r<0)){
-		if (r == -XHASH_ERESIZE)
+	if (UNLIKELY(r<0)) {
+		if (r == -XHASH_ERESIZE) {
 			XSEGLOG("BUG: hash table must be resized");
-		else if (r == -XHASH_EEXIST)
+		} else if (r == -XHASH_EEXIST) {
 			XSEGLOG("BUG: Entry %s not found in hash table", name);
+		}
 	}
 	return r;
 }
@@ -101,20 +103,23 @@ static xqindex alloc_cache_entry(struct xcache *cache)
 
 static void __free_cache_entry(struct xcache *cache, xqindex idx)
 {
-	if (UNLIKELY(xq_append_head(&cache->free_nodes, idx) == Noneidx))
+	if (UNLIKELY(xq_append_head(&cache->free_nodes, idx) == Noneidx)) {
 		XSEGLOG("BUG: Could not free cache entry node. Queue is full");
+	}
 }
 
 static void free_cache_entry(struct xcache *cache, xqindex idx)
 {
 	struct xcache_entry *ce = &cache->nodes[idx];
 
-	if (ce->ref != 0)
+	if (ce->ref != 0) {
 		XSEGLOG("BUG: Free entry has ref %lu (priv: %p, h: %p)", ce->priv, idx);
+	}
 
 	__free_cache_entry(cache, idx);
-	if (cache->ops.on_free)
+	if (cache->ops.on_free) {
 		cache->ops.on_free(cache->priv, ce->priv);
+	}
 }
 
 static xqindex __count_free_nodes(struct xcache *cache)
@@ -131,21 +136,24 @@ static void __reset_times(struct xcache *cache)
 	/* assert thatn cache->time does not get MAX value. If this happens, add
 	 * one more, to overflow time and return to zero.
 	 */
-	if (cache->flags & XCACHE_LRU_ARRAY){
+	if (cache->flags & XCACHE_LRU_ARRAY) {
 		for (i = 0; i < cache->size; i++) {
-			if (cache->times[i] != XCACHE_LRU_MAX)
+			if (cache->times[i] != XCACHE_LRU_MAX) {
 				cache->times[i] = cache->time++;
+			}
 		}
 	} else if (cache->flags & XCACHE_LRU_HEAP) {
 		for (i = 0; i < cache->size; i++) {
 			ce = &cache->nodes[i];
-			if (ce->h == NoNode)
+			if (ce->h == NoNode) {
 				continue;
+			}
 			time = xbinheap_getkey(&cache->binheap, ce->h);
-			if (time < cache->time)
+			if (time < cache->time) {
 				xbinheap_increasekey(&cache->binheap, ce->h, cache->time);
-			else
+			} else {
 				xbinheap_decreasekey(&cache->binheap, ce->h, cache->time);
+			}
 		}
 	}
 }
@@ -167,14 +175,14 @@ static void __update_access_time(struct xcache *cache, xqindex idx)
 		return;
 	}
 
-	if (cache->flags & XCACHE_LRU_ARRAY){
+	if (cache->flags & XCACHE_LRU_ARRAY) {
 		cache->times[idx] = cache->time;
 	} else if (cache->flags & XCACHE_LRU_HEAP) {
-		if (ce->h != NoNode){
+		if (ce->h != NoNode) {
 			xbinheap_increasekey(&cache->binheap, ce->h, cache->time);
 		} else {
 			ce->h = xbinheap_insert(&cache->binheap, cache->time, idx);
-			if (ce->h == NoNode){
+			if (ce->h == NoNode) {
 				XSEGLOG("BUG: Cannot insert to lru binary heap");
 			}
 		}
@@ -206,21 +214,21 @@ static int __xcache_remove_entries(struct xcache *cache, xcache_handler h)
 	struct xcache_entry *ce = &cache->nodes[idx];
 
 	r = __table_remove(cache->entries, ce->name);
-	if (UNLIKELY(r < 0)){
+	if (UNLIKELY(r < 0)) {
 		XSEGLOG("Couldn't delete cache entry from hash table:\n"
 				"h: %llu, name: %s, cache->nodes[h].priv: %p, ref: %llu",
 				h, ce->name, cache->nodes[idx].priv, cache->nodes[idx].ref);
 		return r;
 	}
 
-	if (cache->flags & XCACHE_LRU_ARRAY)
+	if (cache->flags & XCACHE_LRU_ARRAY) {
 		cache->times[idx] = XCACHE_LRU_MAX;
-	else if (cache->flags & XCACHE_LRU_HEAP) {
+	} else if (cache->flags & XCACHE_LRU_HEAP) {
 		if (ce->h != NoNode) {
-			if (xbinheap_increasekey(&cache->binheap, ce->h, XCACHE_LRU_MAX) < 0){
+			if (xbinheap_increasekey(&cache->binheap, ce->h, XCACHE_LRU_MAX) < 0) {
 				XSEGLOG("BUG: cannot increase key to XCACHE_LRU_MAX");
 			}
-			if (xbinheap_extract(&cache->binheap) == NoNode){
+			if (xbinheap_extract(&cache->binheap) == NoNode) {
 				XSEGLOG("BUG: cannot remove cache entry from lru");
 			}
 			ce->h = NoNode;
@@ -283,7 +291,7 @@ static xcache_handler __xcache_lookup_and_get_entries(struct xcache *cache, char
 	xcache_handler h;
 
 	h = __xcache_lookup_entries(cache, name);
-	if (h != NoEntry){
+	if (h != NoEntry) {
 		__xcache_entry_get_and_update(cache, h);
 	}
 
@@ -324,11 +332,13 @@ static void xcache_entry_put(struct xcache *cache, xqindex idx)
 		xlock_acquire(&cache->rm_lock);
 
 		ref = __sync_sub_and_fetch(&ce->ref, 1);
-		if (ref > 0)
+		if (ref > 0) {
 			goto out;
+		}
 
-		if (cache->ops.on_finalize)
+		if (cache->ops.on_finalize) {
 			cache->ops.on_finalize(cache->priv, ce->priv);
+		}
 
 		/*
 		 * FIXME: BUG! Why? Say that on finalize has deemed that ce is clear.
@@ -336,18 +346,21 @@ static void xcache_entry_put(struct xcache *cache, xqindex idx)
 		 * cache entry is reinserted, dirtied and evicted? The ce->ref will be
 		 * zero but we shouldn't leave since there are still dirty buckets.
 		 */
-		if (ce->ref != 0)
+		if (ce->ref != 0) {
 			goto out;
-		if (__xcache_remove_rm(cache, idx) < 0)
+		}
+		if (__xcache_remove_rm(cache, idx) < 0) {
 			goto out;
+		}
 
 		xlock_release(&cache->rm_lock);
 	} else if ( __sync_sub_and_fetch(&ce->ref, 1) > 0) {
 		return;
 	}
 
-	if (cache->ops.on_put)
+	if (cache->ops.on_put) {
 		cache->ops.on_put(cache->priv, ce->priv);
+	}
 
 	free_cache_entry(cache, idx);
 
@@ -363,17 +376,19 @@ static int xcache_entry_init(struct xcache *cache, xqindex idx, char *name)
 	struct xcache_entry *ce = &cache->nodes[idx];
 
 	xlock_release(&ce->lock);
-	if (UNLIKELY(ce->ref != 0))
+	if (UNLIKELY(ce->ref != 0)) {
 		XSEGLOG("BUG: New entry has ref != 0 (h: %lu, ref: %lu, priv: %p)",
 				idx, ce->ref, ce->priv);
+	}
 	ce->ref = 1;
 	strncpy(ce->name, name, XSEG_MAX_TARGETLEN);
 	ce->name[XSEG_MAX_TARGETLEN] = 0;
 	ce->h = NoNode;
 	ce->state = NODE_ACTIVE;
 
-	if (cache->ops.on_init)
+	if (cache->ops.on_init) {
 		r = cache->ops.on_init(cache->priv, ce->priv);
+	}
 
 	return r;
 }
@@ -385,10 +400,10 @@ static xqindex __xcache_lru(struct xcache *cache)
 	xqindex i, lru = Noneidx;
 	struct xcache_entry *ce;
 
-	if (cache->flags & XCACHE_LRU_ARRAY){
+	if (cache->flags & XCACHE_LRU_ARRAY) {
 		for (i = 0; i < cache->nr_nodes; i++) {
 			//XSEGLOG("cache->times[%llu] = %llu", i, cache->times[i]);
-			if (min > cache->times[i]){
+			if (min > cache->times[i]) {
 				min = cache->times[i];
 				lru = i;
 			}
@@ -398,8 +413,9 @@ static xqindex __xcache_lru(struct xcache *cache)
 		//XSEGLOG("Found lru cache->times[%llu] = %llu", lru, cache->times[lru]);
 	} else if (cache->flags & XCACHE_LRU_HEAP) {
 		lru = xbinheap_extract(&cache->binheap);
-		if (lru == NoNode)
+		if (lru == NoNode) {
 			return Noneidx;
+		}
 		ce = &cache->nodes[lru];
 		ce->h = NoNode;
 	}
@@ -428,12 +444,14 @@ static int __xcache_evict(struct xcache *cache, xcache_handler h)
 	*/
 	ce = &cache->nodes[h];
 
-	if (UNLIKELY(ce->state == NODE_EVICTED))
+	if (UNLIKELY(ce->state == NODE_EVICTED)) {
 		XSEGLOG("BUG: Evicting an already evicted entry (h: %lu, priv: %p)",
 			 h, ce->priv);
+	}
 
-	if (!(cache->flags & XCACHE_USE_RMTABLE))
+	if (!(cache->flags & XCACHE_USE_RMTABLE)) {
 		return 0;
+	}
 
 	ce->state = NODE_EVICTED;
 	xlock_acquire(&cache->rm_lock);
@@ -455,14 +473,15 @@ static xcache_handler __xcache_evict_lru(struct xcache *cache)
 	xcache_handler lru;
 
 	lru = __xcache_lru(cache);
-	if (lru == NoEntry){
+	if (lru == NoEntry) {
 		XSEGLOG("BUG: No lru found");
 		return NoEntry;
 	}
 
 	r = __xcache_evict(cache, lru);
-	if (r < 0)
+	if (r < 0) {
 		return NoEntry;
+	}
 	return lru;
 }
 
@@ -506,11 +525,13 @@ static xcache_handler __xcache_insert(struct xcache *cache, xcache_handler h,
 
 	/* lookup first to ensure we don't overwrite entries */
 	tmp_h = __xcache_lookup_and_get_entries(cache, ce->name);
-	if (tmp_h != NoEntry)
+	if (tmp_h != NoEntry) {
 		return tmp_h;
+	}
 
-	if (!(cache->flags & XCACHE_USE_RMTABLE))
+	if (!(cache->flags & XCACHE_USE_RMTABLE)) {
 		goto insert;
+	}
 
 	/* check if our "older self" exists in the rm_entries */
 	xlock_acquire(&cache->rm_lock);
@@ -527,8 +548,9 @@ static xcache_handler __xcache_insert(struct xcache *cache, xcache_handler h,
 
 		/* and prepare it for reinsertion */
 		ce = &cache->nodes[tmp_h];
-		if (UNLIKELY(ce->state != NODE_EVICTED))
+		if (UNLIKELY(ce->state != NODE_EVICTED)) {
 			XSEGLOG("BUG: Entry (%llu) in rm table not in evicted state", tmp_h);
+		}
 		ce->state = NODE_ACTIVE;
 
 		__xcache_entry_get(cache, tmp_h);
@@ -540,7 +562,7 @@ static xcache_handler __xcache_insert(struct xcache *cache, xcache_handler h,
 insert:
 	/* insert new entry to cache */
 	r = __xcache_insert_entries(cache, h);
-	if (r == -XHASH_ENOSPC){
+	if (r == -XHASH_ENOSPC) {
 		lru = __xcache_evict_lru(cache);
 		if (UNLIKELY(lru == NoEntry)) {
 			XSEGLOG("BUG: Failed to evict lru entry");
@@ -559,12 +581,14 @@ insert:
 		}
 	}
 
-	if (UNLIKELY(r >= 0 && ce->ref == 0))
+	if (UNLIKELY(r >= 0 && ce->ref == 0)) {
 		XSEGLOG("BUG: (Re)inserted entry has ref 0 (priv: %p, h: %lu)",
 				ce->priv, h);
+	}
 
-	if (r >= 0)
+	if (r >= 0) {
 		__xcache_entry_get_and_update(cache, h);
+	}
 
 	return (r < 0 ? NoEntry : h);
 }
@@ -600,12 +624,14 @@ xcache_handler xcache_insert(struct xcache *cache, xcache_handler h)
 	}
 
 	if (reinsert_handler != NoEntry) {
-		if (UNLIKELY(ret != reinsert_handler))
+		if (UNLIKELY(ret != reinsert_handler)) {
 			XSEGLOG("BUG: Re-insert handler is different from returned handler"
 					"(rei_h = %llu, ret_h = %llu)", reinsert_handler, ret);
+		}
 		ce = &cache->nodes[reinsert_handler];
-		if (cache->ops.on_reinsert)
+		if (cache->ops.on_reinsert) {
 			cache->ops.on_reinsert(cache->priv, ce->priv);
+		}
 	}
 
 	return ret;
@@ -637,11 +663,12 @@ xcache_handler xcache_alloc_init(struct xcache *cache, char *name)
 	xcache_handler h;
 	xqindex idx = alloc_cache_entry(cache);
 
-	if (idx == Noneidx)
+	if (idx == Noneidx) {
 		return NoEntry;
+	}
 
 	r = xcache_entry_init(cache, idx, name);
-	if (r < 0){
+	if (r < 0) {
 		free_cache_entry(cache, idx);
 		return NoEntry;
 	}
@@ -669,8 +696,9 @@ int xcache_init(struct xcache *cache, uint32_t xcache_size,
 	xhashidx shift;
 	uint32_t tmp_size, floor_size, ceil_size;
 
-	if (!xcache_size)
+	if (!xcache_size) {
 		return -1;
+	}
 
 	/* xcache size must be a power of 2.
 	 * Enforce it, by choosing the power of two that is closer to the xcache
@@ -679,14 +707,16 @@ int xcache_init(struct xcache *cache, uint32_t xcache_size,
 	floor_size = 1 << (sizeof(xcache_size) * 8 - __builtin_clz(xcache_size) -1);
 	ceil_size = 1 << (sizeof(xcache_size) * 8 - __builtin_clz(xcache_size));
 
-	if (xcache_size - floor_size < ceil_size - xcache_size)
+	if (xcache_size - floor_size < ceil_size - xcache_size) {
 		cache->size = floor_size;
-	else
+	} else {
 		cache->size = ceil_size;
+	}
 
-	if (cache->size != xcache_size)
+	if (cache->size != xcache_size) {
 		XSEGLOG("Cache has been resized from %lu entries to %lu entries",
 				xcache_size, cache->size);
+	}
 
 	/*
 	 * Here we choose a proper size for the hash table.
@@ -714,16 +744,17 @@ int xcache_init(struct xcache *cache, uint32_t xcache_size,
 	cache->flags = flags;
 
 	/* TODO: assert  cache->size is not UINT64_MAX */
-	if (cache->size == (uint64_t)(-1))
+	if (cache->size == (uint64_t)(-1)) {
 		return -1;
+	}
 
 	if (!xq_alloc_seq(&cache->free_nodes, cache->nr_nodes,
-				cache->nr_nodes)){
+				cache->nr_nodes)) {
 		return -1;
 	}
 
 	cache->entries = xhash_new(shift, cache->size, XHASH_STRING);
-	if (!cache->entries){
+	if (!cache->entries) {
 		goto out_free_q;
 	}
 
@@ -733,19 +764,19 @@ int xcache_init(struct xcache *cache, uint32_t xcache_size,
 		 * at most (cache->nodes / 2) entries
 		 */
 		cache->rm_entries = xhash_new(shift, cache->size, XHASH_STRING);
-		if (!cache->rm_entries){
+		if (!cache->rm_entries) {
 			goto out_free_entries;
 		}
 	}
 
 	cache->nodes = xtypes_malloc(cache->nr_nodes * sizeof(struct xcache_entry));
-	if (!cache->nodes){
+	if (!cache->nodes) {
 		goto out_free_rm_entries;
 	}
 
-	if (flags & XCACHE_LRU_ARRAY){
+	if (flags & XCACHE_LRU_ARRAY) {
 		cache->times = xtypes_malloc(cache->nr_nodes * sizeof(uint64_t));
-		if (!cache->times){
+		if (!cache->times) {
 			goto out_free_nodes;
 		}
 		for (i = 0; i < cache->nr_nodes; i++) {
@@ -753,19 +784,20 @@ int xcache_init(struct xcache *cache, uint32_t xcache_size,
 		}
 	}
 
-	if (cache->ops.on_node_init){
+	if (cache->ops.on_node_init) {
 		for (i = 0; i < cache->nr_nodes; i++) {
 			ce = &cache->nodes[i];
 			ce->ref = 0;
 			/* FIXME: Is (void *) typecast necessary? */
 			ce->priv = cache->ops.on_node_init(cache->priv, (void *)&i);
-			if (!ce->priv)
+			if (!ce->priv) {
 				goto out_free_times;
+			}
 		}
 	}
-	if (flags & XCACHE_LRU_HEAP){
+	if (flags & XCACHE_LRU_HEAP) {
 		if (xbinheap_init(&cache->binheap, cache->size, XBINHEAP_MIN,
-					NULL) < 0){
+					NULL) < 0) {
 			goto out_free_times;
 		}
 	}
@@ -807,7 +839,7 @@ int xcache_invalidate(struct xcache *cache, char *name)
 	xlock_acquire(&cache->lock);
 
 	h = __xcache_lookup_entries(cache, name);
-	if (h != NoEntry){
+	if (h != NoEntry) {
 		r = __xcache_remove_entries(cache, h);
 		goto out_put;
 	}
@@ -817,7 +849,7 @@ int xcache_invalidate(struct xcache *cache, char *name)
 		xlock_release(&cache->lock);
 
 		h = __xcache_lookup_rm(cache, name);
-		if (h != NoEntry){
+		if (h != NoEntry) {
 			r = __xcache_remove_rm(cache, h);
 		}
 
@@ -831,8 +863,9 @@ int xcache_invalidate(struct xcache *cache, char *name)
 out_put:
 	xlock_release(&cache->lock);
 
-	if (r >= 0)
+	if (r >= 0) {
 		xcache_put(cache, h);
+	}
 	return r;
 
 }
@@ -884,8 +917,9 @@ void xcache_close(struct xcache *cache)
 	struct xcache_entry *ce;
 	for (i = 0; i < cache->nr_nodes; i++) {
 		ce = &cache->nodes[i];
-		if (!ce->ref)
+		if (!ce->ref) {
 			continue;
+		}
 		xcache_invalidate(cache, ce->name);
 		xcache_entry_put(cache, i);
 	}
@@ -893,9 +927,9 @@ void xcache_close(struct xcache *cache)
 
 void xcache_free(struct xcache *cache)
 {
-	if (cache->flags & XCACHE_LRU_HEAP){
+	if (cache->flags & XCACHE_LRU_HEAP) {
 		xbinheap_free(&cache->binheap);
-	} else if (cache->flags & XCACHE_LRU_ARRAY){
+	} else if (cache->flags & XCACHE_LRU_ARRAY) {
 		xtypes_free(cache->times);
 	}
 	xtypes_free(cache->nodes);
@@ -910,8 +944,3 @@ uint64_t xcache_free_nodes(struct xcache *cache)
 {
 	return (uint64_t)__count_free_nodes(cache);
 }
-
-#ifdef __KERNEL__
-#include <linux/module.h>
-#include <xtypes/xcache_exports.h>
-#endif

@@ -22,10 +22,12 @@ void __xlist_detach(struct xlist_node *node)
 	struct xlist_node *head, *tail;
 	head = XPTR(&node->head);
 	tail = XPTR(&node->tail);
-	if (head)
+	if (head) {
 		XPTRSET(&head->tail, tail);
-	if (tail)
+	}
+	if (tail) {
 		XPTRSET(&tail->head, head);
+	}
 	XPTRSET(&node->pool, NULL);
 }
 
@@ -36,8 +38,9 @@ void __xlist_attach(	struct xlist_node *head,
 	struct xlist *list = XPTR(node->list);
 	xqindex nr = XPTRI(&list->node.list);
 
-	if (!list || !nr)
+	if (!list || !nr) {
 		return;
+	}
 
 	XPTRSET(&node->head, head);
 	XPTRSET(&node->tail, tail);
@@ -51,8 +54,9 @@ xqindex xlist_add_head(struct xlist *list, struct xlist_node *node)
 	struct xlist_node *head;
 	xqindex nr = XPTRI(&list->node.list) + 1;
 
-	if (nr == Noneidx)
+	if (nr == Noneidx) {
 		goto out;
+	}
 
 	__xlist_detach(node);
 	head = XPTR(&node->head);
@@ -68,8 +72,9 @@ xqindex xlist_add_tail(struct xlist *list, struct xlist_node *node)
 	struct xlist_node *tail;
 	xqindex nr = XPTRI(&list->node.list) + 1;
 
-	if (nr == Noneidx)
+	if (nr == Noneidx) {
 		goto out;
+	}
 
 	__xlist_detach(node);
 	tail = XPTR(&node->tail);
