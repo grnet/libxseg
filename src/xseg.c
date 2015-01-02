@@ -254,7 +254,7 @@ static char *strncopy(char *dest, const char *src, uint32_t n)
 		dest[i] = c;
 		if (!c)
 			break;
-	}
+}
 	dest[n-1] = 0;
 	return dest;
 }
@@ -338,8 +338,9 @@ int xseg_unregister_type(const char *name)
 	int r = -1;
 	struct xseg_type *__type;
 
-	if (!name)
+	if (!name) {
 		return r;
+	}
 
 	__lock_domain();
 	__type = __find_type(name, &i);
@@ -1733,10 +1734,10 @@ retry:
 //	__update_timestamp(req);
 	serial = __xq_pop_head(&req->path);
 	if (serial == Noneidx) {
-                /* this should never happen */
+		/* this should never happen */
 		XSEGLOG("pop head of path queue returned Noneidx\n");
-                goto retry;
-        }
+		goto retry;
+	}
 
 	return req;
 }
@@ -2254,8 +2255,9 @@ int xseg_set_freequeue_size(struct xseg *xseg, xport portno, xqindex size,
 		return -1;
 	}
 	port = xseg_get_port(xseg, portno);
-	if (!port)
+	if (!port) {
 		return -1;
+	}
 
 	newq = __alloc_queue(xseg, size);
 	if (!newq) {
