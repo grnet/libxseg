@@ -19,90 +19,91 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 static inline int __validate_idx(struct xpool *xp, xpool_index idx)
 {
-	struct xpool_node *node = XPTR(&xp->mem)+idx;
-	return (idx < xp->size && node->prev != NoIndex);
+    struct xpool_node *node = XPTR(&xp->mem) + idx;
+    return (idx < xp->size && node->prev != NoIndex);
 }
 
 void __xpool_clear(struct xpool *xp)
 {
-	uint64_t i;
-	uint64_t size = xp->size;
-	struct xpool_node *mem = XPTR(&xp->mem);
+    uint64_t i;
+    uint64_t size = xp->size;
+    struct xpool_node *mem = XPTR(&xp->mem);
 
-	xp->list = NoIndex;
-	for (i = 1; i < size; i++) {
-		mem[i-1].prev = NoIndex;
-		mem[i-1].next = i;
-	}
-	mem[size-1].prev = NoIndex;
-	mem[size-1].next = NoIndex;
-	xp->free = 0;
+    xp->list = NoIndex;
+    for (i = 1; i < size; i++) {
+        mem[i - 1].prev = NoIndex;
+        mem[i - 1].next = i;
+    }
+    mem[size - 1].prev = NoIndex;
+    mem[size - 1].next = NoIndex;
+    xp->free = 0;
 }
 
 void xpool_clear(struct xpool *xp)
 {
-	xlock_acquire(&xp->lock);
-	__xpool_clear(xp);
-	xlock_release(&xp->lock);
+    xlock_acquire(&xp->lock);
+    __xpool_clear(xp);
+    xlock_release(&xp->lock);
 }
 
-void xpool_init(struct xpool *xp, uint64_t size, struct xpool_node* mem)
+void xpool_init(struct xpool *xp, uint64_t size, struct xpool_node *mem)
 {
-	xp->size = size;
-	XPTRSET(&xp->mem, mem);
-	xlock_release(&xp->lock);
-	__xpool_clear(xp);
+    xp->size = size;
+    XPTRSET(&xp->mem, mem);
+    xlock_release(&xp->lock);
+    __xpool_clear(xp);
 }
 
 xpool_index __xpool_add(struct xpool *xp, xpool_data data)
 {
-	struct xpool_node *new, *list, *prev;
-	xpool_index idx;
+    struct xpool_node *new, *list, *prev;
+    xpool_index idx;
 
-	idx = xp->free;
-	if (idx == NoIndex) {
-		return NoIndex;
-	}
-	new = XPTR(&xp->mem) + idx;
-	xp->free = new->next;
-	new->data = data;
+    idx = xp->free;
+    if (idx == NoIndex) {
+        return NoIndex;
+    }
+    new = XPTR(&xp->mem) + idx;
+    xp->free = new->next;
+    new->data = data;
 
-	if (xp->list != NoIndex) {
-		list = XPTR(&xp->mem) + xp->list;
-		new->next = xp->list;
-		new->prev = list->prev;
+    if (xp->list != NoIndex) {
+        list = XPTR(&xp->mem) + xp->list;
+        new->next = xp->list;
+        new->prev = list->prev;
 
-		prev = XPTR(&xp->mem) + list->prev;
-		prev->next = idx;
-		list->prev = idx;
-	} else {
-		new->next = idx;
-		new->prev = idx;
-		xp->list =idx;
-	}
-	/*
-	idx = xp->list;
-	list = XPTR(&xp->mem) + idx;
-	printf("xpool data: %llu(%llu), ", xp->list, list->data );
-	do {
-	idx = list->next;
-	list = XPTR(&xp->mem) + idx;
-	printf("%llu(%llu), ", idx, list->data);
-	}while(idx != xp->list);
-	printf("\n");
-	*/
+        prev = XPTR(&xp->mem) + list->prev;
+        prev->next = idx;
+        list->prev = idx;
+    } else {
+        new->next = idx;
+        new->prev = idx;
+        xp->list = idx;
+    }
+    /*
+       idx = xp->list;
+       list = XPTR(&xp->mem) + idx;
+       printf("xpool data: %llu(%llu), ", xp->list, list->data );
+       do {
+       idx = list->next;
+       list = XPTR(&xp->mem) + idx;
+       printf("%llu(%llu), ", idx, list->data);
+       }while(idx != xp->list);
+       printf("\n");
+     */
 
-	return idx;
+    return idx;
 }
 
-xpool_index xpool_add(struct xpool *xp, xpool_data data)
+xpool_index xpool_add(struct xpool * xp, xpool_data data)
 {
-	xpool_index idx;
-	xlock_acquire(&xp->lock);
-	idx = __xpool_add(xp, data);
-	xlock_release(&xp->lock);
-	return idx;
+    xpool_index idx;
+    xlock_acquire(&xp->lock);
+    idx = __xpool_add(xp, data);
+    xlock_release(&xp->lock);
+    return idx;
 }
+
 /*
 xpool_index xpool_add(struct xpool *xp, xpool_data data)
 {
@@ -188,106 +189,109 @@ xpool_index xpool_remove(struct xpool *xp, xpool_index idx, xpool_data *data)
 	return idx;
 }
 */
-xpool_index __xpool_remove(struct xpool *xp, xpool_index idx, xpool_data *data)
+xpool_index __xpool_remove(struct xpool * xp, xpool_index idx,
+                           xpool_data * data)
 {
-	struct xpool_node *node, *prev, *next;
-	if (!__validate_idx(xp, idx)) { // idx < xp->size && node->prev != NULL
-		return NoIndex;
-	}
-	node = XPTR(&xp->mem) + idx;
-	*data = node->data;
+    struct xpool_node *node, *prev, *next;
+    if (!__validate_idx(xp, idx)) {     // idx < xp->size && node->prev != NULL
+        return NoIndex;
+    }
+    node = XPTR(&xp->mem) + idx;
+    *data = node->data;
 
-	if (idx == xp->list) {
-		if ( idx == node->next) {
-			xp->list = NoIndex;
-		} else {
-			xp->list = node->next;
-		}
-	}
-	prev = XPTR(&xp->mem) + node->prev;
-	prev->next = node->next;
+    if (idx == xp->list) {
+        if (idx == node->next) {
+            xp->list = NoIndex;
+        } else {
+            xp->list = node->next;
+        }
+    }
+    prev = XPTR(&xp->mem) + node->prev;
+    prev->next = node->next;
 
-	next = XPTR(&xp->mem) + node->next;
-	next->prev = node->prev;
+    next = XPTR(&xp->mem) + node->next;
+    next->prev = node->prev;
 
-	node->prev = NoIndex;
-	node->next = xp->free;
-	xp->free = idx;
-	return idx;
+    node->prev = NoIndex;
+    node->next = xp->free;
+    xp->free = idx;
+    return idx;
 }
 
-xpool_index xpool_remove(struct xpool *xp, xpool_index idx, xpool_data *data)
+xpool_index xpool_remove(struct xpool * xp, xpool_index idx, xpool_data * data)
 {
-	xpool_index ret;
-	xlock_acquire(&xp->lock);
-	ret = __xpool_remove(xp, idx, data);
-	xlock_release(&xp->lock);
-	return ret;
+    xpool_index ret;
+    xlock_acquire(&xp->lock);
+    ret = __xpool_remove(xp, idx, data);
+    xlock_release(&xp->lock);
+    return ret;
 }
 
-xpool_index __xpool_peek(struct xpool *xp, xpool_data *data)
+xpool_index __xpool_peek(struct xpool * xp, xpool_data * data)
 {
-	struct xpool_node *list;
-	xpool_index ret;
-	if (xp->list == NoIndex) {
-		return NoIndex;
-	}
-	ret = xp->list;
-	list = XPTR(&xp->mem) + xp->list;
-	*data = list->data;
-	return ret;
+    struct xpool_node *list;
+    xpool_index ret;
+    if (xp->list == NoIndex) {
+        return NoIndex;
+    }
+    ret = xp->list;
+    list = XPTR(&xp->mem) + xp->list;
+    *data = list->data;
+    return ret;
 }
 
-xpool_index xpool_peek(struct xpool *xp, xpool_data *data)
+xpool_index xpool_peek(struct xpool * xp, xpool_data * data)
 {
-	xpool_index ret;
-	xlock_acquire(&xp->lock);
-	ret = __xpool_peek(xp, data);
-	xlock_release(&xp->lock);
-	return ret;
+    xpool_index ret;
+    xlock_acquire(&xp->lock);
+    ret = __xpool_peek(xp, data);
+    xlock_release(&xp->lock);
+    return ret;
 }
 
-xpool_index __xpool_peek_idx(struct xpool *xp, xpool_index idx, xpool_data *data)
+xpool_index __xpool_peek_idx(struct xpool * xp, xpool_index idx,
+                             xpool_data * data)
 {
-	struct xpool_node *node;
-	if (!__validate_idx(xp, idx)) {
-		return NoIndex;
-	}
-	node = XPTR(&xp->mem) + idx;
-	*data = node->data;
-	return idx;
+    struct xpool_node *node;
+    if (!__validate_idx(xp, idx)) {
+        return NoIndex;
+    }
+    node = XPTR(&xp->mem) + idx;
+    *data = node->data;
+    return idx;
 }
 
-xpool_index xpool_peek_idx(struct xpool *xp, xpool_index idx, xpool_data *data)
+xpool_index xpool_peek_idx(struct xpool * xp, xpool_index idx,
+                           xpool_data * data)
 {
-	xpool_index ret;
-	xlock_acquire(&xp->lock);
-	ret = __xpool_peek_idx(xp,idx,data);
-	xlock_release(&xp->lock);
-	return ret;
+    xpool_index ret;
+    xlock_acquire(&xp->lock);
+    ret = __xpool_peek_idx(xp, idx, data);
+    xlock_release(&xp->lock);
+    return ret;
 }
 
-xpool_index __xpool_peek_and_fwd(struct xpool *xp, xpool_data *data)
+xpool_index __xpool_peek_and_fwd(struct xpool * xp, xpool_data * data)
 {
-	struct xpool_node *list;
-	xpool_index ret;
-	if (xp->list == NoIndex) {
-		return NoIndex;
-	}
-	ret = xp->list;
-	list = XPTR(&xp->mem) + xp->list;
-	*data = list->data;
-	xp->list = list->next;
-	return ret;
+    struct xpool_node *list;
+    xpool_index ret;
+    if (xp->list == NoIndex) {
+        return NoIndex;
+    }
+    ret = xp->list;
+    list = XPTR(&xp->mem) + xp->list;
+    *data = list->data;
+    xp->list = list->next;
+    return ret;
 }
 
-xpool_index xpool_peek_and_fwd(struct xpool *xp, xpool_data *data)
+xpool_index xpool_peek_and_fwd(struct xpool * xp, xpool_data * data)
 {
-	xpool_index ret;
-	xlock_acquire(&xp->lock);
-	ret = __xpool_peek_and_fwd(xp,data);
-	xlock_release(&xp->lock);
-	return ret;
+    xpool_index ret;
+    xlock_acquire(&xp->lock);
+    ret = __xpool_peek_and_fwd(xp, data);
+    xlock_release(&xp->lock);
+    return ret;
 }
 
 /*
@@ -311,22 +315,23 @@ xpool_index xpool_peek_and_fwd(struct xpool *xp, xpool_data *data)
 }
 */
 
-xpool_index __xpool_set_idx(struct xpool *xp, xpool_index idx, xpool_data data)
+xpool_index __xpool_set_idx(struct xpool * xp, xpool_index idx,
+                            xpool_data data)
 {
-	struct xpool_node *node;
-	if (!__validate_idx(xp, idx)) {
-		return NoIndex;
-	}
-	node = XPTR(&xp->mem) + idx;
-	node->data = data;
-	return idx;
+    struct xpool_node *node;
+    if (!__validate_idx(xp, idx)) {
+        return NoIndex;
+    }
+    node = XPTR(&xp->mem) + idx;
+    node->data = data;
+    return idx;
 }
 
-xpool_index xpool_set_idx(struct xpool *xp, xpool_index idx, xpool_data data)
+xpool_index xpool_set_idx(struct xpool * xp, xpool_index idx, xpool_data data)
 {
-	xpool_index ret;
-	xlock_acquire(&xp->lock);
-	ret = __xpool_set_idx(xp, idx, data);
-	xlock_release(&xp->lock);
-	return ret;
+    xpool_index ret;
+    xlock_acquire(&xp->lock);
+    ret = __xpool_set_idx(xp, idx, data);
+    xlock_release(&xp->lock);
+    return ret;
 }
