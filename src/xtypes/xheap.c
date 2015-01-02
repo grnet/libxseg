@@ -19,14 +19,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <xseg/xtypes.h>
 
 // small allocations are considered those  < 1 << (alignment_unit + SMALL_LIMIT)
-#define SMALL_LIMIT 5	
+#define SMALL_LIMIT 5
 // medium allocations are considered those < 1 << (alignment_unit + MEDIUM_LIMIT)
-#define MEDIUM_LIMIT 10	
+#define MEDIUM_LIMIT 10
 
 //This (the -3) ensures that the space that is allocated
 //beyond the requested bytes is less than 12.5 % of requested space
-#define MEDIUM_AL_UNIT (SMALL_LIMIT - 3) 
-#define LARGE_AL_UNIT (MEDIUM_LIMIT - 3) 
+#define MEDIUM_AL_UNIT (SMALL_LIMIT - 3)
+#define LARGE_AL_UNIT (MEDIUM_LIMIT - 3)
 
 /*
  * Heap allocation sizes:
@@ -38,15 +38,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //aligned alloc bytes with header size
 static inline uint64_t __get_alloc_bytes(struct xheap *xheap, uint64_t bytes)
 {
-	if (bytes < 1<<(xheap->alignment_unit + SMALL_LIMIT))
-		return __align(bytes + sizeof(struct xheap_header), 
+	if (bytes < 1<<(xheap->alignment_unit + SMALL_LIMIT)) {
+		return __align(bytes + sizeof(struct xheap_header),
 				xheap->alignment_unit);
-	else if (bytes < 1<<(xheap->alignment_unit + MEDIUM_LIMIT))
+	} else if (bytes < 1<<(xheap->alignment_unit + MEDIUM_LIMIT)) {
 		return __align(bytes + sizeof(struct xheap_header),
 				xheap->alignment_unit + MEDIUM_AL_UNIT);
-	else
-		return __align(bytes + sizeof(struct xheap_header), 
+	} else {
+		return __align(bytes + sizeof(struct xheap_header),
 				xheap->alignment_unit + LARGE_AL_UNIT);
+	}
 }
 
 static inline struct xheap_header* __get_header(void *ptr)
@@ -60,16 +61,15 @@ static inline int __get_index(struct xheap *heap, uint64_t bytes)
 	uint32_t alignment_unit = heap->alignment_unit;
 	bytes = __get_alloc_bytes(heap, bytes) - sizeof(struct xheap_header);
 
-	if (bytes < (1<<(alignment_unit + SMALL_LIMIT)))
+	if (bytes < (1<<(alignment_unit + SMALL_LIMIT))) {
 		r = bytes >> alignment_unit;
-	else if (bytes < (1 << (alignment_unit + MEDIUM_LIMIT))) {
+	} else if (bytes < (1 << (alignment_unit + MEDIUM_LIMIT))) {
 		r = (1 << SMALL_LIMIT);
 		//r -= (1 << (alignment_unit+SMALL_LIMIT)) / (1 << (alignment_unit + MEDIUM_AL_UNIT));
 		r -= (1 << (SMALL_LIMIT - MEDIUM_AL_UNIT));
 		//XSEGLOG("%u, %u, r %d\n",((1<<alignment_unit) * 32), (1 << (alignment_unit +2)), r);
 		r += (bytes >> (alignment_unit + MEDIUM_AL_UNIT));
-	}
-	else {
+	} else {
 		r = (1 << SMALL_LIMIT) + (1 << MEDIUM_LIMIT);
 		r -= 1 << (SMALL_LIMIT - MEDIUM_AL_UNIT);
 		r -= 1 << (MEDIUM_LIMIT - (LARGE_AL_UNIT - MEDIUM_AL_UNIT));
@@ -97,8 +97,9 @@ void* xheap_allocate(struct xheap *heap, uint64_t bytes)
 
 	head = free_list[r];
 	//printf("(r: %d) list[%x]: %lu\n", r, &free_list[r], list);
-	if (!head)
+	if (!head) {
 		goto alloc;
+	}
 	if (head > heap->cur) {
 		XSEGLOG("invalid xptr %llu found in chunk lists\n", head);
 		goto out;
@@ -114,8 +115,9 @@ alloc:
 	bytes = __get_alloc_bytes(heap, bytes);
 //	printf("before heap->cur: %llu\n", heap->cur);
 //	printf("bytes: %llu\n", bytes);
-	if (heap->cur + bytes > heap->size)
+	if (heap->cur + bytes > heap->size) {
 		goto out;
+	}
 	addr = (void *) (((unsigned long) mem) + heap->cur + sizeof(struct xheap_header));
 //	printf("after heap->cur: %llu\n", heap->cur);
 	h = (struct xheap_header *) (((unsigned long) mem) + heap->cur);
@@ -129,11 +131,11 @@ out:
 //	printf("alloced: %lx (size: %llu) (xptr: %llu)\n", addr, __get_header(addr)->size,
 //			addr-mem);
 	if (addr && xheap_get_chunk_size(addr) < req_bytes){
-		XSEGLOG("requested %llu bytes but heap returned %llu", 
+		XSEGLOG("requested %llu bytes but heap returned %llu",
 				req_bytes, xheap_get_chunk_size(addr));
 		addr = NULL;
 	}
-	if (addr && xheap_get_chunk_size(addr) != (__get_alloc_bytes(heap, req_bytes) - 
+	if (addr && xheap_get_chunk_size(addr) != (__get_alloc_bytes(heap, req_bytes) -
 					sizeof(struct xheap_header))) {
 		XSEGLOG("allocated chunk size %llu, but it should be %llu (req_bytes %llu)",
 			xheap_get_chunk_size(addr), __get_alloc_bytes(heap, req_bytes), req_bytes);
@@ -194,12 +196,13 @@ int xheap_init(struct xheap *heap, uint64_t size, uint32_t alignment_unit, void 
 	heap->size = size;
 	heap->alignment_unit = alignment_unit;
 	XPTRSET(&heap->mem, mem);
-	
+
 	r = __get_index(heap, size);
-	
+
 	/* minimum alignment unit required */
-	if (heap_page < sizeof(struct xheap_header))
+	if (heap_page < sizeof(struct xheap_header)) {
 		return -1;
+	}
 	//if (heap_page < sizeof(xptr *) * r)
 	//	return -1;
 
@@ -219,11 +222,12 @@ int xheap_init(struct xheap *heap, uint64_t size, uint32_t alignment_unit, void 
 	free_list = (xptr *) mem;
 	for (i = 0; i < r; i++) {
 		free_list[i] = 0;
-	}	
+	}
 
 	/* make sure there is at least one "heap_page" to allocate */
-	if (heap->cur >= size - heap_page)
+	if (heap->cur >= size - heap_page) {
 		return -1;
+	}
 	xlock_release(&heap->lock);
 
 	return 0;
