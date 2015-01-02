@@ -216,8 +216,9 @@ xqindex xq_pop_heads(struct xq *xq,
 
 	mask = xq->size -1;
 	head = __xq_pop_head_idx(xq, nr);
-	for (i = 0; i < nr; i++)
+	for (i = 0; i < nr; i++) {
 		heads[i] = XPTR(&xq->queue)[(head - i) & mask];
+	}
 out:
 	xlock_release(&xq->lock);
 	return serial;
@@ -310,8 +311,9 @@ xqindex xq_append_tails(struct xq *xq,
 
 	mask = xq->size -1;
 	tail = __xq_append_tail_idx(xq, nr) + nr -1;
-	for (i = 0; i < nr; i++)
+	for (i = 0; i < nr; i++) {
 		XPTR(&xq->queue)[(tail - i) & mask] = tails[i];
+	}
 out:
 	xlock_release(&xq->lock);
 	return serial;
@@ -356,8 +358,9 @@ xqindex xq_pop_tails(struct xq *xq, xqindex nr, xqindex *tails)
 
 	mask = xq->size -1;
 	tail = __xq_pop_tail_idx(xq, nr);
-	for (i = 0; i < nr; i++)
+	for (i = 0; i < nr; i++) {
 		tails[i] = XPTR(&xq->queue)[(tail + i) & mask];
+	}
 out:
 	xlock_release(&xq->lock);
 	return serial;
