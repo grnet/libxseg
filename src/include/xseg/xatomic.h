@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdint.h>
 
 typedef struct xatomic {
-	__uint128_t value;
+    __uint128_t value;
 } xatomic;
 
 #define MAX64	(0xffffffffffffffffUL)
@@ -57,46 +57,46 @@ typedef struct xatomic {
 	goto __xatomic_##var##_restart
 
 
-static inline uint64_t xatomic_read(xatomic *atomic)
+static inline uint64_t xatomic_read(xatomic * atomic)
 {
-	return (uint64_t)atomic->value;
+    return (uint64_t) atomic->value;
 }
 
-static inline void xatomic_write(xatomic *atomic, uint64_t newval)
+static inline void xatomic_write(xatomic * atomic, uint64_t newval)
 {
-	cas_begin(atomic, val);
-	val = newval;
-	if (!cas_update(val)) {
-		cas_restart(val);
-	}
+    cas_begin(atomic, val);
+    val = newval;
+    if (!cas_update(val)) {
+        cas_restart(val);
+    }
 }
 
-static inline uint64_t xatomic_inc(xatomic *atomic, uint64_t inc)
+static inline uint64_t xatomic_inc(xatomic * atomic, uint64_t inc)
 {
-	uint64_t retval;
+    uint64_t retval;
 
-	cas_begin(atomic, val);
-	retval = val;
-	val += inc;
-	if (!cas_update(val)) {
-		cas_restart(val);
-	}
+    cas_begin(atomic, val);
+    retval = val;
+    val += inc;
+    if (!cas_update(val)) {
+        cas_restart(val);
+    }
 
-	return retval;
+    return retval;
 }
 
-static inline uint64_t xatomic_dec(xatomic *atomic, uint64_t dec)
+static inline uint64_t xatomic_dec(xatomic * atomic, uint64_t dec)
 {
-	uint64_t retval;
+    uint64_t retval;
 
-	cas_begin(atomic, val);
-	retval = val;
-	val -= dec;
-	if (!cas_update(val)) {
-		cas_restart(val);
-	}
+    cas_begin(atomic, val);
+    retval = val;
+    val -= dec;
+    if (!cas_update(val)) {
+        cas_restart(val);
+    }
 
-	return retval;
+    return retval;
 }
 
 #endif

@@ -68,45 +68,45 @@ typedef xqindex xcache_handler;
  *		to the evicted table.
  */
 struct xcache_ops {
-	int (*on_init)(void *cache_data, void *user_data);
-	int (*on_evict)(void *cache_data, void *evicted_user_data);
-	int (*on_finalize)(void *cache_data, void *evicted_user_data);
-	void (*on_reinsert)(void *cache_data, void *user_data);
-	void (*on_put)(void *cache_data, void *user_data);
-	void (*on_free)(void *cache_data, void *user_data);
-	void *(*on_node_init)(void *cache_data, void *data_handler);
+    int (*on_init) (void *cache_data, void *user_data);
+    int (*on_evict) (void *cache_data, void *evicted_user_data);
+    int (*on_finalize) (void *cache_data, void *evicted_user_data);
+    void (*on_reinsert) (void *cache_data, void *user_data);
+    void (*on_put) (void *cache_data, void *user_data);
+    void (*on_free) (void *cache_data, void *user_data);
+    void *(*on_node_init) (void *cache_data, void *data_handler);
 };
 
 /* FIXME: Does xcache_entry need lock? */
 struct xcache_entry {
-	struct xlock lock;
-	volatile uint32_t ref;
-	uint32_t state;
-	char name[XSEG_MAX_TARGETLEN + 1];
-	xbinheap_handler h;
-	void *priv;
+    struct xlock lock;
+    volatile uint32_t ref;
+    uint32_t state;
+    char name[XSEG_MAX_TARGETLEN + 1];
+    xbinheap_handler h;
+    void *priv;
 };
 
 struct xcache {
-	struct xlock lock;
-	uint32_t size;
-	uint32_t nr_nodes;
-	struct xq free_nodes;
-	xhash_t *entries;
-	xhash_t *rm_entries;
-	struct xlock rm_lock;
-	struct xcache_entry *nodes;
-	uint64_t time;
-	uint64_t *times;
-	struct xbinheap binheap;
-	struct xcache_ops ops;
-	uint32_t flags;
-	void *priv;
+    struct xlock lock;
+    uint32_t size;
+    uint32_t nr_nodes;
+    struct xq free_nodes;
+    xhash_t *entries;
+    xhash_t *rm_entries;
+    struct xlock rm_lock;
+    struct xcache_entry *nodes;
+    uint64_t time;
+    uint64_t *times;
+    struct xbinheap binheap;
+    struct xcache_ops ops;
+    uint32_t flags;
+    void *priv;
 };
 
 static int __validate_idx(struct xcache *cache, xqindex idx)
 {
-	return (idx < cache->nr_nodes);
+    return (idx < cache->nr_nodes);
 }
 
 /*
@@ -114,13 +114,13 @@ static int __validate_idx(struct xcache *cache, xqindex idx)
  */
 static void *xcache_get_entry(struct xcache *cache, xcache_handler h)
 {
-	xqindex idx = (xqindex)h;
+    xqindex idx = (xqindex) h;
 
-	if (!__validate_idx(cache, idx)) {
-		return NULL;
-	}
+    if (!__validate_idx(cache, idx)) {
+        return NULL;
+    }
 
-	return cache->nodes[idx].priv;
+    return cache->nodes[idx].priv;
 }
 
 /*
@@ -140,7 +140,7 @@ static char *xcache_get_name(struct xcache *cache, xcache_handler h)
 */
 
 int xcache_init(struct xcache *cache, uint32_t xcache_size,
-		struct xcache_ops *ops, uint32_t flags, void *priv);
+                struct xcache_ops *ops, uint32_t flags, void *priv);
 void xcache_close(struct xcache *cache);
 void xcache_free(struct xcache *cache);
 xcache_handler xcache_lookup(struct xcache *cache, char *name);
@@ -153,4 +153,4 @@ void xcache_get(struct xcache *cache, xcache_handler h);
 uint64_t xcache_free_nodes(struct xcache *cache);
 void xcache_free_new(struct xcache *cache, xcache_handler h);
 
-#endif /* __XCACHE_H */
+#endif                          /* __XCACHE_H */

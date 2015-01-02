@@ -26,7 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * for structured replies. See <xseg/xseg.h> for the list of ops.
  */
 struct xseg_reply_info {
-	uint64_t size;
+    uint64_t size;
 };
 
 #define XSEG_MAX_TARGETLEN 256
@@ -41,54 +41,54 @@ struct xseg_reply_info {
 #define XF_MAPFLAG_ZERO     (1 << 1)
 
 struct xseg_reply_map_scatterlist {
-	char target[XSEG_MAX_TARGETLEN];
-	uint32_t flags;
-	uint32_t targetlen;
-	uint64_t offset;
-	uint64_t size;
+    char target[XSEG_MAX_TARGETLEN];
+    uint32_t flags;
+    uint32_t targetlen;
+    uint64_t offset;
+    uint64_t size;
 };
 
 struct xseg_reply_map {
-	uint32_t cnt;
-	struct xseg_reply_map_scatterlist segs[];
+    uint32_t cnt;
+    struct xseg_reply_map_scatterlist segs[];
 };
 
 struct xseg_create_map_scatterlist {
-	char target[XSEG_MAX_TARGETLEN];
-	uint32_t targetlen;
-	uint32_t flags;
+    char target[XSEG_MAX_TARGETLEN];
+    uint32_t targetlen;
+    uint32_t flags;
 };
 
 struct xseg_request_create {
-	uint32_t cnt;
-	uint32_t blocksize;
-	uint32_t create_flags;
-	struct xseg_create_map_scatterlist segs[];
+    uint32_t cnt;
+    uint32_t blocksize;
+    uint32_t create_flags;
+    struct xseg_create_map_scatterlist segs[];
 };
 
 struct xseg_request_clone {
-	char target[XSEG_MAX_TARGETLEN];
-	uint32_t targetlen;
-	uint64_t size;
+    char target[XSEG_MAX_TARGETLEN];
+    uint32_t targetlen;
+    uint64_t size;
 };
 
 struct xseg_request_copy {
-	char target[XSEG_MAX_TARGETLEN];
-	uint32_t targetlen;
+    char target[XSEG_MAX_TARGETLEN];
+    uint32_t targetlen;
 };
 
 struct xseg_request_snapshot {
-	char target[XSEG_MAX_TARGETLEN];
-	uint32_t targetlen;
+    char target[XSEG_MAX_TARGETLEN];
+    uint32_t targetlen;
 };
 
 struct xseg_reply_hash {
-	char target[XSEG_MAX_TARGETLEN];
-	uint32_t targetlen;
+    char target[XSEG_MAX_TARGETLEN];
+    uint32_t targetlen;
 };
 
 struct xseg_request_rename {
-	char target[XSEG_MAX_TARGETLEN];
-	uint32_t targetlen;
+    char target[XSEG_MAX_TARGETLEN];
+    uint32_t targetlen;
 };
 #endif

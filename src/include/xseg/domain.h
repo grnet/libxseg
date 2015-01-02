@@ -37,11 +37,13 @@ extern char __xseg_errbuf[4096];
 void __xseg_log(const char *msg);
 
 struct log_ctx;
-enum log_level { E = 0, W = 1, I = 2, D = 3};
-extern int (*init_logctx)(struct log_ctx *lc, char *peer_name,
-		enum log_level log_level, char *logfile, uint32_t flags);
-extern int (*renew_logctx)(struct log_ctx *lc, char *peer_name,
-		enum log_level log_level, char *logfile, uint32_t flags);
+enum log_level { E = 0, W = 1, I = 2, D = 3 };
+extern int (*init_logctx) (struct log_ctx * lc, char *peer_name,
+                           enum log_level log_level, char *logfile,
+                           uint32_t flags);
+extern int (*renew_logctx) (struct log_ctx * lc, char *peer_name,
+                            enum log_level log_level, char *logfile,
+                            uint32_t flags);
 void __xseg_log2(struct log_ctx *lc, enum log_level level, char *fmt, ...);
 
 void xseg_printtrace(void);

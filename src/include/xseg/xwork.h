@@ -19,9 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define __XWORK_H
 
 struct work {
-	void *job;
-	void (*job_fn)(void *q, void *arg);
+    void *job;
+    void (*job_fn) (void *q, void *arg);
 };
 
-#endif /* __XWORK_H */
-
+#endif                          /* __XWORK_H */

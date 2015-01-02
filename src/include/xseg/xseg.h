@@ -108,80 +108,80 @@ struct xseg_port;
 #define MAGIC_PORT 	(XSEG_MAGIC | 3)
 
 struct xseg_operations {
-	void  (*mfree)(void *mem);
-	int   (*allocate)(const char *name, uint64_t size);
-	int   (*deallocate)(const char *name);
-	void *(*map)(const char *name, uint64_t size, struct xseg *seg);
-	void  (*unmap)(void *xseg, uint64_t size);
+    void (*mfree) (void *mem);
+    int (*allocate) (const char *name, uint64_t size);
+    int (*deallocate) (const char *name);
+    void *(*map) (const char *name, uint64_t size, struct xseg * seg);
+    void (*unmap) (void *xseg, uint64_t size);
 };
 
 struct xseg_type {
-	struct xseg_operations ops;
-	char name[XSEG_TNAMESIZE];
+    struct xseg_operations ops;
+    char name[XSEG_TNAMESIZE];
 };
 
 
 struct xseg_peer_operations {
-	int   (*init_signal_desc)(struct xseg *xseg, void *sd);
-	void  (*quit_signal_desc)(struct xseg *xseg, void *sd);
-	void *(*alloc_data)(struct xseg *xseg);
-	void  (*free_data)(struct xseg *xseg, void *data);
-	void *(*alloc_signal_desc)(struct xseg *xseg, void *data);
-	void  (*free_signal_desc)(struct xseg *xseg, void *data, void *sd);
-	int   (*local_signal_init)(struct xseg *xseg, xport portno);
-	void  (*local_signal_quit)(struct xseg *xseg, xport portno);
-	int   (*remote_signal_init)(void);
-	void  (*remote_signal_quit)(void);
-	int   (*signal_join)(struct xseg *xseg);
-	int   (*signal_leave)(struct xseg *xseg);
-	int   (*prepare_wait)(struct xseg *xseg, uint32_t portno);
-	int   (*cancel_wait)(struct xseg *xseg, uint32_t portno);
-	int   (*wait_signal)(struct xseg *xseg, void *sd, uint32_t usec_timeout);
-	int   (*signal)(struct xseg *xseg, uint32_t portno);
-	void *(*malloc)(uint64_t size);
-	void *(*realloc)(void *mem, uint64_t size);
-	void  (*mfree)(void *mem);
+    int (*init_signal_desc) (struct xseg * xseg, void *sd);
+    void (*quit_signal_desc) (struct xseg * xseg, void *sd);
+    void *(*alloc_data) (struct xseg * xseg);
+    void (*free_data) (struct xseg * xseg, void *data);
+    void *(*alloc_signal_desc) (struct xseg * xseg, void *data);
+    void (*free_signal_desc) (struct xseg * xseg, void *data, void *sd);
+    int (*local_signal_init) (struct xseg * xseg, xport portno);
+    void (*local_signal_quit) (struct xseg * xseg, xport portno);
+    int (*remote_signal_init) (void);
+    void (*remote_signal_quit) (void);
+    int (*signal_join) (struct xseg * xseg);
+    int (*signal_leave) (struct xseg * xseg);
+    int (*prepare_wait) (struct xseg * xseg, uint32_t portno);
+    int (*cancel_wait) (struct xseg * xseg, uint32_t portno);
+    int (*wait_signal) (struct xseg * xseg, void *sd, uint32_t usec_timeout);
+    int (*signal) (struct xseg * xseg, uint32_t portno);
+    void *(*malloc) (uint64_t size);
+    void *(*realloc) (void *mem, uint64_t size);
+    void (*mfree) (void *mem);
 };
 
 struct xseg_peer {
-	struct xseg_peer_operations peer_ops;
-	char name[XSEG_TNAMESIZE];
+    struct xseg_peer_operations peer_ops;
+    char name[XSEG_TNAMESIZE];
 };
 
 struct xseg_config {
-	uint64_t heap_size;	/* heap size in MB */
-	uint32_t nr_ports;
-	uint32_t dynports;
-	uint32_t page_shift;	/* the alignment unit */
-	char type[XSEG_TNAMESIZE]; /* zero-terminated identifier */
-	char name[XSEG_NAMESIZE];  /* zero-terminated identifier */
+    uint64_t heap_size;         /* heap size in MB */
+    uint32_t nr_ports;
+    uint32_t dynports;
+    uint32_t page_shift;        /* the alignment unit */
+    char type[XSEG_TNAMESIZE];  /* zero-terminated identifier */
+    char name[XSEG_NAMESIZE];   /* zero-terminated identifier */
 };
 
 struct xseg_port {
-	struct xlock fq_lock;
-	struct xlock rq_lock;
-	struct xlock pq_lock;
-	xptr free_queue;
-	xptr request_queue;
-	xptr reply_queue;
-	uint64_t owner;
-	uint64_t peer_type;
-	uint32_t portno;
-	uint64_t max_alloc_reqs;
-	uint64_t alloc_reqs;
-	struct xlock port_lock;
-	xptr signal_desc;
-	uint32_t flags;
+    struct xlock fq_lock;
+    struct xlock rq_lock;
+    struct xlock pq_lock;
+    xptr free_queue;
+    xptr request_queue;
+    xptr reply_queue;
+    uint64_t owner;
+    uint64_t peer_type;
+    uint32_t portno;
+    uint64_t max_alloc_reqs;
+    uint64_t alloc_reqs;
+    struct xlock port_lock;
+    xptr signal_desc;
+    uint32_t flags;
 };
 
 struct xseg_request;
 
 struct xseg_task {
-	uint64_t epoch;
-	struct xseg_request *req;
-	xqindex *deps;
-	xqindex nr_deps;
-	xqindex __alloced_deps;
+    uint64_t epoch;
+    struct xseg_request *req;
+    xqindex *deps;
+    xqindex nr_deps;
+    xqindex __alloced_deps;
 };
 
 /* OPS */
@@ -230,74 +230,74 @@ struct xseg_task {
 #define XS_CONCLUDED	(3 << 2)
 
 struct xseg_request {
-	xserial serial;
-	uint64_t offset;
-	uint64_t size;
-	uint64_t serviced;
-	uint64_t v0_size;
-	xptr data;
-	uint64_t datalen;
-	xptr target;
-	uint32_t targetlen;
-	uint32_t op;
-	volatile uint32_t state;
-	uint32_t flags;
-	xport src_portno;
-	xport transit_portno;
-	xport dst_portno;
-	xport effective_dst_portno;
-	struct xq path;
-	xqindex path_bufs[MAX_PATH_LEN];
-	/* pad */
-	xptr buffer;
-	uint64_t bufferlen;
-	xqindex task;
-	uint64_t priv;
-	struct timeval timestamp;
-	uint64_t elapsed;
+    xserial serial;
+    uint64_t offset;
+    uint64_t size;
+    uint64_t serviced;
+    uint64_t v0_size;
+    xptr data;
+    uint64_t datalen;
+    xptr target;
+    uint32_t targetlen;
+    uint32_t op;
+    volatile uint32_t state;
+    uint32_t flags;
+    xport src_portno;
+    xport transit_portno;
+    xport dst_portno;
+    xport effective_dst_portno;
+    struct xq path;
+    xqindex path_bufs[MAX_PATH_LEN];
+    /* pad */
+    xptr buffer;
+    uint64_t bufferlen;
+    xqindex task;
+    uint64_t priv;
+    struct timeval timestamp;
+    uint64_t elapsed;
 };
 
 struct xseg_shared {
-	uint64_t flags;
-	char (*peer_types)[XSEG_TNAMESIZE]; /* alignment? */
-	xptr *peer_type_data;
-	uint32_t nr_peer_types;
-	struct xlock segment_lock;
+    uint64_t flags;
+    char (*peer_types)[XSEG_TNAMESIZE]; /* alignment? */
+    xptr *peer_type_data;
+    uint32_t nr_peer_types;
+    struct xlock segment_lock;
 };
 
 struct xseg_private {
-	struct xseg_type segment_type;
-	struct xseg_peer peer_type;
-	struct xseg_peer **peer_types;
-	void **peer_type_data;
-	uint32_t max_peer_types;
-	void (*wakeup)(uint32_t portno);
-	xhash_t *req_data;
-	struct xlock reqdatalock;
+    struct xseg_type segment_type;
+    struct xseg_peer peer_type;
+    struct xseg_peer **peer_types;
+    void **peer_type_data;
+    uint32_t max_peer_types;
+    void (*wakeup) (uint32_t portno);
+    xhash_t *req_data;
+    struct xlock reqdatalock;
 };
 
 struct xseg_counters {
-	uint64_t avg_req_lat;
-	uint64_t req_cnt;
+    uint64_t avg_req_lat;
+    uint64_t req_cnt;
 };
 
 struct xseg {
-	uint64_t version;
-	uint64_t segment_size;
-	struct xseg *segment;
-	struct xheap *heap;
-	struct xobject_h *object_handlers;
+    uint64_t version;
+    uint64_t segment_size;
+    struct xseg *segment;
+    struct xheap *heap;
+    struct xobject_h *object_handlers;
 
-	struct xobject_h *request_h;
-	struct xobject_h *port_h;
-	xptr *ports;
-	xport *path_next, *dst_gw;
+    struct xobject_h *request_h;
+    struct xobject_h *port_h;
+    xptr *ports;
+    xport *path_next, *dst_gw;
 
-	struct xseg_shared *shared;
-	struct xseg_private *priv;
-	uint32_t max_peer_types;
-	struct xseg_config config;
-	struct xseg_counters counters;
+    struct xseg_shared *shared;
+    struct xseg_private *priv;
+    uint32_t max_peer_types;
+    struct xseg_config config;
+    struct xseg_counters counters;
 };
 
 #define XSEG_F_LOCK 0x1
@@ -305,112 +305,87 @@ struct xseg {
 /* ================= XSEG REQUEST INTERFACE ================================= */
 /*                     ___________________                         _________  */
 /*                    /                   \                       /         \ */
-                int    xseg_initialize      ( void                            );
+int xseg_initialize(void);
 
-                int    xseg_finalize        ( void                            );
+int xseg_finalize(void);
 
-                int    xseg_parse_spec      ( char                * spec,
-                                              struct xseg_config  * config    );
+int xseg_parse_spec(char *spec, struct xseg_config *config);
 
-   struct xseg_port *  xseg_bind_port       ( struct xseg         * xseg,
-                                              uint32_t              portno,
-					      void		  * sd        );
+struct xseg_port *xseg_bind_port(struct xseg *xseg, uint32_t portno, void *sd);
 
-    static uint32_t    xseg_portno          ( struct xseg         * xseg,
-                                              struct xseg_port    * port      );
+static uint32_t xseg_portno(struct xseg *xseg, struct xseg_port *port);
 /*                    \___________________/                       \_________/ */
 /*                     ___________________                         _________  */
 /*                    /                   \                       /         \ */
-                int    xseg_register_type   ( struct xseg_type    * type      );
-                int    xseg_unregister_type ( const char          * name      );
+int xseg_register_type(struct xseg_type *type);
+int xseg_unregister_type(const char *name);
 
-                int    xseg_register_peer   ( struct xseg_peer    * peer      );
-                int    xseg_unregister_peer ( const char          * name      );
+int xseg_register_peer(struct xseg_peer *peer);
+int xseg_unregister_peer(const char *name);
 
-               void    xseg_report_peer_types( void );
+void xseg_report_peer_types(void);
 
-            int64_t    xseg_enable_driver   ( struct xseg         * xseg,
-                                              const char          * name      );
-                int    xseg_disable_driver  ( struct xseg         * xseg,
-                                              const char          * name      );
+int64_t xseg_enable_driver(struct xseg *xseg, const char *name);
+int xseg_disable_driver(struct xseg *xseg, const char *name);
 /*                    \___________________/                       \_________/ */
 /*                     ___________________                         _________  */
 /*                    /                   \                       /         \ */
-                int    xseg_create          ( struct xseg_config  * cfg       );
+int xseg_create(struct xseg_config *cfg);
 
-               void    xseg_destroy         ( struct xseg         * xseg      );
+void xseg_destroy(struct xseg *xseg);
 /*                    \___________________/                       \_________/ */
 /*                     ___________________                         _________  */
 /*                    /                   \                       /         \ */
-        struct xseg *  xseg_join            ( const char          * segtype,
-                                              const char          * segname,
-                                              const char          * peertype,
-                                              void               (* wakeup    )
-                                             (uint32_t              portno   ));
+struct xseg *xseg_join(const char *segtype,
+                       const char *segname,
+                       const char *peertype, void (*wakeup)
+                        (uint32_t portno));
 
-               void    xseg_leave           ( struct xseg         * xseg      );
+void xseg_leave(struct xseg *xseg);
 /*                    \___________________/                       \_________/ */
 /*                     ___________________                         _________  */
 /*                    /                   \                       /         \ */
-                int    xseg_alloc_requests  ( struct xseg         * xseg,
-                                              uint32_t              portno,
-                                              uint32_t              nr        );
+int xseg_alloc_requests(struct xseg *xseg, uint32_t portno, uint32_t nr);
 
-                int    xseg_free_requests   ( struct xseg         * xseg,
-                                              uint32_t              portno,
-                                              int                   nr        );
+int xseg_free_requests(struct xseg *xseg, uint32_t portno, int nr);
 
-struct xseg_request *  xseg_get_request     ( struct xseg         * xseg,
-                                              xport                 src_portno,
-					      xport                 dst_portno,
-					      uint32_t              flags     );
+struct xseg_request *xseg_get_request(struct xseg *xseg,
+                                      xport src_portno,
+                                      xport dst_portno, uint32_t flags);
 
-                int    xseg_put_request     ( struct xseg         * xseg,
-                                              struct xseg_request * xreq,
-                                              xport                 portno    );
+int xseg_put_request(struct xseg *xseg,
+                     struct xseg_request *xreq, xport portno);
 
-                int    xseg_prep_request    ( struct xseg	  * xseg,
-					      struct xseg_request * xreq,
-                                              uint32_t              targetlen,
-                                              uint64_t              datalen  );
+int xseg_prep_request(struct xseg *xseg,
+                      struct xseg_request *xreq,
+                      uint32_t targetlen, uint64_t datalen);
 /*                    \___________________/                       \_________/ */
 /*                     ___________________                         _________  */
 /*                    /                   \                       /         \ */
-              xport    xseg_submit          ( struct xseg         * xseg,
-                                              struct xseg_request * xreq,
-                                              xport                 portno,
-					      uint32_t              flags     );
+xport xseg_submit(struct xseg *xseg,
+                  struct xseg_request *xreq, xport portno, uint32_t flags);
 
-struct xseg_request *  xseg_receive         ( struct xseg         * xseg,
-                                              xport                 portno,
-					      uint32_t		    flags     );
+struct xseg_request *xseg_receive(struct xseg *xseg,
+                                  xport portno, uint32_t flags);
 /*                    \___________________/                       \_________/ */
 /*                     ___________________                         _________  */
 /*                    /                   \                       /         \ */
 
-struct xseg_request *  xseg_accept          ( struct xseg         * xseg,
-                                              xport                 portno,
-					      uint32_t		    flags     );
+struct xseg_request *xseg_accept(struct xseg *xseg,
+                                 xport portno, uint32_t flags);
 
-              xport    xseg_respond         ( struct xseg         * xseg,
-                                              struct xseg_request * xreq,
-                                              xport                 portno,
-                                              uint32_t              flags     );
+xport xseg_respond(struct xseg *xseg,
+                   struct xseg_request *xreq, xport portno, uint32_t flags);
 /*                    \___________________/                       \_________/ */
 /*                     ___________________                         _________  */
 /*                    /                   \                       /         \ */
-                int    xseg_prepare_wait    ( struct xseg         * xseg,
-                                              uint32_t              portno    );
+int xseg_prepare_wait(struct xseg *xseg, uint32_t portno);
 
-                int    xseg_cancel_wait     ( struct xseg         * xseg,
-                                              uint32_t              portno    );
+int xseg_cancel_wait(struct xseg *xseg, uint32_t portno);
 
-                int    xseg_wait_signal     ( struct xseg         * xseg,
-					      void 		  * sd,
-                                              uint32_t              utimeout  );
+int xseg_wait_signal(struct xseg *xseg, void *sd, uint32_t utimeout);
 
-                int    xseg_signal          ( struct xseg         * xseg,
-                                              uint32_t              portno    );
+int xseg_signal(struct xseg *xseg, uint32_t portno);
 /*                    \___________________/                       \_________/ */
 
 
@@ -418,33 +393,40 @@ struct xseg_request *  xseg_accept          ( struct xseg         * xseg,
 /*                                                                            */
 /* ================= XSEG REQUEST INTERFACE ================================= */
 
-struct xseg_port* xseg_get_port(struct xseg *xseg, uint32_t portno);
+struct xseg_port *xseg_get_port(struct xseg *xseg, uint32_t portno);
 
 
-extern char* xseg_get_data_nonstatic(struct xseg* xseg, struct xseg_request *req);
-extern char* xseg_get_target_nonstatic(struct xseg* xseg, struct xseg_request *req);
-extern void* xseg_get_signal_desc_nonstatic(struct xseg *xseg, struct xseg_port *port);
+extern char *xseg_get_data_nonstatic(struct xseg *xseg,
+                                     struct xseg_request *req);
+extern char *xseg_get_target_nonstatic(struct xseg *xseg,
+                                       struct xseg_request *req);
+extern void *xseg_get_signal_desc_nonstatic(struct xseg *xseg,
+                                            struct xseg_port *port);
 
 static inline uint32_t xseg_portno(struct xseg *xseg, struct xseg_port *port)
 {
-	return port->portno;
-}
-static inline char* xseg_get_target(struct xseg* xseg, struct xseg_request *req)
-{
-	return (char *) XPTR_TAKE(req->target, xseg->segment);
+    return port->portno;
 }
 
-static inline char* xseg_get_data(struct xseg* xseg, struct xseg_request *req)
+static inline char *xseg_get_target(struct xseg *xseg,
+                                    struct xseg_request *req)
 {
-	return (char *) XPTR_TAKE(req->data, xseg->segment);
+    return (char *) XPTR_TAKE(req->target, xseg->segment);
 }
 
-static inline void * xseg_get_signal_desc(struct xseg *xseg, struct xseg_port *port)
+static inline char *xseg_get_data(struct xseg *xseg, struct xseg_request *req)
 {
-	return (void *) XPTR_TAKE(port->signal_desc, xseg->segment);
+    return (char *) XPTR_TAKE(req->data, xseg->segment);
 }
 
-struct xobject_h * xseg_get_objh(struct xseg *xseg, uint32_t magic, uint64_t size);
+static inline void *xseg_get_signal_desc(struct xseg *xseg,
+                                         struct xseg_port *port)
+{
+    return (void *) XPTR_TAKE(port->signal_desc, xseg->segment);
+}
+
+struct xobject_h *xseg_get_objh(struct xseg *xseg, uint32_t magic,
+                                uint64_t size);
 void xseg_put_objh(struct xseg *xseg, struct xobject_h *objh);
 
 #define xseg_get_queue(__xseg, __port, __queue) \
@@ -453,25 +435,28 @@ void xseg_put_objh(struct xseg *xseg, struct xobject_h *objh);
 
 int xseg_set_path_next(struct xseg *xseg, xport portno, xport next);
 
-int xseg_set_req_data(struct xseg *xseg, struct xseg_request *xreq, void *data);
-int xseg_get_req_data(struct xseg *xseg, struct xseg_request *xreq, void **data);
+int xseg_set_req_data(struct xseg *xseg, struct xseg_request *xreq,
+                      void *data);
+int xseg_get_req_data(struct xseg *xseg, struct xseg_request *xreq,
+                      void **data);
 
 int xseg_init_local_signal(struct xseg *xseg, xport portno);
 void xseg_quit_local_signal(struct xseg *xseg, xport portno);
 
-int xseg_resize_request (struct xseg *xseg, struct xseg_request *req,
-			uint32_t new_targetlen, uint64_t new_datalen);
+int xseg_resize_request(struct xseg *xseg, struct xseg_request *req,
+                        uint32_t new_targetlen, uint64_t new_datalen);
 
 int xseg_set_max_requests(struct xseg *xseg, xport portno, uint64_t nr_reqs);
 uint64_t xseg_get_max_requests(struct xseg *xseg, xport portno);
 uint64_t xseg_get_allocated_requests(struct xseg *xseg, xport portno);
 int xseg_set_freequeue_size(struct xseg *xseg, xport portno, xqindex size,
-				uint32_t flags);
+                            uint32_t flags);
 
 xport xseg_forward(struct xseg *xseg, struct xseg_request *req, xport new_dst,
-		xport portno, uint32_t flags);
+                   xport portno, uint32_t flags);
 
 struct xseg_port *xseg_bind_dynport(struct xseg *xseg);
 int xseg_leave_dynport(struct xseg *xseg, struct xseg_port *port);
-extern uint32_t xseg_portno_nonstatic(struct xseg *xseg, struct xseg_port *port);
+extern uint32_t xseg_portno_nonstatic(struct xseg *xseg,
+                                      struct xseg_port *port);
 #endif

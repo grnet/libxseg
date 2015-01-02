@@ -30,30 +30,31 @@ typedef xbinheapidx xbinheap_handler;
 #define XBINHEAP_MIN (uint32_t)(1<<1)
 
 struct xbinheap_node {
-	xbinheapidx key;
-	xbinheapidx value;
-	xbinheapidx h;
+    xbinheapidx key;
+    xbinheapidx value;
+    xbinheapidx h;
 };
 
 struct xbinheap {
-	xbinheapidx size;
-	xbinheapidx count;
-	uint32_t flags;
-	xbinheapidx *indexes;
-	struct xbinheap_node *nodes;
+    xbinheapidx size;
+    xbinheapidx count;
+    uint32_t flags;
+    xbinheapidx *indexes;
+    struct xbinheap_node *nodes;
 };
 
 xbinheap_handler xbinheap_insert(struct xbinheap *h, xbinheapidx key,
-		xbinheapidx value);
+                                 xbinheapidx value);
 int xbinheap_empty(struct xbinheap *h);
 xbinheapidx xbinheap_peak(struct xbinheap *h);
 xbinheapidx xbinheap_extract(struct xbinheap *h);
 int xbinheap_increasekey(struct xbinheap *h, xbinheap_handler idx,
-		xbinheapidx newkey);
+                         xbinheapidx newkey);
 int xbinheap_decreasekey(struct xbinheap *h, xbinheap_handler idx,
-		xbinheapidx newkey);
+                         xbinheapidx newkey);
 xbinheapidx xbinheap_getkey(struct xbinheap *h, xbinheap_handler idx);
-int xbinheap_init(struct xbinheap *h, xbinheapidx size, uint32_t flags, void *mem);
+int xbinheap_init(struct xbinheap *h, xbinheapidx size, uint32_t flags,
+                  void *mem);
 void xbinheap_free(struct xbinheap *h);
 
-#endif /* __XBINHEAP_H */
+#endif                          /* __XBINHEAP_H */

@@ -31,13 +31,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 struct log_ctx {
-//	int stdout_orig;
-//	int stderr_orig;
-	char filename[MAX_LOGFILE_LEN];
-	volatile int logfile;
-	char peer_name[MAX_PEER_NAME];
-	unsigned int log_level;
-	uint32_t flags;
+//      int stdout_orig;
+//      int stderr_orig;
+    char filename[MAX_LOGFILE_LEN];
+    volatile int logfile;
+    char peer_name[MAX_PEER_NAME];
+    unsigned int log_level;
+    uint32_t flags;
 };
 
 #endif

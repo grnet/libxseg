@@ -21,13 +21,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <xseg/xq.h>
 
 struct xlist_node {
-	XPTR_TYPE(struct xlist_node) head;
-	XPTR_TYPE(struct xlist_node) tail;
-	XPTR_TYPE(struct xlist) list;
+    XPTR_TYPE(struct xlist_node) head;
+     XPTR_TYPE(struct xlist_node) tail;
+     XPTR_TYPE(struct xlist) list;
 };
 
 struct xlist {
-	XPTR_TYPE(struct xlist_node) node;
+    XPTR_TYPE(struct xlist_node) node;
 };
 
 xqindex xlist_add(struct xlist *list, struct xlist_node *node);
