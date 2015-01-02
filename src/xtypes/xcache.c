@@ -615,11 +615,13 @@ xcache_handler xcache_insert(struct xcache *cache, xcache_handler h)
 	xlock_release(&cache->lock);
 
 	if (lru != NoEntry) {
-		if (UNLIKELY(ret == NoEntry))
+		if (UNLIKELY(ret == NoEntry)) {
 			XSEGLOG("BUG: Unsuccessful insertion lead to LRU eviction.");
+        }
 		ce = &cache->nodes[lru];
-		if (cache->ops.on_evict)
+		if (cache->ops.on_evict) {
 			cache->ops.on_evict(cache->priv, ce->priv);
+        }
 		xcache_entry_put(cache, lru);
 	}
 
