@@ -163,12 +163,13 @@ xpool_index xpool_remove(struct xpool *xp, xpool_index idx, xpool_data *data)
 	next = XPTR(&node->next);
 	prev = XPTR(&node->prev);
 	if (node == list){
-		if (node == next)
+		if (node == next) {
 			XPTRSET(&xp->list, NULL);
 			//xp->list = NULL;
-		else
+        } else {
 			XPTRSET(&xp->list, next);
 			//xp->list = node->next;
+        }
 	}
 	XPTRSET(&prev->next, next);
 	//node->prev->next = node->next;
