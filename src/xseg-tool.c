@@ -812,9 +812,9 @@ int cmd_bridge(uint32_t portno1, uint32_t portno2, char *logfile, char *how)
 #if 0
 	struct xseg_request *req;
 	int logfd, method;
-	if (!strcmp(logfile, "-"))
+	if (!strcmp(logfile, "-")) {
 		logfd = 1;
-	else {
+	} else {
 		logfd = open(logfile, O_WRONLY|O_APPEND|O_CREAT, 0600);
 		if (logfd < 0) {
 			perror(logfile);
@@ -822,12 +822,13 @@ int cmd_bridge(uint32_t portno1, uint32_t portno2, char *logfile, char *how)
 		}
 	}
 
-	if (!strcmp(how, "full"))
+	if (!strcmp(how, "full")) {
 		method = 0;
-	else if (!strcmp(how, "summary"))
+	} else if (!strcmp(how, "summary")) {
 		method = 1;
-	else
+	} else {
 		method = 2;
+	}
 
 	for (;;) {
 		int reloop = 0, active;
@@ -895,8 +896,9 @@ int cmd_rndwrite(long loops, int32_t seed, uint32_t targetlen, uint32_t chunksiz
 	xport port;
 	char *req_data, *req_target, *p;
 
-	if (loops < 0)
+	if (loops < 0) {
 		return help();
+	}
 
 	if (targetlen >= chunksize) {
 		fprintf(stderr, "targetlen >= chunksize\n");
@@ -1849,9 +1851,9 @@ int cmd_finish(unsigned long nr, int fail)
 			req_target = xseg_get_target(xseg, req);
 			req_data = xseg_get_data(xseg, req);
 			xseg_cancel_wait(xseg, srcport);
-			if (fail == 1)
+			if (fail == 1) {
 				req->state &= ~XS_SERVED;
-			else {
+			} else {
 				if (req->op == X_READ) {
 					mkchunk(req_data, req->datalen, req_target, req->targetlen, req->offset);
 				} else if (req->op == X_WRITE) {
@@ -1922,8 +1924,9 @@ void handle_reply(struct xseg_request *req)
 	}
 
 put:
-	if (xseg_put_request(xseg, req, srcport))
+	if (xseg_put_request(xseg, req, srcport)) {
 		fprintf(stderr, "Cannot put reply at port %u\n", req->src_portno);
+	}
 }
 
 int cmd_wait(uint32_t nr)
@@ -2169,14 +2172,16 @@ int main(int argc, char **argv)
 		}
 
 		if (srcport == -1) {
-			if (!parse_ports(argv[i]))
+			if (!parse_ports(argv[i])) {
 				fprintf(stderr, "source port undefined: %s\n", argv[i]);
+			}
 			continue;
 		}
 
 		if (dstport == -1) {
-			if (!parse_ports(argv[i]))
+			if (!parse_ports(argv[i])) {
 				fprintf(stderr, "destination port undefined: %s\n", argv[i]);
+			}
 			continue;
 		}
 
