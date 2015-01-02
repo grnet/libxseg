@@ -53,8 +53,9 @@ static inline xhashidx hash_string(xhashidx key)
 	for (i = 1; i <= len; i++) {
 		hv = (hv * 1000003) ^ string[i];
 	}
-	if (hv == Noxhashidx)
+	if (hv == Noxhashidx) {
 		hv = Noxhashidx -1;
+        }
 
 //	XSEGLOG("String %s (%lx). Hash value: %llu",
 //			string, string, hv);
@@ -217,8 +218,9 @@ xhash_init__(xhash_t *xhash, xhashidx size_shift, xhashidx minsize_shift,
 
 
     if (!vals) {
-        for (i=0; i < nr_items; i++)
+        for (i=0; i < nr_items; i++) {
             kvs[i] = UNUSED;
+        }
         goto out;
     }
 
@@ -452,8 +454,9 @@ void static inline xhash_upd_set(xhash_t *p, xhashidx idx, xhashidx key, xhashid
 {
     xhashidx *kvs = xhash_kvs(p);
     xhashidx *vals = xhash_vals(p);
-    if (item_dummy(p, idx, true))
+    if (item_dummy(p, idx, true)) {
         p->dummies--;
+    }
     p->used++;
     kvs[idx] = key;
     vals[idx] = val;
@@ -480,10 +483,12 @@ void xhash_insert__(struct xhash *xhash, xhashidx key, xhashidx val)
 
 int xhash_insert(struct xhash *xhash, xhashidx key, xhashidx val)
 {
-    if (xhash->limit && xhash->used >= xhash->limit)
+    if (xhash->limit && xhash->used >= xhash->limit) {
 	return -XHASH_ENOSPC;
-    if (grow_check(xhash))
+    }
+    if (grow_check(xhash)) {
         return -XHASH_ERESIZE;
+    }
     xhash_insert__(xhash, key, val);
     return 0;
 }
@@ -500,8 +505,9 @@ void xhash_freql_update__(struct xhash *xhash, xhashidx key, xhashidx val)
 
 int xhash_freql_update(struct xhash *xhash, xhashidx key, xhashidx val)
 {
-    if (grow_check(xhash))
+    if (grow_check(xhash)) {
         return -XHASH_ERESIZE;
+    }
     xhash_freql_update__(xhash, key, val);
     return 0;
 }
@@ -513,15 +519,17 @@ xhash_resize(xhash_t *xhash, xhashidx new_size_shift, xhashidx new_limit,
     //XSEGLOG("Resizing xhash from %llu to %llu", xhash->size_shift, new_size_shift);
     xhashidx i;
     int f = !!new;
-    if (!f)
+    if (!f) {
         new = xhash_new__(new_size_shift, xhash->minsize_shift, new_limit,
 				xhash->type, true);
-    else
+    } else {
         xhash_init__(new, new_size_shift, xhash->minsize_shift, new_limit,
 				xhash->type, true);
+    }
 
-    if (!new)
+    if (!new) {
 	    return NULL;
+    }
 
     //fprintf(stderr, "resizing: (%lu,%lu,%lu)\n", xhash->size_shift, xhash->used, xhash->dummies);
     for (i = 0; i < xhash_size(xhash); i++) {
@@ -531,8 +539,9 @@ xhash_resize(xhash_t *xhash, xhashidx new_size_shift, xhashidx new_limit,
         }
     }
 
-    if (!f)
+    if (!f) {
         xtypes_free(xhash);
+    }
     return new;
 }
 
@@ -555,8 +564,9 @@ int xhash_update(struct xhash *xhash, xhashidx key, xhashidx val) {
 
 int xhash_delete(struct xhash *xhash, xhashidx key)
 {
-    if (shrink_check(xhash))
+    if (shrink_check(xhash)) {
 	    return -XHASH_ERESIZE;
+    }
     return xhash_delete__(xhash, key, true);
 }
 
@@ -576,8 +586,9 @@ int xhash_lookup__(xhash_t *xhash, xhashidx key, xhashidx *idx_ret, bool vals)
     for (;;) {
 	//XSEGLOG("size %llu, perturb %llu idx %llu mask %llu",
 	//	    size, perturb, idx, mask);
-        if ( item_unused(xhash, idx, vals) )
+        if ( item_unused(xhash, idx, vals) ) {
             return -XHASH_EEXIST;
+        }
 
         if ( !item_dummy(xhash, idx, vals) && cmp_fun(kvs[idx],key)){
             *idx_ret = idx;
@@ -617,8 +628,9 @@ xhash_iterate__(xhash_t *xhash, bool vals,
     xhashidx *kvs = xhash_kvs(xhash);
     INCSTAT(xhash->lookups);
     for (;;){
-        if (xhash->used == pi->cnt || idx >= size)
+        if (xhash->used == pi->cnt || idx >= size) {
             return 0;
+        }
 
         if (item_valid(xhash, idx, vals)){
             *key_ret = kvs[idx];
@@ -809,14 +821,16 @@ pset_grow(pset_t *pset)
 static inline void
 pset_grow_check(pset_t *pset)
 {
-    if (grow_check(&pset->ph_))
+    if (grow_check(&pset->ph_)) {
         pset_grow(pset);
+    }
 }
 
 void static inline pset_upd_set(xhash_t *p, xhashidx idx, xhashidx key)
 {
-    if (item_dummy(p, idx, false))
+    if (item_dummy(p, idx, false)) {
         p->dummies--;
+    }
     p->used++;
     p->kvs[idx] = key;
 }
@@ -842,15 +856,17 @@ pset_shrink(pset_t *pset)
 
 int pset_delete(pset_t *pset, xhashidx key)
 {
-    if (pset->ph_.used == 0)
+    if (pset->ph_.used == 0) {
         return false;
+    }
 
     assert_key(key);
     xhashidx size_shift = pset->ph_.size_shift;
     xhashidx size = (xhashidx)1<<size_shift;
     xhashidx u = pset->ph_.used;
-    if (4*u < size)
+    if (4*u < size) {
         pset_shrink(pset);
+    }
     return xhash_delete__(&pset->ph_, key, false);
 }
 
