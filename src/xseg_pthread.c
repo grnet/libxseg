@@ -40,83 +40,81 @@ static void pthread_mfree(void *mem);
 
 static int pthread_allocate(const char *name, uint64_t size)
 {
-	int fd;
+    int fd;
     int ret = 0;
     int serrno = 0;
 
-	fd = shm_open(name, O_RDWR | O_CREAT | O_EXCL, 0770);
-	if (fd < 0) {
+    fd = shm_open(name, O_RDWR | O_CREAT | O_EXCL, 0770);
+    if (fd < 0) {
         serrno = errno;
-		XSEGLOG("Cannot create shared segment: %s\n",
-			strerror_r(errno, errbuf, ERRSIZE));
+        XSEGLOG("Cannot create shared segment: %s\n",
+                strerror_r(errno, errbuf, ERRSIZE));
         ret = fd;
-		goto exit;
-	}
+        goto exit;
+    }
 
-	if (ftruncate(fd, size) != 0) {
-		serrno = errno;
-		close(fd);
-		XSEGLOG("Cannot seek into segment file: %s\n",
-			strerror_r(errno, errbuf, ERRSIZE));
+    if (ftruncate(fd, size) != 0) {
+        serrno = errno;
+        close(fd);
+        XSEGLOG("Cannot seek into segment file: %s\n",
+                strerror_r(errno, errbuf, ERRSIZE));
         ret = -1;
         goto exit;
-	}
+    }
 
-	close(fd);
+    close(fd);
 
-exit:
-	errno = serrno;
-	return ret;
+  exit:
+    errno = serrno;
+    return ret;
 }
 
 static int pthread_deallocate(const char *name)
 {
-	return shm_unlink(name);
+    return shm_unlink(name);
 }
 
 static void *pthread_map(const char *name, uint64_t size, struct xseg *seg)
 {
-	struct xseg *xseg;
-	int fd;
+    struct xseg *xseg;
+    int fd;
 
-//	if (seg)
-//		XSEGLOG("struct xseg * is not NULL. Ignoring...\n");
+//      if (seg)
+//              XSEGLOG("struct xseg * is not NULL. Ignoring...\n");
 
-	fd = shm_open(name, O_RDWR, 0000);
-	if (fd < 0) {
-		XSEGLOG("Failed to open '%s' for mapping: %s\n",
-			name, strerror_r(errno, errbuf, ERRSIZE));
-		return NULL;
-	}
+    fd = shm_open(name, O_RDWR, 0000);
+    if (fd < 0) {
+        XSEGLOG("Failed to open '%s' for mapping: %s\n",
+                name, strerror_r(errno, errbuf, ERRSIZE));
+        return NULL;
+    }
 
-	xseg = mmap(NULL,
-			size,
-			PROT_READ | PROT_WRITE,
-			MAP_SHARED /* | MAP_LOCKED */,
-			fd, 0	);
+    xseg = mmap(NULL,
+                size, PROT_READ | PROT_WRITE, MAP_SHARED /* | MAP_LOCKED */ ,
+                fd, 0);
 
-	if (xseg == MAP_FAILED) {
-		XSEGLOG("Could not map segment: %s\n",
-			strerror_r(errno, errbuf, ERRSIZE));
-		return NULL;
-	}
+    if (xseg == MAP_FAILED) {
+        XSEGLOG("Could not map segment: %s\n",
+                strerror_r(errno, errbuf, ERRSIZE));
+        return NULL;
+    }
 
-	close(fd);
-	return xseg;
+    close(fd);
+    return xseg;
 }
 
 static void pthread_unmap(void *ptr, uint64_t size)
 {
-	struct xseg *xseg = ptr;
-	(void)munmap(xseg, size);
+    struct xseg *xseg = ptr;
+    (void) munmap(xseg, size);
 }
 
 
 static void handler(int signum)
 {
-	static unsigned long counter;
-	printf("%lu: signal %d: this shouldn't have happened.\n", counter, signum);
-	counter ++;
+    static unsigned long counter;
+    printf("%lu: signal %d: this shouldn't have happened.\n", counter, signum);
+    counter++;
 }
 
 static pthread_key_t pid_key, xpidx_key;
@@ -129,37 +127,37 @@ static volatile int id = 0;
 
 static void keys_init(void)
 {
-	int r;
+    int r;
 
-	r = pthread_key_create(&pid_key, NULL);
-	if (r < 0) {
-		isInit = 0;
-		return;
-	}
+    r = pthread_key_create(&pid_key, NULL);
+    if (r < 0) {
+        isInit = 0;
+        return;
+    }
 
-	r = pthread_key_create(&xpidx_key, NULL);
-	if (r < 0) {
-		isInit = 0;
-		return;
-	}
-	r = pthread_key_create(&mask_key, NULL);
-	if (r < 0) {
-		isInit = 0;
-		return;
-	}
+    r = pthread_key_create(&xpidx_key, NULL);
+    if (r < 0) {
+        isInit = 0;
+        return;
+    }
+    r = pthread_key_create(&mask_key, NULL);
+    if (r < 0) {
+        isInit = 0;
+        return;
+    }
 
-	r = pthread_key_create(&act_key, NULL);
-	if (r < 0) {
-		isInit = 0;
-		return;
-	}
-	r = pthread_key_create(&id_key, NULL);
-	if (r < 0) {
-		isInit = 0;
-		return;
-	}
-	isInit = 1;
-	once_quit = PTHREAD_ONCE_INIT;
+    r = pthread_key_create(&act_key, NULL);
+    if (r < 0) {
+        isInit = 0;
+        return;
+    }
+    r = pthread_key_create(&id_key, NULL);
+    if (r < 0) {
+        isInit = 0;
+        return;
+    }
+    isInit = 1;
+    once_quit = PTHREAD_ONCE_INIT;
 }
 
 #define INT_TO_POINTER(__myptr, __myint) \
@@ -177,328 +175,328 @@ static void keys_init(void)
 /* must be called by each thread */
 static int pthread_local_signal_init(struct xseg *xseg, xport portno)
 {
-	int r, my_id;
-	pid_t pid;
-	void *tmp, *tmp2;
-	sigset_t *savedset, *set;
-	struct sigaction *act, *old_act;
+    int r, my_id;
+    pid_t pid;
+    void *tmp, *tmp2;
+    sigset_t *savedset, *set;
+    struct sigaction *act, *old_act;
 
-	savedset = pthread_malloc(sizeof(sigset_t));
-	if (!savedset) {
-		goto err1;
-	}
-	set = pthread_malloc(sizeof(sigset_t));
-	if (!set) {
-		goto err2;
-	}
+    savedset = pthread_malloc(sizeof(sigset_t));
+    if (!savedset) {
+        goto err1;
+    }
+    set = pthread_malloc(sizeof(sigset_t));
+    if (!set) {
+        goto err2;
+    }
 
-	act = pthread_malloc(sizeof(struct sigaction));
-	if (!act) {
-		goto err3;
-	}
-	old_act = pthread_malloc(sizeof(struct sigaction));
-	if (!old_act) {
-		goto err4;
-	}
+    act = pthread_malloc(sizeof(struct sigaction));
+    if (!act) {
+        goto err3;
+    }
+    old_act = pthread_malloc(sizeof(struct sigaction));
+    if (!old_act) {
+        goto err4;
+    }
 
-	pthread_once(&once_init, keys_init);
-	if (!isInit) {
-		goto err5;
-	}
+    pthread_once(&once_init, keys_init);
+    if (!isInit) {
+        goto err5;
+    }
 
-	sigemptyset(set);
-	act->sa_handler = handler;
-	act->sa_mask = *set;
-	act->sa_flags = 0;
-	if(sigaction(SIGIO, act, old_act) < 0) {
-		goto err5;
-	}
-
-
-	sigaddset(set, SIGIO);
-
-	r = pthread_sigmask(SIG_BLOCK, set, savedset);
-	if (r < 0) {
-		goto err6;
-	}
+    sigemptyset(set);
+    act->sa_handler = handler;
+    act->sa_mask = *set;
+    act->sa_flags = 0;
+    if (sigaction(SIGIO, act, old_act) < 0) {
+        goto err5;
+    }
 
 
-	my_id = *(volatile int *) &id;
-	while (!__sync_bool_compare_and_swap(&id, my_id, my_id+1)) {
-		my_id = *(volatile int *) &id;
-	}
-	pid = syscall(SYS_gettid);
-	INT_TO_POINTER(tmp, pid);
-	INT_TO_POINTER(tmp2, my_id);
-	if (pthread_setspecific(pid_key, tmp) ||
-			pthread_setspecific(mask_key, savedset) ||
-			pthread_setspecific(act_key, old_act) ||
-			pthread_setspecific(id_key, tmp2)) {
-		goto err7;
-	}
+    sigaddset(set, SIGIO);
 
-	return 0;
+    r = pthread_sigmask(SIG_BLOCK, set, savedset);
+    if (r < 0) {
+        goto err6;
+    }
 
-err7:
-	pthread_sigmask(SIG_BLOCK, savedset, NULL);
-err6:
-	sigaction(SIGIO, old_act, NULL);
-err5:
-	pthread_mfree(old_act);
-err4:
-	pthread_mfree(act);
-err3:
-	pthread_mfree(set);
-err2:
-	pthread_mfree(savedset);
-err1:
-	return -1;
+
+    my_id = *(volatile int *) &id;
+    while (!__sync_bool_compare_and_swap(&id, my_id, my_id + 1)) {
+        my_id = *(volatile int *) &id;
+    }
+    pid = syscall(SYS_gettid);
+    INT_TO_POINTER(tmp, pid);
+    INT_TO_POINTER(tmp2, my_id);
+    if (pthread_setspecific(pid_key, tmp) ||
+        pthread_setspecific(mask_key, savedset) ||
+        pthread_setspecific(act_key, old_act) ||
+        pthread_setspecific(id_key, tmp2)) {
+        goto err7;
+    }
+
+    return 0;
+
+  err7:
+    pthread_sigmask(SIG_BLOCK, savedset, NULL);
+  err6:
+    sigaction(SIGIO, old_act, NULL);
+  err5:
+    pthread_mfree(old_act);
+  err4:
+    pthread_mfree(act);
+  err3:
+    pthread_mfree(set);
+  err2:
+    pthread_mfree(savedset);
+  err1:
+    return -1;
 }
 
 /* should be called by each thread which had initialized signals */
 static void pthread_local_signal_quit(struct xseg *xseg, xport portno)
 {
-	sigset_t *savedset;
-	struct sigaction *old_act;
+    sigset_t *savedset;
+    struct sigaction *old_act;
 
-	savedset = pthread_getspecific(act_key);
-	old_act = pthread_getspecific(mask_key);
-	if (old_act) {
-		sigaction(SIGIO, old_act, NULL);
-	}
-	if (savedset) {
-		pthread_sigmask(SIG_SETMASK, savedset, NULL);
-	}
+    savedset = pthread_getspecific(act_key);
+    old_act = pthread_getspecific(mask_key);
+    if (old_act) {
+        sigaction(SIGIO, old_act, NULL);
+    }
+    if (savedset) {
+        pthread_sigmask(SIG_SETMASK, savedset, NULL);
+    }
 }
 
 static int pthread_remote_signal_init(void)
 {
-	return 0;
+    return 0;
 }
 
 static void pthread_remote_signal_quit(void)
 {
-	return;
+    return;
 }
 
 static int pthread_prepare_wait(struct xseg *xseg, uint32_t portno)
 {
-	void * tmp;
-	pid_t pid;
-	int my_id;
-	struct pthread_signal_desc *psd;
-	struct xseg_port *port = xseg_get_port(xseg, portno);
-	if (!port) {
-		return -1;
-	}
-	psd = xseg_get_signal_desc(xseg, port);
-	if (!psd) {
-		return -1;
-	}
+    void *tmp;
+    pid_t pid;
+    int my_id;
+    struct pthread_signal_desc *psd;
+    struct xseg_port *port = xseg_get_port(xseg, portno);
+    if (!port) {
+        return -1;
+    }
+    psd = xseg_get_signal_desc(xseg, port);
+    if (!psd) {
+        return -1;
+    }
 
-	tmp = pthread_getspecific(pid_key);
-	POINTER_TO_INT(pid, tmp);
-	if (!pid) {
-		return -1;
-	}
-	tmp = pthread_getspecific(id_key);
-	POINTER_TO_INT(my_id, tmp);
-	psd->pids[my_id] = pid;
-	return 0;
+    tmp = pthread_getspecific(pid_key);
+    POINTER_TO_INT(pid, tmp);
+    if (!pid) {
+        return -1;
+    }
+    tmp = pthread_getspecific(id_key);
+    POINTER_TO_INT(my_id, tmp);
+    psd->pids[my_id] = pid;
+    return 0;
 }
 
 static int pthread_cancel_wait(struct xseg *xseg, uint32_t portno)
 {
-	void * tmp;
-	int my_id;
-	pid_t pid;
-	struct pthread_signal_desc *psd;
-	struct xseg_port *port = xseg_get_port(xseg, portno);
-	if (!port) {
-		return -1;
-	}
-	psd = xseg_get_signal_desc(xseg, port);
-	if (!psd) {
-		return -1;
-	}
+    void *tmp;
+    int my_id;
+    pid_t pid;
+    struct pthread_signal_desc *psd;
+    struct xseg_port *port = xseg_get_port(xseg, portno);
+    if (!port) {
+        return -1;
+    }
+    psd = xseg_get_signal_desc(xseg, port);
+    if (!psd) {
+        return -1;
+    }
 
-	tmp = pthread_getspecific(pid_key);
-	POINTER_TO_INT(pid, tmp);
-	if (!pid) {
-		return -1;
-	}
+    tmp = pthread_getspecific(pid_key);
+    POINTER_TO_INT(pid, tmp);
+    if (!pid) {
+        return -1;
+    }
 
-	tmp = pthread_getspecific(id_key);
-	POINTER_TO_INT(my_id, tmp);
-	psd->pids[my_id] = 0;
+    tmp = pthread_getspecific(id_key);
+    POINTER_TO_INT(my_id, tmp);
+    psd->pids[my_id] = 0;
 
-	return 0;
+    return 0;
 }
 
-static int pthread_wait_signal(struct xseg *xseg, void *sd, uint32_t usec_timeout)
+static int pthread_wait_signal(struct xseg *xseg, void *sd,
+                               uint32_t usec_timeout)
 {
-	int r;
-	siginfo_t siginfo;
-	struct timespec ts;
-	sigset_t set;
-	sigemptyset(&set);
-	sigaddset(&set, SIGIO);
+    int r;
+    siginfo_t siginfo;
+    struct timespec ts;
+    sigset_t set;
+    sigemptyset(&set);
+    sigaddset(&set, SIGIO);
 
-	ts.tv_sec = usec_timeout / 1000000;
-	ts.tv_nsec = 1000 * (usec_timeout - ts.tv_sec * 1000000);
+    ts.tv_sec = usec_timeout / 1000000;
+    ts.tv_nsec = 1000 * (usec_timeout - ts.tv_sec * 1000000);
 
-	r = sigtimedwait(&set, &siginfo, &ts);
-	if (r < 0) {
-		return r;
-	}
+    r = sigtimedwait(&set, &siginfo, &ts);
+    if (r < 0) {
+        return r;
+    }
 
-	return siginfo.si_signo;
+    return siginfo.si_signo;
 }
 
 static int pthread_signal(struct xseg *xseg, uint32_t portno)
 {
-	int i;
-	struct pthread_signal_desc *psd;
-	struct xseg_port *port = xseg_get_port(xseg, portno);
-	if (!port) {
-		return -1;
-	}
-	psd = xseg_get_signal_desc(xseg, port);
-	if (!psd) {
-		return -1;
-	}
+    int i;
+    struct pthread_signal_desc *psd;
+    struct xseg_port *port = xseg_get_port(xseg, portno);
+    if (!port) {
+        return -1;
+    }
+    psd = xseg_get_signal_desc(xseg, port);
+    if (!psd) {
+        return -1;
+    }
 
-	pid_t cue;
-	for (i = 0; i < MAX_WAITERS; i++) {
-		cue = psd->pids[i];
-		if (cue) {
-			return syscall(SYS_tkill, cue, SIGIO);
-		}
-	}
+    pid_t cue;
+    for (i = 0; i < MAX_WAITERS; i++) {
+        cue = psd->pids[i];
+        if (cue) {
+            return syscall(SYS_tkill, cue, SIGIO);
+        }
+    }
 
-	/* no waiter found */
-	return 0;
+    /* no waiter found */
+    return 0;
 }
 
 static void *pthread_malloc(uint64_t size)
 {
-	return malloc((size_t)size);
+    return malloc((size_t) size);
 }
 
 static void *pthread_realloc(void *mem, uint64_t size)
 {
-	return realloc(mem, (size_t)size);
+    return realloc(mem, (size_t) size);
 }
 
 static void pthread_mfree(void *mem)
 {
-	free(mem);
+    free(mem);
 }
 
 static struct xseg_type xseg_pthread = {
-	/* xseg_operations */
-	{
-		.mfree		= pthread_mfree,
-		.allocate	= pthread_allocate,
-		.deallocate	= pthread_deallocate,
-		.map		= pthread_map,
-		.unmap		= pthread_unmap,
-	},
-	/* name */
-	"pthread"
+    /* xseg_operations */
+    {
+     .mfree = pthread_mfree,
+     .allocate = pthread_allocate,
+     .deallocate = pthread_deallocate,
+     .map = pthread_map,
+     .unmap = pthread_unmap,
+     },
+    /* name */
+    "pthread"
 };
 
 int pthread_init_signal_desc(struct xseg *xseg, void *sd)
 {
-	int i;
-	struct pthread_signal_desc *psd = (struct pthread_signal_desc *)sd;
-	for (i = 0; i < MAX_WAITERS; i++) {
-		psd->pids[i] = 0;
-	}
-	return 0;
+    int i;
+    struct pthread_signal_desc *psd = (struct pthread_signal_desc *) sd;
+    for (i = 0; i < MAX_WAITERS; i++) {
+        psd->pids[i] = 0;
+    }
+    return 0;
 }
 
 void pthread_quit_signal_desc(struct xseg *xseg, void *sd)
 {
-	int i;
-	struct pthread_signal_desc *psd = (struct pthread_signal_desc *)sd;
-	for (i = 0; i < MAX_WAITERS; i++) {
-		psd->pids[i] = 0;
-	}
-	return;
+    int i;
+    struct pthread_signal_desc *psd = (struct pthread_signal_desc *) sd;
+    for (i = 0; i < MAX_WAITERS; i++) {
+        psd->pids[i] = 0;
+    }
+    return;
 }
 
-void * pthread_alloc_data(struct xseg *xseg)
+void *pthread_alloc_data(struct xseg *xseg)
 {
-	struct xobject_h *sd_h = xseg_get_objh(xseg, MAGIC_PTHREAD_SD,
-				sizeof(struct pthread_signal_desc));
-	return sd_h;
+    struct xobject_h *sd_h = xseg_get_objh(xseg, MAGIC_PTHREAD_SD,
+                                           sizeof(struct pthread_signal_desc));
+    return sd_h;
 }
 
 void pthread_free_data(struct xseg *xseg, void *data)
 {
-	if (data) {
-		xseg_put_objh(xseg, (struct xobject_h *)data);
-	}
-	return;
+    if (data) {
+        xseg_put_objh(xseg, (struct xobject_h *) data);
+    }
+    return;
 }
 
 void *pthread_alloc_signal_desc(struct xseg *xseg, void *data)
 {
-	struct pthread_signal_desc *psd;
-	struct xobject_h *sd_h = (struct xobject_h *) data;
-	if (!sd_h) {
-		return NULL;
-	}
-	psd = xobj_get_obj(sd_h, X_ALLOC);
-	if (!psd) {
-		return NULL;
-	}
-	return psd;
+    struct pthread_signal_desc *psd;
+    struct xobject_h *sd_h = (struct xobject_h *) data;
+    if (!sd_h) {
+        return NULL;
+    }
+    psd = xobj_get_obj(sd_h, X_ALLOC);
+    if (!psd) {
+        return NULL;
+    }
+    return psd;
 
 }
 
 void pthread_free_signal_desc(struct xseg *xseg, void *data, void *sd)
 {
-	struct xobject_h *sd_h = (struct xobject_h *) data;
-	if (!sd_h) {
-		return;
-	}
-	if (sd) {
-		xobj_put_obj(sd_h, sd);
-	}
-	return;
+    struct xobject_h *sd_h = (struct xobject_h *) data;
+    if (!sd_h) {
+        return;
+    }
+    if (sd) {
+        xobj_put_obj(sd_h, sd);
+    }
+    return;
 }
 
 
 static struct xseg_peer xseg_peer_pthread = {
-	/* xseg_peer_operations */
-	{
-		.init_signal_desc   = pthread_init_signal_desc,
-		.quit_signal_desc   = pthread_quit_signal_desc,
-		.alloc_data         = pthread_alloc_data,
-		.free_data          = pthread_free_data,
-		.alloc_signal_desc  = pthread_alloc_signal_desc,
-		.free_signal_desc   = pthread_free_signal_desc,
-		.local_signal_init  = pthread_local_signal_init,
-		.local_signal_quit  = pthread_local_signal_quit,
-		.remote_signal_init = pthread_remote_signal_init,
-		.remote_signal_quit = pthread_remote_signal_quit,
-		.prepare_wait	= pthread_prepare_wait,
-		.cancel_wait	= pthread_cancel_wait,
-		.wait_signal	= pthread_wait_signal,
-		.signal		= pthread_signal,
-		.malloc		= pthread_malloc,
-		.realloc	= pthread_realloc,
-		.mfree		= pthread_mfree,
-	},
-	/* name */
-	"pthread"
+    /* xseg_peer_operations */
+    {
+     .init_signal_desc      = pthread_init_signal_desc,
+     .quit_signal_desc      = pthread_quit_signal_desc,
+     .alloc_data            = pthread_alloc_data,
+     .free_data             = pthread_free_data,
+     .alloc_signal_desc     = pthread_alloc_signal_desc,
+     .free_signal_desc      = pthread_free_signal_desc,
+     .local_signal_init     = pthread_local_signal_init,
+     .local_signal_quit     = pthread_local_signal_quit,
+     .remote_signal_init    = pthread_remote_signal_init,
+     .remote_signal_quit    = pthread_remote_signal_quit,
+     .prepare_wait          = pthread_prepare_wait,
+     .cancel_wait           = pthread_cancel_wait,
+     .wait_signal           = pthread_wait_signal,
+     .signal                = pthread_signal,
+     .malloc                = pthread_malloc,
+     .realloc               = pthread_realloc,
+     .mfree                 = pthread_mfree,
+     },
+    /* name */
+    "pthread"
 };
 
 void xseg_pthread_init(void)
 {
-	xseg_register_type(&xseg_pthread);
-	xseg_register_peer(&xseg_peer_pthread);
+    xseg_register_type(&xseg_pthread);
+    xseg_register_peer(&xseg_peer_pthread);
 }
-

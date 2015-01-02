@@ -18,6 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define MAX_WAITERS 64
 #define MAGIC_PTHREAD_SD 7
 
-struct pthread_signal_desc{
-	volatile pid_t pids[MAX_WAITERS];
+struct pthread_signal_desc {
+    volatile pid_t pids[MAX_WAITERS];
 };
