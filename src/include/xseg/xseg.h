@@ -31,6 +31,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <xseg/xhash.h>
 #include <xseg/xpool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef uint64_t xserial;
 typedef uint32_t xport;
 
@@ -459,4 +463,9 @@ struct xseg_port *xseg_bind_dynport(struct xseg *xseg);
 int xseg_leave_dynport(struct xseg *xseg, struct xseg_port *port);
 extern uint32_t xseg_portno_nonstatic(struct xseg *xseg,
                                       struct xseg_port *port);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

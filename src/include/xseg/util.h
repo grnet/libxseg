@@ -38,8 +38,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 /* log stuff */
 
-
-
 #define FMTARG(fmt, arg, format, ...) fmt format "%s", arg, ## __VA_ARGS__
 #define XSEGLOG(...) (snprintf(__xseg_errbuf, 4096, FMTARG("%s: ", __func__, ## __VA_ARGS__, "")), \
                     __xseg_errbuf[4095] = 0, __xseg_log(__xseg_errbuf))
@@ -74,6 +72,9 @@ void log_request(struct log_context *lc, struct xseg *xseg,  struct xseg_request
 #define X_LOCAL    ((uint32_t) (1 << 1))
 #define X_NONBLOCK ((uint32_t) (1 << 2))
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef uint64_t xpointer;
 
@@ -135,5 +136,9 @@ struct log_ctx {
     unsigned int log_level;
     uint32_t flags;
 };
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

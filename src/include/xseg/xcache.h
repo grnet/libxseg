@@ -67,6 +67,10 @@ typedef xqindex xcache_handler;
  *		On non-zero value, user should get the entry which will be put
  *		to the evicted table.
  */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct xcache_ops {
     int (*on_init) (void *cache_data, void *user_data);
     int (*on_evict) (void *cache_data, void *evicted_user_data);
@@ -152,5 +156,9 @@ void xcache_put(struct xcache *cache, xcache_handler h);
 void xcache_get(struct xcache *cache, xcache_handler h);
 uint64_t xcache_free_nodes(struct xcache *cache);
 void xcache_free_new(struct xcache *cache, xcache_handler h);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif                          /* __XCACHE_H */

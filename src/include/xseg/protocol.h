@@ -20,6 +20,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Reply structures.
  * Every X_OP returns a corresponding xseg_reply_op struct
@@ -91,4 +95,8 @@ struct xseg_request_rename {
     char target[XSEG_MAX_TARGETLEN];
     uint32_t targetlen;
 };
+#ifdef __cplusplus
+}
+#endif
+
 #endif

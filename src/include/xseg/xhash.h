@@ -29,6 +29,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *  -- kkourt@cslab.ece.ntua.gr
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef uint64_t xhashidx;
 #define Noxhashidx ((xhashidx) -1)
 
@@ -178,6 +182,10 @@ static inline void pset_iter_init(pset_t * pset, pset_iter_t * pi)
 }
 
 #endif                          /* if 0 */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 
