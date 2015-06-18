@@ -46,9 +46,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #define XSEGLOG2(__ctx, __level, ...) 		\
 		do { 				\
-			if (__level <= ((__ctx)->log_level)) { \
-				__xseg_log2(__ctx, __level, FMTARG("%s: ", __func__, ## __VA_ARGS__ ,"")); \
-			}	\
+			__xseg_log2(__level, FMTARG("%s: ", __func__, ## __VA_ARGS__ ,"")); \
 		} while(0)
 
 /*
@@ -120,20 +118,5 @@ typedef uint64_t xptr;
 
 #define XPTR_TAKE(xptrval, base)	\
 	( (void *) ( (unsigned long) base + (unsigned long) xptrval))
-
-#define REOPEN_FILE     (1 << 1)
-#define REDIRECT_STDOUT (1 << 1)
-#define REDIRECT_STDERR (1 << 2)
-
-
-struct log_ctx {
-//	int stdout_orig;
-//	int stderr_orig;
-	char filename[MAX_LOGFILE_LEN];
-	volatile int logfile;
-	char peer_name[MAX_PEER_NAME];
-	unsigned int log_level;
-	uint32_t flags;
-};
 
 #endif
