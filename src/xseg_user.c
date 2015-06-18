@@ -38,8 +38,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <xseg/xlock.h>
 
-int (*xseg_snprintf)(char *str, size_t size, const char *format, ...) = snprintf;
-
 char __xseg_errbuf[4096];
 
 static struct xlock __lock = { .owner = XLOCK_NOONE};
@@ -86,12 +84,6 @@ void __load_plugin(const char *name)
 uint64_t __get_id(void)
 {
 	return (uint64_t)syscall(SYS_gettid);
-}
-
-void __xseg_log(const char *msg)
-{
-	fprintf(stderr, "%s", msg);
-	fflush(stderr);
 }
 
 void *xtypes_malloc(unsigned long size)

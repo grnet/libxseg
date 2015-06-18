@@ -41,8 +41,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 #define FMTARG(fmt, arg, format, ...) fmt format "%s", arg, ## __VA_ARGS__
-#define XSEGLOG(...) (xseg_snprintf(__xseg_errbuf, 4096, FMTARG("%s: ", __func__, ## __VA_ARGS__, "")), \
-                    __xseg_errbuf[4095] = 0, __xseg_log(__xseg_errbuf))
 
 #define XSEGLOG2(__ctx, __level, ...) 		\
 		do { 				\
