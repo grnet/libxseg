@@ -100,7 +100,7 @@ void* xheap_allocate(struct xheap *heap, uint64_t bytes)
 	if (!head)
 		goto alloc;
 	if (head > heap->cur) {
-		XSEGLOG2(I, "invalid xptr %llu found in chunk lists\n", head);
+		XSEGLOG2(W, "invalid xptr %llu found in chunk lists\n", head);
 		goto out;
 	}
 	next = *(xptr *)(((unsigned long) mem) + head);
@@ -129,13 +129,13 @@ out:
 //	printf("alloced: %lx (size: %llu) (xptr: %llu)\n", addr, __get_header(addr)->size,
 //			addr-mem);
 	if (addr && xheap_get_chunk_size(addr) < req_bytes){
-		XSEGLOG2(I, "requested %llu bytes but heap returned %llu", 
+		XSEGLOG2(W, "requested %llu bytes but heap returned %llu", 
 				req_bytes, xheap_get_chunk_size(addr));
 		addr = NULL;
 	}
 	if (addr && xheap_get_chunk_size(addr) != (__get_alloc_bytes(heap, req_bytes) - 
 					sizeof(struct xheap_header))) {
-		XSEGLOG2(I, "allocated chunk size %llu, but it should be %llu (req_bytes %llu)",
+		XSEGLOG2(W, "allocated chunk size %llu, but it should be %llu (req_bytes %llu)",
 			xheap_get_chunk_size(addr), __get_alloc_bytes(heap, req_bytes), req_bytes);
 		addr = NULL;
 	}
@@ -168,7 +168,7 @@ void xheap_free(void *ptr)
 	int r;
 	xptr *free_list;
 	if (h->magic != 0xdeadbeaf) {
-		XSEGLOG2(I, "for ptr: %lx, magic %lx != 0xdeadbeaf", ptr, h->magic);
+		XSEGLOG2(W, "for ptr: %lx, magic %lx != 0xdeadbeaf", ptr, h->magic);
 	}
 	mem = XPTR(&heap->mem);
 	size = xheap_get_chunk_size(ptr);

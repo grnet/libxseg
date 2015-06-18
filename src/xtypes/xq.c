@@ -130,7 +130,7 @@ void xq_print(struct xq *xq)
 	for (;;) {
 		if (i == xq->head)
 			break;
-		XSEGLOG2(I, 	"%lu %lu\n",
+		XSEGLOG2(I,	"%lu %lu\n",
 			(unsigned long)i,
 			(unsigned long)xq_element(xq, i) );
 		i += 1;

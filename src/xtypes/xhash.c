@@ -260,7 +260,7 @@ xhash_new__(xhashidx size_shift, xhashidx minsize_shift, xhashidx limit,
     struct xhash *xhash;
     xhash = xtypes_malloc(get_alloc_size(size_shift, vals));
     if (!xhash) {
-	XSEGLOG2(I, "couldn't malloc\n");
+	XSEGLOG2(W, "couldn't malloc\n");
 	return NULL;
     }
 

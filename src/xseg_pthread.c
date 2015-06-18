@@ -43,7 +43,7 @@ static long pthread_allocate(const char *name, uint64_t size)
 	off_t lr;
 	fd = shm_open(name, O_RDWR | O_CREAT | O_EXCL, 0770);
 	if (fd < 0) {
-		XSEGLOG2(I, "Cannot create shared segment: %s\n",
+		XSEGLOG2(W, "Cannot create shared segment: %s\n",
 			strerror_r(errno, errbuf, ERRSIZE));
 		return fd;
 	}
@@ -51,7 +51,7 @@ static long pthread_allocate(const char *name, uint64_t size)
 	lr = lseek(fd, size -1, SEEK_SET);
 	if (lr == (off_t)-1) {
 		close(fd);
-		XSEGLOG2(I, "Cannot seek into segment file: %s\n",
+		XSEGLOG2(W, "Cannot seek into segment file: %s\n",
 			strerror_r(errno, errbuf, ERRSIZE));
 		return lr;
 	}
@@ -60,7 +60,7 @@ static long pthread_allocate(const char *name, uint64_t size)
 	r = write(fd, errbuf, 1);
 	if (r != 1) {
 		close(fd);
-		XSEGLOG2(I, "Failed to set segment size: %s\n",
+		XSEGLOG2(W, "Failed to set segment size: %s\n",
 			strerror_r(errno, errbuf, ERRSIZE));
 		return r;
 	}
@@ -84,7 +84,7 @@ static void *pthread_map(const char *name, uint64_t size, struct xseg *seg)
 
 	fd = shm_open(name, O_RDWR, 0000);
 	if (fd < 0) {
-		XSEGLOG2(I, "Failed to open '%s' for mapping: %s\n",
+		XSEGLOG2(W, "Failed to open '%s' for mapping: %s\n",
 			name, strerror_r(errno, errbuf, ERRSIZE));
 		return NULL;
 	}
@@ -96,7 +96,7 @@ static void *pthread_map(const char *name, uint64_t size, struct xseg *seg)
 			fd, 0	);
 
 	if (xseg == MAP_FAILED) {
-		XSEGLOG2(I, "Could not map segment: %s\n",
+		XSEGLOG2(W, "Could not map segment: %s\n",
 			strerror_r(errno, errbuf, ERRSIZE));
 		return NULL;
 	}

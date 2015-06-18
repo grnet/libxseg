@@ -65,7 +65,7 @@ void __load_plugin(const char *name)
 	_name[5 + namelen + 3 ] = 0;
 	dl = dlopen(_name, RTLD_NOW);
 	if (!dl) {
-		XSEGLOG2(I, "Cannot load plugin '%s': %s\n", _name, dlerror());
+		XSEGLOG2(W, "Cannot load plugin '%s': %s\n", _name, dlerror());
 		return;
 	}
 
@@ -73,7 +73,7 @@ void __load_plugin(const char *name)
 	_name[127] = 0;
 	init = (void (*)(void))(long)dlsym(dl, _name);
 	if (!init) {
-		XSEGLOG2(I, "Init function '%s' not found!\n", _name);
+		XSEGLOG2(W, "Init function '%s' not found!\n", _name);
 		return;
 	}
 
