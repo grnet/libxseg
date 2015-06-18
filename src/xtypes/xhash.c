@@ -56,7 +56,7 @@ static inline xhashidx hash_string(xhashidx key)
 	if (hv == Noxhashidx)
 		hv = Noxhashidx -1;
 
-//	XSEGLOG("String %s (%lx). Hash value: %llu",
+//	XSEGLOG2(I, "String %s (%lx). Hash value: %llu",
 //			string, string, hv);
 	return hv; 
 }
@@ -66,7 +66,7 @@ static inline int cmp_string(xhashidx key1, xhashidx key2)
 	char *string1 = (char *) key1;
 	char *string2 = (char *) key2;
 	int value = !strcmp(string1, string2);
-//	XSEGLOG("String1 %s (%lx), string2: %s(%lx), r: %d",
+//	XSEGLOG2(I, "String1 %s (%lx), string2: %s(%lx), r: %d",
 //			string1, (unsigned long) string1,
 //			string2, (unsigned long) string2,
 //			value);
@@ -260,7 +260,7 @@ xhash_new__(xhashidx size_shift, xhashidx minsize_shift, xhashidx limit,
     struct xhash *xhash;
     xhash = xtypes_malloc(get_alloc_size(size_shift, vals));
     if (!xhash) {
-	XSEGLOG("couldn't malloc\n");
+	XSEGLOG2(I, "couldn't malloc\n");
 	return NULL;
     }
 
@@ -281,7 +281,7 @@ xhash_resize__(struct xhash *xhash, xhashidx new_size_shift, xhashidx new_limit,
 int
 xhash_delete__(xhash_t *xhash, xhashidx key, bool vals)
 {
-//    XSEGLOG("Deleting %lx", key);
+//    XSEGLOG2(I, "Deleting %lx", key);
     xhash_cmp_fun_t cmp_fun = types_fun[xhash->type].cmp_fun;
     xhash_hash_fun_t hash_fun = types_fun[xhash->type].hash_fun; 
     xhashidx perturb = hash_fun(key);
@@ -445,7 +445,7 @@ set_val(xhash_t *p, xhashidx idx, xhashidx key, xhashidx val)
     xhashidx *vals = xhash_vals(p);
     kvs[idx] = key;
     vals[idx] = val;
-    //XSEGLOG("Seting idx %llu to key: %lx, val: %lx", idx, key, val);
+    //XSEGLOG2(I, "Seting idx %llu to key: %lx, val: %lx", idx, key, val);
 }
 
 void static inline xhash_upd_set(xhash_t *p, xhashidx idx, xhashidx key, xhashidx val)
@@ -457,7 +457,7 @@ void static inline xhash_upd_set(xhash_t *p, xhashidx idx, xhashidx key, xhashid
     p->used++;
     kvs[idx] = key;
     vals[idx] = val;
-    //XSEGLOG("Seting idx %llu to key: %lx, val: %lx", idx, key, val);
+    //XSEGLOG2(I, "Seting idx %llu to key: %lx, val: %lx", idx, key, val);
 }
 
 static inline void
@@ -469,7 +469,7 @@ inc_val(xhash_t *p, xhashidx idx, xhashidx val)
 
 void xhash_insert__(struct xhash *xhash, xhashidx key, xhashidx val)
 {
-    //XSEGLOG("inserting %lx", key);
+    //XSEGLOG2(I, "inserting %lx", key);
     //fprintf(stderr, "insert: (%lu,%lu)\n", key, val);
     #define PHUPD_UPDATE__(_p, _i, _k, _v) set_val(_p, _i, _k, _v)
     #define PHUPD_SET__(_p, _i, _k, _v)    xhash_upd_set(_p, _i, _k, _v)
@@ -510,7 +510,7 @@ xhash_t *
 xhash_resize(xhash_t *xhash, xhashidx new_size_shift, xhashidx new_limit,
 		xhash_t *new)
 {
-    //XSEGLOG("Resizing xhash from %llu to %llu", xhash->size_shift, new_size_shift);
+    //XSEGLOG2(I, "Resizing xhash from %llu to %llu", xhash->size_shift, new_size_shift);
     xhashidx i;
     int f = !!new;
     if (!f)
@@ -562,7 +562,7 @@ int xhash_delete(struct xhash *xhash, xhashidx key)
 
 int xhash_lookup__(xhash_t *xhash, xhashidx key, xhashidx *idx_ret, bool vals)
 {
-    //XSEGLOG("looking up %lx", key);
+    //XSEGLOG2(I, "looking up %lx", key);
     xhash_cmp_fun_t cmp_fun = types_fun[xhash->type].cmp_fun;
     xhash_hash_fun_t hash_fun = types_fun[xhash->type].hash_fun; 
     xhashidx size_shift = xhash->size_shift;
@@ -574,7 +574,7 @@ int xhash_lookup__(xhash_t *xhash, xhashidx key, xhashidx *idx_ret, bool vals)
 
     INCSTAT(xhash->lookups);
     for (;;) {
-	//XSEGLOG("size %llu, perturb %llu idx %llu mask %llu",
+	//XSEGLOG2(I, "size %llu, perturb %llu idx %llu mask %llu",
 	//	    size, perturb, idx, mask);		
         if ( item_unused(xhash, idx, vals) )
             return -XHASH_EEXIST;
@@ -650,15 +650,15 @@ void xhash_print(xhash_t *xhash)
     int ret;
 
     xhash_iter_init(xhash, &pi);
-    XSEGLOG("PHASH(%p):\n", xhash);
+    XSEGLOG2(I, "PHASH(%p):\n", xhash);
     for (;;){
         ret = xhash_iterate(xhash, &pi, &key, &val);
         if (!ret){
             break;
         }
-        XSEGLOG(" 0x%017lx : 0x%017lx\n", key, val);
+        XSEGLOG2(I, " 0x%017lx : 0x%017lx\n", key, val);
     }
-    XSEGLOG("\n");
+    XSEGLOG2(I, "\n");
 }
 
 #ifdef PHASH_MAIN

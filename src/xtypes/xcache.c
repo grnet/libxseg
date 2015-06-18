@@ -39,7 +39,7 @@ static xqindex __alloc_cache_entry(struct xcache *cache)
 static void __free_cache_entry(struct xcache *cache, xqindex idx)
 {
 	if (__xq_append_head(&cache->free_nodes, idx) == Noneidx)
-		XSEGLOG("BUG: Could not free cache entry node. Queue is full");
+		XSEGLOG2(I, "BUG: Could not free cache entry node. Queue is full");
 }
 #endif
 
@@ -61,10 +61,10 @@ static int __table_insert(xhash_t **table, struct xcache * cache, xcache_handler
 
 	r = xhash_insert(*table, (xhashidx)ce->name, idx);
 	if (r == -XHASH_ERESIZE){
-		XSEGLOG("Rebuilding internal hash table");
+		XSEGLOG2(I, "Rebuilding internal hash table");
 		new = xhash_resize(*table, (*table)->size_shift, (*table)->limit, NULL);
 		if (!new) {
-			XSEGLOG("Error resizing hash table");
+			XSEGLOG2(I, "Error resizing hash table");
 			return -1;
 		}
 		*table = new;
@@ -72,7 +72,7 @@ static int __table_insert(xhash_t **table, struct xcache * cache, xcache_handler
 		/* We give insertion a second shot */
 		r = xhash_insert(*table, (xhashidx)ce->name, idx);
 		if (r == -XHASH_ERESIZE) {
-			XSEGLOG("BUG: failed to insert entry after resize");
+			XSEGLOG2(I, "BUG: failed to insert entry after resize");
 			return -1;
 		}
 	}
@@ -87,9 +87,9 @@ static int __table_remove(xhash_t *table, char *name)
 	r = xhash_delete(table, (xhashidx)name);
 	if (UNLIKELY(r<0)){
 		if (r == -XHASH_ERESIZE)
-			XSEGLOG("BUG: hash table must be resized");
+			XSEGLOG2(I, "BUG: hash table must be resized");
 		else if (r == -XHASH_EEXIST)
-			XSEGLOG("BUG: Entry %s not found in hash table", name);
+			XSEGLOG2(I, "BUG: Entry %s not found in hash table", name);
 	}
 	return r;
 }
@@ -102,7 +102,7 @@ static xqindex alloc_cache_entry(struct xcache *cache)
 static void __free_cache_entry(struct xcache *cache, xqindex idx)
 {
 	if (UNLIKELY(xq_append_head(&cache->free_nodes, idx) == Noneidx))
-		XSEGLOG("BUG: Could not free cache entry node. Queue is full");
+		XSEGLOG2(I, "BUG: Could not free cache entry node. Queue is full");
 }
 
 static void free_cache_entry(struct xcache *cache, xqindex idx)
@@ -110,7 +110,7 @@ static void free_cache_entry(struct xcache *cache, xqindex idx)
 	struct xcache_entry *ce = &cache->nodes[idx];
 
 	if (ce->ref != 0)
-		XSEGLOG("BUG: Free entry has ref %lu (priv: %p, h: %p)", ce->priv, idx);
+		XSEGLOG2(I, "BUG: Free entry has ref %lu (priv: %p, h: %p)", ce->priv, idx);
 
 	__free_cache_entry(cache, idx);
 	if (cache->ops.on_free)
@@ -175,7 +175,7 @@ static void __update_access_time(struct xcache *cache, xqindex idx)
 		} else {
 			ce->h = xbinheap_insert(&cache->binheap, cache->time, idx);
 			if (ce->h == NoNode){
-				XSEGLOG("BUG: Cannot insert to lru binary heap");
+				XSEGLOG2(I, "BUG: Cannot insert to lru binary heap");
 			}
 		}
 	}
@@ -207,7 +207,7 @@ static int __xcache_remove_entries(struct xcache *cache, xcache_handler h)
 
 	r = __table_remove(cache->entries, ce->name);
 	if (UNLIKELY(r < 0)){
-		XSEGLOG("Couldn't delete cache entry from hash table:\n"
+		XSEGLOG2(I, "Couldn't delete cache entry from hash table:\n"
 				"h: %llu, name: %s, cache->nodes[h].priv: %p, ref: %llu",
 				h, ce->name, cache->nodes[idx].priv, cache->nodes[idx].ref);
 		return r;
@@ -218,15 +218,15 @@ static int __xcache_remove_entries(struct xcache *cache, xcache_handler h)
 	else if (cache->flags & XCACHE_LRU_HEAP) {
 		if (ce->h != NoNode) {
 			if (xbinheap_increasekey(&cache->binheap, ce->h, XCACHE_LRU_MAX) < 0){
-				XSEGLOG("BUG: cannot increase key to XCACHE_LRU_MAX");
+				XSEGLOG2(I, "BUG: cannot increase key to XCACHE_LRU_MAX");
 			}
 			if (xbinheap_extract(&cache->binheap) == NoNode){
-				XSEGLOG("BUG: cannot remove cache entry from lru");
+				XSEGLOG2(I, "BUG: cannot remove cache entry from lru");
 			}
 			ce->h = NoNode;
 		}
 	}
-	//XSEGLOG("cache->times[%llu] = %llu", idx, cache->times[idx]);
+	//XSEGLOG2(I, "cache->times[%llu] = %llu", idx, cache->times[idx]);
 	return 0;
 }
 
@@ -242,7 +242,7 @@ static int __xcache_remove_rm(struct xcache *cache, xcache_handler h)
 
 	r = __table_remove(cache->rm_entries, ce->name);
 	if (UNLIKELY(r < 0)) {
-		XSEGLOG("Couldn't delete cache entry from hash table:\n"
+		XSEGLOG2(I, "Couldn't delete cache entry from hash table:\n"
 				"h: %llu, name: %s, cache->nodes[h].priv: %p, ref: %llu",
 				h, ce->name, cache->nodes[idx].priv, cache->nodes[idx].ref);
 	}
@@ -364,7 +364,7 @@ static int xcache_entry_init(struct xcache *cache, xqindex idx, char *name)
 
 	xlock_release(&ce->lock);
 	if (UNLIKELY(ce->ref != 0))
-		XSEGLOG("BUG: New entry has ref != 0 (h: %lu, ref: %lu, priv: %p)",
+		XSEGLOG2(I, "BUG: New entry has ref != 0 (h: %lu, ref: %lu, priv: %p)",
 				idx, ce->ref, ce->priv);
 	ce->ref = 1;
 	strncpy(ce->name, name, XSEG_MAX_TARGETLEN);
@@ -387,7 +387,7 @@ static xqindex __xcache_lru(struct xcache *cache)
 
 	if (cache->flags & XCACHE_LRU_ARRAY){
 		for (i = 0; i < cache->nr_nodes; i++) {
-			//XSEGLOG("cache->times[%llu] = %llu", i, cache->times[i]);
+			//XSEGLOG2(I, "cache->times[%llu] = %llu", i, cache->times[i]);
 			if (min > cache->times[i]){
 				min = cache->times[i];
 				lru = i;
@@ -395,7 +395,7 @@ static xqindex __xcache_lru(struct xcache *cache)
 		}
 		//FIXME if cache->times[lru] == XCACHE_LRU_MAX
 		//	lru = NoEntry;
-		//XSEGLOG("Found lru cache->times[%llu] = %llu", lru, cache->times[lru]);
+		//XSEGLOG2(I, "Found lru cache->times[%llu] = %llu", lru, cache->times[lru]);
 	} else if (cache->flags & XCACHE_LRU_HEAP) {
 		lru = xbinheap_extract(&cache->binheap);
 		if (lru == NoNode)
@@ -418,7 +418,7 @@ static int __xcache_evict(struct xcache *cache, xcache_handler h)
 
 	r = __xcache_remove_entries(cache, h);
 	if (r < 0) {
-		XSEGLOG("Failed to evict %llu from entries", h);
+		XSEGLOG2(I, "Failed to evict %llu from entries", h);
 		return -1;
 	}
 
@@ -429,7 +429,7 @@ static int __xcache_evict(struct xcache *cache, xcache_handler h)
 	ce = &cache->nodes[h];
 
 	if (UNLIKELY(ce->state == NODE_EVICTED))
-		XSEGLOG("BUG: Evicting an already evicted entry (h: %lu, priv: %p)",
+		XSEGLOG2(I, "BUG: Evicting an already evicted entry (h: %lu, priv: %p)",
 			 h, ce->priv);
 
 	if (!(cache->flags & XCACHE_USE_RMTABLE))
@@ -442,7 +442,7 @@ static int __xcache_evict(struct xcache *cache, xcache_handler h)
 
 	if (r < 0) {
 		ce->state = NODE_ACTIVE;
-		XSEGLOG("BUG: Failed insert %llu to rm_entries", h);
+		XSEGLOG2(I, "BUG: Failed insert %llu to rm_entries", h);
 		return -1;
 	}
 
@@ -456,7 +456,7 @@ static xcache_handler __xcache_evict_lru(struct xcache *cache)
 
 	lru = __xcache_lru(cache);
 	if (lru == NoEntry){
-		XSEGLOG("BUG: No lru found");
+		XSEGLOG2(I, "BUG: No lru found");
 		return NoEntry;
 	}
 
@@ -519,7 +519,7 @@ static xcache_handler __xcache_insert(struct xcache *cache, xcache_handler h,
 		/* if so then remove it from rm table */
 		r = __xcache_remove_rm(cache, tmp_h);
 		if (UNLIKELY(r < 0)) {
-			XSEGLOG("Could not remove found entry (%llu) for %s"
+			XSEGLOG2(I, "Could not remove found entry (%llu) for %s"
 				"from rm_entries", tmp_h, ce->name);
 			xlock_release(&cache->rm_lock);
 			return NoEntry;
@@ -528,7 +528,7 @@ static xcache_handler __xcache_insert(struct xcache *cache, xcache_handler h,
 		/* and prepare it for reinsertion */
 		ce = &cache->nodes[tmp_h];
 		if (UNLIKELY(ce->state != NODE_EVICTED))
-			XSEGLOG("BUG: Entry (%llu) in rm table not in evicted state", tmp_h);
+			XSEGLOG2(I, "BUG: Entry (%llu) in rm table not in evicted state", tmp_h);
 		ce->state = NODE_ACTIVE;
 
 		__xcache_entry_get(cache, tmp_h);
@@ -543,7 +543,7 @@ insert:
 	if (r == -XHASH_ENOSPC){
 		lru = __xcache_evict_lru(cache);
 		if (UNLIKELY(lru == NoEntry)) {
-			XSEGLOG("BUG: Failed to evict lru entry");
+			XSEGLOG2(I, "BUG: Failed to evict lru entry");
 			return NoEntry;
 		}
 		*lru_handler = lru;
@@ -554,13 +554,13 @@ insert:
 		 */
 		r = __xcache_insert_entries(cache, h);
 		if (r < 0) {
-			XSEGLOG("BUG: failed to insert enries after eviction");
+			XSEGLOG2(I, "BUG: failed to insert enries after eviction");
 			return NoEntry;
 		}
 	}
 
 	if (UNLIKELY(r >= 0 && ce->ref == 0))
-		XSEGLOG("BUG: (Re)inserted entry has ref 0 (priv: %p, h: %lu)",
+		XSEGLOG2(I, "BUG: (Re)inserted entry has ref 0 (priv: %p, h: %lu)",
 				ce->priv, h);
 
 	if (r >= 0)
@@ -592,7 +592,7 @@ xcache_handler xcache_insert(struct xcache *cache, xcache_handler h)
 
 	if (lru != NoEntry) {
 		if (UNLIKELY(ret == NoEntry))
-			XSEGLOG("BUG: Unsuccessful insertion lead to LRU eviction.");
+			XSEGLOG2(I, "BUG: Unsuccessful insertion lead to LRU eviction.");
 		ce = &cache->nodes[lru];
 		if (cache->ops.on_evict)
 			cache->ops.on_evict(cache->priv, ce->priv);
@@ -601,7 +601,7 @@ xcache_handler xcache_insert(struct xcache *cache, xcache_handler h)
 
 	if (reinsert_handler != NoEntry) {
 		if (UNLIKELY(ret != reinsert_handler))
-			XSEGLOG("BUG: Re-insert handler is different from returned handler"
+			XSEGLOG2(I, "BUG: Re-insert handler is different from returned handler"
 					"(rei_h = %llu, ret_h = %llu)", reinsert_handler, ret);
 		ce = &cache->nodes[reinsert_handler];
 		if (cache->ops.on_reinsert)
@@ -685,7 +685,7 @@ int xcache_init(struct xcache *cache, uint32_t xcache_size,
 		cache->size = ceil_size;
 
 	if (cache->size != xcache_size)
-		XSEGLOG("Cache has been resized from %lu entries to %lu entries",
+		XSEGLOG2(I, "Cache has been resized from %lu entries to %lu entries",
 				xcache_size, cache->size);
 
 	/*

@@ -67,7 +67,7 @@ void __load_plugin(const char *name)
 	_name[5 + namelen + 3 ] = 0;
 	dl = dlopen(_name, RTLD_NOW);
 	if (!dl) {
-		XSEGLOG("Cannot load plugin '%s': %s\n", _name, dlerror());
+		XSEGLOG2(I, "Cannot load plugin '%s': %s\n", _name, dlerror());
 		return;
 	}
 
@@ -75,12 +75,12 @@ void __load_plugin(const char *name)
 	_name[127] = 0;
 	init = (void (*)(void))(long)dlsym(dl, _name);
 	if (!init) {
-		XSEGLOG("Init function '%s' not found!\n", _name);
+		XSEGLOG2(I, "Init function '%s' not found!\n", _name);
 		return;
 	}
 
 	init();
-	//XSEGLOG("Plugin '%s' loaded.\n", name);
+	//XSEGLOG2(I, "Plugin '%s' loaded.\n", name);
 }
 
 uint64_t __get_id(void)
@@ -162,9 +162,9 @@ void xseg_printtrace(void)
 		return;
 	}
 
-	XSEGLOG("Backtrace of tid %d:", tid);
+	XSEGLOG2(I, "Backtrace of tid %d:", tid);
 	for (i = 0; i < size; ++i)
 	{
-		XSEGLOG("\t%s", bt[i]);
+		XSEGLOG2(I, "\t%s", bt[i]);
 	}
 }

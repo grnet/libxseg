@@ -121,7 +121,7 @@ void xq_print(struct xq *xq)
 {
 	xqindex i;
 
-	XSEGLOG("xq head: %lu, tail: %lu, size: %lu\n",
+	XSEGLOG2(I, "xq head: %lu, tail: %lu, size: %lu\n",
 		(unsigned long)xq->head,
 		(unsigned long)xq->tail,
 		(unsigned long)xq->size);
@@ -130,7 +130,7 @@ void xq_print(struct xq *xq)
 	for (;;) {
 		if (i == xq->head)
 			break;
-		XSEGLOG(	"%lu %lu\n",
+		XSEGLOG2(I, 	"%lu %lu\n",
 			(unsigned long)i,
 			(unsigned long)xq_element(xq, i) );
 		i += 1;

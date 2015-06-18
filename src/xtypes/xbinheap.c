@@ -34,12 +34,12 @@ static inline void swap_nodes(struct xbinheap *h, xbinheapidx a, xbinheapidx b)
 	xbinheapidx h1, h2;
 	h1 = h->nodes[a].h;
 	h2 = h->nodes[b].h;
-	//XSEGLOG("Swaping %llu, %llu", a, b);
+	//XSEGLOG2(I, "Swaping %llu, %llu", a, b);
 	SWAP(h->nodes[a].key, h->nodes[b].key);
 	SWAP(h->nodes[a].value, h->nodes[b].value);
 	SWAP(h->nodes[a].h, h->nodes[b].h);
 	SWAP(h->indexes[h1], h->indexes[h2]);
-	//XSEGLOG("Index[%llu]: %llu, Index[%llu]: %lli", a, h->indexes[a], b, h->indexes[b]);
+	//XSEGLOG2(I, "Index[%llu]: %llu, Index[%llu]: %lli", a, h->indexes[a], b, h->indexes[b]);
 }
 
 static inline int isMaxHeap(struct xbinheap *h)
@@ -57,7 +57,7 @@ static int heapify_up(struct xbinheap *h, xbinheapidx i)
 	parent = (i-1)/2;
 	n = &h->nodes[i];
 	pn = &h->nodes[parent];
-	//XSEGLOG("i: %llu, p: %llu, count: %lu", n->key, pn->key, h->count);
+	//XSEGLOG2(I, "i: %llu, p: %llu, count: %lu", n->key, pn->key, h->count);
 	if (isMaxHeap(h)){
 		cmp = pn->key < n->key;
 	} else {
@@ -83,7 +83,7 @@ static int heapify_down(struct xbinheap *h, xbinheapidx i)
 	rn = &h->nodes[right];
 	largest_n = &h->nodes[largest];
 	if (isMaxHeap(h)){
-	//	XSEGLOG("l: %llu, r: %llu, p: %llu, count: %lu", ln->key, rn->key, largest_n->key, h->count);
+	//	XSEGLOG2(I, "l: %llu, r: %llu, p: %llu, count: %lu", ln->key, rn->key, largest_n->key, h->count);
 		if (left < h->count && (ln->key > largest_n->key)){
 			largest = left;
 			largest_n = &h->nodes[largest];
@@ -159,7 +159,7 @@ int xbinheap_increasekey(struct xbinheap *h, xbinheap_handler idx,
 	int r;
 	xbinheapidx i = h->indexes[idx];
 	struct xbinheap_node *hn = &h->nodes[i];
-	//XSEGLOG("h: %llu, index: %llu, key: %llu, newkey:%llu",
+	//XSEGLOG2(I, "h: %llu, index: %llu, key: %llu, newkey:%llu",
 	//		idx, i, hn->key, newkey);
 	//assert newkey > hn->key
 	hn->key = newkey;
@@ -217,7 +217,7 @@ int xbinheap_decreasekey(struct xbinheap *h, xbinheap_handler idx,
 	int r;
 	xbinheapidx i = h->indexes[idx];
 	struct xbinheap_node *hn = &h->nodes[i];
-	//XSEGLOG("h: %llu, index: %llu, key: %llu, newkey:%llu",
+	//XSEGLOG2(I, "h: %llu, index: %llu, key: %llu, newkey:%llu",
 	//		idx, i, hn->key, newkey);
 	//assert newkey > hn->key
 	hn->key = newkey;
