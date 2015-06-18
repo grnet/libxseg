@@ -100,11 +100,11 @@ void __get_current_time(struct timeval *tv) {
 	gettimeofday(tv, NULL);
 }
 
-static inline int syslog_level(enum log_level level) {
+static inline int get_syslog_level(enum log_level level) {
     int syslog_level;
 
     switch (level) {
-        case E: syslog_level = LOG_ERROR; break;
+        case E: syslog_level = LOG_ERR; break;
         case W: syslog_level = LOG_WARNING; break;
         case I: syslog_level = LOG_INFO; break;
         case D: syslog_level = LOG_DEBUG; break;
@@ -116,12 +116,10 @@ static inline int syslog_level(enum log_level level) {
 
 static void __init_logctx(char *peer_name, enum log_level level)
 {
-    int syslog_level;
-
     openlog(peer_name, LOG_PID | LOG_CONS, LOG_LOCAL0);
 
     /* FIXME: LOG_UPTO portability */
-    setlogmask(LOG_UPTO(syslog_level(level)));
+    setlogmask(LOG_UPTO(get_syslog_level(level)));
 
     return;
 }
@@ -133,7 +131,7 @@ void __xseg_log2(enum log_level level, char *fmt, ...)
 	va_list ap;
 
 	va_start(ap, fmt);
-    vsyslog(syslog_level(level), fmt, ap);
+    vsyslog(get_syslog_level(level), fmt, ap);
 	va_end(ap);
 
 	return;

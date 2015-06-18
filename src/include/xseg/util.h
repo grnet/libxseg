@@ -42,7 +42,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #define FMTARG(fmt, arg, format, ...) fmt format "%s", arg, ## __VA_ARGS__
 
-#define XSEGLOG2(__ctx, __level, ...) 		\
+#define XSEGLOG2(__level, ...) 		\
 		do { 				\
 			__xseg_log2(__level, FMTARG("%s: ", __func__, ## __VA_ARGS__ ,"")); \
 		} while(0)
