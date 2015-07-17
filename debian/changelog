@@ -1,3 +1,9 @@
+libxseg0 (0.4.1-1~wheezy) wheezy; urgency=low
+
+  * New upstream version
+
+ -- Stratos Psomadakis <psomas@grnet.gr>  Fri, 17 Jul 2015 18:47:45 +0300
+
 libxseg0 (0.4-1~wheezy) wheezy; urgency=low
 
   * New upstream version
@@ -21,6 +27,7 @@ libxseg0 (0.3.5-1) wheezy; urgency=low
   * Initial release
 
  -- Filippos Giannakos <philipgian@grnet.gr>  Wed, 23 Dec 2013 18:07:11 +0200
+
 
 
 
