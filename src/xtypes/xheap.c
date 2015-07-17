@@ -66,7 +66,7 @@ static inline int __get_index(struct xheap *heap, uint64_t bytes)
 		r = (1 << SMALL_LIMIT);
 		//r -= (1 << (alignment_unit+SMALL_LIMIT)) / (1 << (alignment_unit + MEDIUM_AL_UNIT));
 		r -= (1 << (SMALL_LIMIT - MEDIUM_AL_UNIT));
-		//XSEGLOG("%u, %u, r %d\n",((1<<alignment_unit) * 32), (1 << (alignment_unit +2)), r);
+		//XSEGLOG2(I, "%u, %u, r %d\n",((1<<alignment_unit) * 32), (1 << (alignment_unit +2)), r);
 		r += (bytes >> (alignment_unit + MEDIUM_AL_UNIT));
 	}
 	else {
@@ -100,12 +100,12 @@ void* xheap_allocate(struct xheap *heap, uint64_t bytes)
 	if (!head)
 		goto alloc;
 	if (head > heap->cur) {
-		XSEGLOG("invalid xptr %llu found in chunk lists\n", head);
+		XSEGLOG2(W, "invalid xptr %llu found in chunk lists\n", head);
 		goto out;
 	}
 	next = *(xptr *)(((unsigned long) mem) + head);
 	free_list[r] = next;
-//	XSEGLOG("alloced %llu bytes from list %d\n", bytes, r);
+//	XSEGLOG2(I, "alloced %llu bytes from list %d\n", bytes, r);
 //	printf("popped %llu out of list. list is now %llu\n", head, next);
 	addr = (void *) (((unsigned long)mem) + head);
 	goto out;
@@ -129,13 +129,13 @@ out:
 //	printf("alloced: %lx (size: %llu) (xptr: %llu)\n", addr, __get_header(addr)->size,
 //			addr-mem);
 	if (addr && xheap_get_chunk_size(addr) < req_bytes){
-		XSEGLOG("requested %llu bytes but heap returned %llu", 
+		XSEGLOG2(W, "requested %llu bytes but heap returned %llu", 
 				req_bytes, xheap_get_chunk_size(addr));
 		addr = NULL;
 	}
 	if (addr && xheap_get_chunk_size(addr) != (__get_alloc_bytes(heap, req_bytes) - 
 					sizeof(struct xheap_header))) {
-		XSEGLOG("allocated chunk size %llu, but it should be %llu (req_bytes %llu)",
+		XSEGLOG2(W, "allocated chunk size %llu, but it should be %llu (req_bytes %llu)",
 			xheap_get_chunk_size(addr), __get_alloc_bytes(heap, req_bytes), req_bytes);
 		addr = NULL;
 	}
@@ -168,7 +168,7 @@ void xheap_free(void *ptr)
 	int r;
 	xptr *free_list;
 	if (h->magic != 0xdeadbeaf) {
-		XSEGLOG("for ptr: %lx, magic %lx != 0xdeadbeaf", ptr, h->magic);
+		XSEGLOG2(W, "for ptr: %lx, magic %lx != 0xdeadbeaf", ptr, h->magic);
 	}
 	mem = XPTR(&heap->mem);
 	size = xheap_get_chunk_size(ptr);
@@ -177,7 +177,7 @@ void xheap_free(void *ptr)
 	//printf("size: %llu, r: %d\n", size, r);
 	__add_in_free_list(heap, &free_list[r], ptr);
 //	printf("freed %lx (size: %llu)\n", ptr, __get_header(ptr)->size);
-//	XSEGLOG("freed %llu bytes to list %d\n", size, r);
+//	XSEGLOG2(I, "freed %llu bytes to list %d\n", size, r);
 	return;
 }
 
