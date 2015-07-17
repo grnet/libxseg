@@ -114,6 +114,16 @@ static inline int get_syslog_level(enum log_level level) {
     return syslog_level;
 }
 
+static void __renew_logctx(enum log_level level)
+{
+    /* FIXME: LOG_UPTO portability */
+    setlogmask(LOG_UPTO(get_syslog_level(level)));
+
+    return;
+}
+
+void (*renew_logctx)(enum log_level level) = __renew_logctx;
+
 static void __init_logctx(char *peer_name, enum log_level level)
 {
     openlog(peer_name, LOG_PID | LOG_CONS, LOG_LOCAL0);

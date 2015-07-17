@@ -37,6 +37,7 @@ extern char __xseg_errbuf[4096];
 
 enum log_level { E = 0, W = 1, I = 2, D = 3};
 
+extern void (*renew_logctx)(enum log_level level);
 extern void (*init_logctx)(char *peer_name, enum log_level level);
 void __xseg_log2(enum log_level level, char *fmt, ...);
 
