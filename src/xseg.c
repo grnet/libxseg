@@ -72,9 +72,9 @@ static struct xseg_peer *__find_peer_type(const char *name, int64_t *index)
 void xseg_report_peer_types(void)
 {
 	long i;
-	XSEGLOG("total %u peer types:\n", __nr_peer_types);
+	XSEGLOG2(I, "total %u peer types:\n", __nr_peer_types);
 	for (i = 0; i < __nr_peer_types; i++)
-		XSEGLOG("%ld: '%s'\n", i, __peer_types[i]->name);
+		XSEGLOG2(I, "%ld: '%s'\n", i, __peer_types[i]->name);
 }
 
 static struct xseg_type *__find_or_load_type(const char *name)
@@ -122,7 +122,7 @@ static struct xseg_peer *__get_peer_type(struct xseg *xseg, uint32_t serial)
 	priv = xseg->priv;
 
 	if (serial >= xseg->max_peer_types) {
-		XSEGLOG("invalid peer type serial %d >= %d\n",
+		XSEGLOG2(W, "invalid peer type serial %d >= %d\n",
 			 serial, xseg->max_peer_types);
 		return NULL;
 	}
@@ -137,13 +137,13 @@ static struct xseg_peer *__get_peer_type(struct xseg *xseg, uint32_t serial)
 	shared_peer_types = XPTR_TAKE(xseg->shared->peer_types, xseg->segment);
 	name = shared_peer_types[serial];
 	if (!*name) {
-		XSEGLOG("nonexistent peer type serial %d\n", serial);
+		XSEGLOG2(W, "nonexistent peer type serial %d\n", serial);
 		return NULL;
 	}
 
 	type = __find_or_load_peer_type(name);
 	if (!type)
-		XSEGLOG("could not find driver for peer type %d [%s]\n",
+		XSEGLOG2(W, "could not find driver for peer type %d [%s]\n",
 			 serial, name);
 
 	priv->peer_types[serial] = type;
@@ -163,7 +163,7 @@ static void * __get_peer_type_data(struct xseg *xseg, uint32_t serial)
 
 	priv = xseg->priv;
 	if (serial >= xseg->max_peer_types) {
-		XSEGLOG("invalid peer type serial %d >= %d\n",
+		XSEGLOG2(W, "invalid peer type serial %d >= %d\n",
 			 serial, xseg->max_peer_types);
 		return 0;
 	}
@@ -175,7 +175,7 @@ static void * __get_peer_type_data(struct xseg *xseg, uint32_t serial)
 	shared_peer_types = XPTR_TAKE(xseg->shared->peer_types, xseg->segment);
 	name = shared_peer_types[serial];
 	if (!*name) {
-		XSEGLOG("nonexistent peer type serial %d\n", serial);
+		XSEGLOG2(W, "nonexistent peer type serial %d\n", serial);
 		return 0;
 	}
 	shared_peer_type_data = XPTR_TAKE(xseg->shared->peer_type_data, xseg->segment);
@@ -187,7 +187,7 @@ static void * __get_peer_type_data(struct xseg *xseg, uint32_t serial)
 static inline int __validate_port(struct xseg *xseg, uint32_t portno)
 {
 	if (!xseg) {
-		XSEGLOG("Invalid xseg argument");
+		XSEGLOG2(W, "Invalid xseg argument");
 		return 0;
 	}
 	return portno < xseg->config.nr_ports;
@@ -196,7 +196,7 @@ static inline int __validate_port(struct xseg *xseg, uint32_t portno)
 static inline int __validate_ptr(struct xseg *xseg, xptr ptr)
 {
 	if (!xseg) {
-		XSEGLOG("Invalid xseg argument");
+		XSEGLOG2(W, "Invalid xseg argument");
 		return 0;
 	}
 	return ptr < xseg->segment_size;
@@ -256,7 +256,7 @@ int xseg_parse_spec(char *segspec, struct xseg_config *config)
 	char *s = segspec, *sp = segspec;
 
 	if (!config) {
-		XSEGLOG("Invalid configuration argument");
+		XSEGLOG2(W, "Invalid configuration argument");
 		return -1;
 	}
 
@@ -303,12 +303,12 @@ int xseg_register_type(struct xseg_type *type)
 
 	__type = __find_type(type->name, &i);
 	if (__type) {
-		XSEGLOG("type %s already exists\n", type->name);
+		XSEGLOG2(W, "type %s already exists\n", type->name);
 		goto out;
 	}
 
 	if (__nr_types >= XSEG_NR_TYPES) {
-		XSEGLOG("maximum type registrations reached: %u\n", __nr_types);
+		XSEGLOG2(W, "maximum type registrations reached: %u\n", __nr_types);
 		r -= 1;
 		goto out;
 	}
@@ -334,7 +334,7 @@ int xseg_unregister_type(const char *name)
 	__lock_domain();
 	__type = __find_type(name, &i);
 	if (!__type) {
-		XSEGLOG("segment type '%s' does not exist\n", name);
+		XSEGLOG2(W, "segment type '%s' does not exist\n", name);
 		goto out;
 	}
 
@@ -360,19 +360,19 @@ int xseg_register_peer(struct xseg_peer *peer_type)
 
 	type = __find_peer_type(peer_type->name, &i);
 	if (type) {
-		XSEGLOG("peer type '%s' already exists\n", type->name);
+		XSEGLOG2(W, "peer type '%s' already exists\n", type->name);
 		goto out;
 	}
 
 	if (__nr_peer_types >= XSEG_NR_PEER_TYPES) {
-		XSEGLOG("maximum peer type registrations reached: %u",
+		XSEGLOG2(W, "maximum peer type registrations reached: %u",
 			__nr_peer_types);
 		r -= 1;
 		goto out;
 	}
 
 	if (peer_type->peer_ops.remote_signal_init()) {
-		XSEGLOG("peer type '%s': signal initialization failed\n",
+		XSEGLOG2(W, "peer type '%s': signal initialization failed\n",
 			peer_type->name);
 		r -= 1;
 		goto out;
@@ -400,7 +400,7 @@ int xseg_unregister_peer(const char *name)
 	__lock_domain();
 	driver = __find_peer_type(name, &i);
 	if (!driver) {
-		XSEGLOG("peer type '%s' does not exist\n", name);
+		XSEGLOG2(W, "peer type '%s' does not exist\n", name);
 		goto out;
 	}
 
@@ -424,14 +424,14 @@ int64_t __enable_driver(struct xseg *xseg, struct xseg_peer *driver)
 	xptr peer_type_data;
 
 	if (!xseg || !driver) {
-		XSEGLOG("Invalid argument");
+		XSEGLOG2(W, "Invalid argument");
 		return -1;
 	}
 
 	max_drivers = xseg->max_peer_types;
 
 	if (xseg->shared->nr_peer_types >= max_drivers) {
-		XSEGLOG("cannot register '%s': driver namespace full\n",
+		XSEGLOG2(W, "cannot register '%s': driver namespace full\n",
 			driver->name);
 		return -1;
 	}
@@ -478,7 +478,7 @@ int64_t xseg_enable_driver(struct xseg *xseg, const char *name)
 	__lock_domain();
 	driver = __find_peer_type(name, &r);
 	if (!driver) {
-		XSEGLOG("driver '%s' not found\n", name);
+		XSEGLOG2(W, "driver '%s' not found\n", name);
 		goto out;
 	}
 
@@ -504,7 +504,7 @@ int xseg_disable_driver(struct xseg *xseg, const char *name)
 	__lock_domain();
 	driver =  __find_peer_type(name, &i);
 	if (!driver) {
-		XSEGLOG("driver '%s' not found\n", name);
+		XSEGLOG2(W, "driver '%s' not found\n", name);
 		goto out;
 	}
 
@@ -526,7 +526,7 @@ static uint64_t calculate_segment_size(struct xseg_config *config)
 	uint64_t size = 0;
 
 	if (!config) {
-		XSEGLOG("Invalid configuration argument");
+		XSEGLOG2(W, "Invalid configuration argument");
 		return 0;
 	}
 
@@ -535,7 +535,7 @@ static uint64_t calculate_segment_size(struct xseg_config *config)
 	/* assert(sizeof(struct xseg) <= (1 << 9)); */
 
 	if (page_shift < 9) {
-		XSEGLOG("page_shift must be >= %d\n", 9);
+		XSEGLOG2(W, "page_shift must be >= %d\n", 9);
 		return 0;
 	}
 
@@ -562,7 +562,7 @@ static long initialize_segment(struct xseg *xseg, struct xseg_config *cfg)
 	xport *gw;
 
 	if (!xseg || !cfg) {
-		XSEGLOG("Invalid argument");
+		XSEGLOG2(W, "Invalid argument");
 		return -1;
 	}
 
@@ -688,47 +688,47 @@ int xseg_create(struct xseg_config *cfg)
 	long r;
 
 	if (!cfg) {
-		XSEGLOG("Invalid configuration argument");
+		XSEGLOG2(W, "Invalid configuration argument");
 		goto out_err;
 	}
 
 	if (cfg->dynports >= cfg->nr_ports) {
-		XSEGLOG("Invalid config: Dynamic ports >= Total number of ports");
+		XSEGLOG2(W, "Invalid config: Dynamic ports >= Total number of ports");
 		goto out_err;
 	}
 
 	type = __find_or_load_type(cfg->type);
 	if (!type) {
 		cfg->type[XSEG_TNAMESIZE-1] = 0;
-		XSEGLOG("type '%s' does not exist\n", cfg->type);
+		XSEGLOG2(W, "type '%s' does not exist\n", cfg->type);
 		goto out_err;
 	}
 
 	size = calculate_segment_size(cfg);
 	if (!size) {
-		XSEGLOG("invalid config!\n");
+		XSEGLOG2(W, "invalid config!\n");
 		goto out_err;
 	}
 
 	xops = &type->ops;
 	cfg->name[XSEG_NAMESIZE-1] = 0;
-//	XSEGLOG("creating segment of size %llu\n", size);
+//	XSEGLOG2(W, "creating segment of size %llu\n", size);
 	r = xops->allocate(cfg->name, size);
 	if (r) {
-		XSEGLOG("cannot allocate segment!\n");
+		XSEGLOG2(W, "cannot allocate segment!\n");
 		goto out_err;
 	}
 
 	xseg = xops->map(cfg->name, size, NULL);
 	if (!xseg) {
-		XSEGLOG("cannot map segment!\n");
+		XSEGLOG2(W, "cannot map segment!\n");
 		goto out_deallocate;
 	}
 
 	r = initialize_segment(xseg, cfg);
 	xops->unmap(xseg, size);
 	if (r) {
-		XSEGLOG("cannot initilize segment!\n");
+		XSEGLOG2(W, "cannot initilize segment!\n");
 		goto out_deallocate;
 	}
 
@@ -746,14 +746,14 @@ void xseg_destroy(struct xseg *xseg)
 	struct xseg_type *type;
 
 	if (!xseg) {
-		XSEGLOG("Invalid xseg argument");
+		XSEGLOG2(W, "Invalid xseg argument");
 		return;
 	}
 
 	__lock_domain();
 	type = __find_or_load_type(xseg->config.type);
 	if (!type) {
-		XSEGLOG("no segment type '%s'\n", xseg->config.type);
+		XSEGLOG2(W, "no segment type '%s'\n", xseg->config.type);
 		goto out;
 	}
 
@@ -771,7 +771,7 @@ static int pointer_ok(	unsigned long ptr,
 {
 	int ret = !(ptr >= base && ptr < base + size);
 	if (ret)
-		XSEGLOG("invalid pointer '->%s' [%llx on %llx]!\n",
+		XSEGLOG2(W, "invalid pointer '->%s' [%llx on %llx]!\n",
 			(unsigned long long)ptr,
 			(unsigned long long)base,
 			name);
@@ -822,7 +822,7 @@ struct xseg *xseg_join(const char *segtypename,
 
 	peertype = __find_or_load_peer_type(peertypename);
 	if (!peertype) {
-		XSEGLOG("Peer type '%s' not found\n", peertypename);
+		XSEGLOG2(W, "Peer type '%s' not found\n", peertypename);
 		__unlock_domain();
 		err_no = EINVAL;
 		goto err;
@@ -830,7 +830,7 @@ struct xseg *xseg_join(const char *segtypename,
 
 	segtype = __find_or_load_type(segtypename);
 	if (!segtype) {
-		XSEGLOG("Segment type '%s' not found\n", segtypename);
+		XSEGLOG2(W, "Segment type '%s' not found\n", segtypename);
 		__unlock_domain();
 		err_no = EINVAL;
 		goto err;
@@ -844,39 +844,39 @@ struct xseg *xseg_join(const char *segtypename,
 	xseg = pops->malloc(sizeof(struct xseg));
 	if (!xseg) {
 		err_no = errno;
-		XSEGLOG("Cannot allocate memory");
+		XSEGLOG2(W, "Cannot allocate memory");
 		goto err;
 	}
 
 	priv = pops->malloc(sizeof(struct xseg_private));
 	if (!priv) {
 		err_no = errno;
-		XSEGLOG("Cannot allocate memory");
+		XSEGLOG2(W, "Cannot allocate memory");
 		goto err_seg;
 	}
 
 	__xseg = xops->map(segname, XSEG_MIN_PAGE_SIZE, NULL);
 	if (!__xseg) {
 		err_no = errno;
-		XSEGLOG("Cannot map segment");
+		XSEGLOG2(W, "Cannot map segment");
 		goto err_priv;
 	}
 
 	if (!(__xseg->version == XSEG_VERSION)) {
 		err_no = EPROTO;
-		XSEGLOG("Version mismatch. Expected %llu, segment version %llu",
+		XSEGLOG2(W, "Version mismatch. Expected %llu, segment version %llu",
 				XSEG_VERSION, __xseg->version);
 		goto err_priv;
 	}
 
 	size = __xseg->segment_size;
-	/* XSEGLOG("joined segment of size: %lu\n", (unsigned long)size); */
+	/* XSEGLOG2(I, "joined segment of size: %lu\n", (unsigned long)size); */
 	xops->unmap(__xseg, XSEG_MIN_PAGE_SIZE);
 
 	__xseg = xops->map(segname, size, xseg);
 	if (!__xseg) {
 		err_no = errno;
-		XSEGLOG("Cannot map segment");
+		XSEGLOG2(W, "Cannot map segment");
 		goto err_priv;
 	}
 
@@ -895,14 +895,14 @@ struct xseg *xseg_join(const char *segtypename,
 	priv->peer_types = pops->malloc(sizeof(void *) * xseg->max_peer_types);
 	if (!priv->peer_types) {
 		err_no = errno;
-		XSEGLOG("Cannot allocate memory");
+		XSEGLOG2(W, "Cannot allocate memory");
 		goto err_unmap;
 	}
 	memset(priv->peer_types, 0, sizeof(void *) * xseg->max_peer_types);
 	priv->peer_type_data = pops->malloc(sizeof(void *) * xseg->max_peer_types);
 	if (!priv->peer_types) {
 		err_no = errno;
-		XSEGLOG("Cannot allocate memory");
+		XSEGLOG2(W, "Cannot allocate memory");
 		//FIXME wrong err handling
 		goto err_unmap;
 	}
@@ -926,14 +926,14 @@ struct xseg *xseg_join(const char *segtypename,
 	r = xseg_validate_pointers(xseg);
 	if (r) {
 		err_no = EFAULT;
-		XSEGLOG("found %d invalid xseg pointers!\n", r);
+		XSEGLOG2(W, "found %d invalid xseg pointers!\n", r);
 		goto err_free_types;
 	}
 
 	/* Do we need this?
 	r = xops->signal_join(xseg);
 	if (r) {
-		XSEGLOG("Cannot attach signaling to segment! (error: %d)\n", r);
+		XSEGLOG2(W, "Cannot attach signaling to segment! (error: %d)\n", r);
 		goto err_free_types;
 	}
 	*/
@@ -962,7 +962,7 @@ void xseg_leave(struct xseg *xseg)
 	struct xseg_type *type;
 
 	if (!xseg) {
-		XSEGLOG("Invalid xseg argument");
+		XSEGLOG2(W, "Invalid xseg argument");
 		return;
 	}
 
@@ -976,7 +976,7 @@ void xseg_leave(struct xseg *xseg)
 	__lock_domain();
 	type = __find_or_load_type(xseg->config.type);
 	if (!type) {
-		XSEGLOG("no segment type '%s'\n", xseg->config.type);
+		XSEGLOG2(W, "no segment type '%s'\n", xseg->config.type);
 		__unlock_domain();
 		return;
 	}
@@ -992,7 +992,7 @@ struct xseg_port* xseg_get_port(struct xseg *xseg, uint32_t portno)
 	xptr p;
 
 	if (!xseg) {
-		XSEGLOG("Invalid xseg argument");
+		XSEGLOG2(W, "Invalid xseg argument");
 		return NULL;
 	}
 
@@ -1013,7 +1013,7 @@ struct xq * __alloc_queue(struct xseg *xseg, uint64_t nr_reqs)
 	struct xheap *heap = xseg->heap;
 
 	if (!xseg) {
-		XSEGLOG("Invalid xseg argument");
+		XSEGLOG2(W, "Invalid xseg argument");
 		return NULL;
 	}
 
@@ -1039,7 +1039,7 @@ struct xq * __alloc_queue(struct xseg *xseg, uint64_t nr_reqs)
 struct xseg_port *xseg_alloc_port(struct xseg *xseg, uint32_t flags, uint64_t nr_reqs)
 {
 	if (!xseg) {
-		XSEGLOG("Invalid xseg argument");
+		XSEGLOG2(W, "Invalid xseg argument");
 		return NULL;
 	}
 
@@ -1097,7 +1097,7 @@ err_free:
 void xseg_free_port(struct xseg *xseg, struct xseg_port *port)
 {
 	if (!xseg || !port) {
-		XSEGLOG("Invalid argument");
+		XSEGLOG2(W, "Invalid argument");
 		return;
 	}
 	struct xobject_h *obj_h = xseg->port_h;
@@ -1120,14 +1120,14 @@ void xseg_free_port(struct xseg *xseg, struct xseg_port *port)
 void* xseg_alloc_buffer(struct xseg *xseg, uint64_t size)
 {
 	if (!xseg) {
-		XSEGLOG("Invalid xseg argument");
+		XSEGLOG2(W, "Invalid xseg argument");
 		return NULL;
 	}
 
 	struct xheap *heap = xseg->heap;
 	void *mem = xheap_allocate(heap, size);
 	if (mem && xheap_get_chunk_size(mem) < size) {
-		XSEGLOG("Buffer size %llu instead of %llu\n",
+		XSEGLOG2(W, "Buffer size %llu instead of %llu\n",
 				xheap_get_chunk_size(mem), size);
 		xheap_free(mem);
 		mem = NULL;
@@ -1138,7 +1138,7 @@ void* xseg_alloc_buffer(struct xseg *xseg, uint64_t size)
 void xseg_free_buffer(struct xseg *xseg, void *ptr)
 {
 	if (!xseg || !ptr) {
-		XSEGLOG("Invalid argument");
+		XSEGLOG2(W, "Invalid argument");
 		return;
 	}
 
@@ -1148,7 +1148,7 @@ void xseg_free_buffer(struct xseg *xseg, void *ptr)
 int xseg_prepare_wait(struct xseg *xseg, uint32_t portno)
 {
 	if (!xseg) {
-		XSEGLOG("Invalid xseg argument");
+		XSEGLOG2(W, "Invalid xseg argument");
 		return -1;
 	}
 
@@ -1161,7 +1161,7 @@ int xseg_prepare_wait(struct xseg *xseg, uint32_t portno)
 int xseg_cancel_wait(struct xseg *xseg, uint32_t portno)
 {
 	if (!xseg) {
-		XSEGLOG("Invalid xseg argument");
+		XSEGLOG2(W, "Invalid xseg argument");
 		return -1;
 	}
 
@@ -1181,7 +1181,7 @@ int xseg_signal(struct xseg *xseg, xport portno)
 	struct xseg_port *port;
 
 	if (!xseg) {
-		XSEGLOG("Invalid xseg argument");
+		XSEGLOG2(W, "Invalid xseg argument");
 		return -1;
 	}
 	port = xseg_get_port(xseg, portno);
@@ -1201,7 +1201,7 @@ int xseg_init_local_signal(struct xseg *xseg, xport portno)
 	struct xseg_port *port;
 
 	if (!xseg) {
-		XSEGLOG("Invalid xseg argument");
+		XSEGLOG2(W, "Invalid xseg argument");
 		return -1;
 	}
 	port = xseg_get_port(xseg, portno);
@@ -1222,7 +1222,7 @@ void xseg_quit_local_signal(struct xseg *xseg, xport portno)
 	struct xseg_port *port;
 
 	if (!xseg) {
-		XSEGLOG("Invalid xseg argument");
+		XSEGLOG2(W, "Invalid xseg argument");
 		return;
 	}
 	port = xseg_get_port(xseg, portno);
@@ -1248,7 +1248,7 @@ int xseg_alloc_requests(struct xseg *xseg, uint32_t portno, uint32_t nr)
 	struct xseg_port *port;
 
 	if (!xseg) {
-		XSEGLOG("Invalid xseg argument");
+		XSEGLOG2(W, "Invalid xseg argument");
 		return -1;
 	}
 	port = xseg_get_port(xseg, portno);
@@ -1283,7 +1283,7 @@ int xseg_free_requests(struct xseg *xseg, uint32_t portno, int nr)
 	struct xseg_port *port;
 
 	if (!xseg) {
-		XSEGLOG("Invalid xseg argument");
+		XSEGLOG2(W, "Invalid xseg argument");
 		return -1;
 	}
 	port = xseg_get_port(xseg, portno);
@@ -1313,7 +1313,7 @@ int xseg_prep_ports (struct xseg *xseg, struct xseg_request *xreq,
 			uint32_t src_portno, uint32_t dst_portno)
 {
 	if (!xseg || !xreq) {
-		XSEGLOG("Invalid argument");
+		XSEGLOG2(W, "Invalid argument");
 		return -1;
 	}
 
@@ -1349,7 +1349,7 @@ struct xseg_request *xseg_get_request(struct xseg *xseg, xport src_portno,
 	xptr ptr;
 
 	if (!xseg) {
-		XSEGLOG("Invalid xseg argument");
+		XSEGLOG2(W, "Invalid xseg argument");
 		return NULL;
 	}
 
@@ -1414,7 +1414,7 @@ int xseg_put_request (struct xseg *xseg, struct xseg_request *xreq,
 			xport portno)
 {
 	if (!xseg || !xreq) {
-		XSEGLOG("Invalid argument");
+		XSEGLOG2(W, "Invalid argument");
 		return -1;
 	}
 
@@ -1476,7 +1476,7 @@ int xseg_prep_request ( struct xseg* xseg, struct xseg_request *req,
 	req->bufferlen = 0;
 
 	if (!xseg || !req) {
-		XSEGLOG("Invalid argument");
+		XSEGLOG2(W, "Invalid argument");
 		return -1;
 	}
 
@@ -1497,7 +1497,7 @@ int xseg_resize_request (struct xseg *xseg, struct xseg_request *req,
 			uint32_t new_targetlen, uint64_t new_datalen)
 {
 	if (!xseg || !req) {
-		XSEGLOG("Invalid argument");
+		XSEGLOG2(W, "Invalid argument");
 		return -1;
 	}
 
@@ -1524,7 +1524,7 @@ static void __update_timestamp(struct xseg_request *xreq)
 	struct timeval tv;
 
 	if (!xreq) {
-		XSEGLOG("Invalid xreq argument");
+		XSEGLOG2(W, "Invalid xreq argument");
 		return;
 	}
 
@@ -1553,19 +1553,19 @@ xport xseg_submit (struct xseg *xseg, struct xseg_request *xreq,
 	struct xseg_port *port;
 
 	if (!xseg || !xreq) {
-		XSEGLOG("Invalid argument");
+		XSEGLOG2(W, "Invalid argument");
 		return NoPort;
 	}
 
 	/* discover where to submit */
 
 	if (!__validate_port(xseg, xreq->transit_portno)){
-		XSEGLOG("Couldn't validate transit_portno (portno: %lu)",
+		XSEGLOG2(W, "Couldn't validate transit_portno (portno: %lu)",
 				xreq->transit_portno);
 		return NoPort;
 	}
 	if (!__validate_port(xseg, xreq->effective_dst_portno)){
-		XSEGLOG("Couldn't validate effective_dst_portno (portno: %lu)",
+		XSEGLOG2(W, "Couldn't validate effective_dst_portno (portno: %lu)",
 				xreq->effective_dst_portno);
 		return NoPort;
 	}
@@ -1575,7 +1575,7 @@ xport xseg_submit (struct xseg *xseg, struct xseg_request *xreq,
 	//FIXME assert(cur == portno);
 	do {
 		if (next == xreq->effective_dst_portno){
-			XSEGLOG("Path ended with no one willing to accept");
+			XSEGLOG2(W, "Path ended with no one willing to accept");
 			return NoPort;
 		}
 
@@ -1587,7 +1587,7 @@ xport xseg_submit (struct xseg *xseg, struct xseg_request *xreq,
 
 		port = xseg_get_port(xseg, next);
 		if (!port){
-			XSEGLOG("Couldnt get port (next :%u)", next);
+			XSEGLOG2(W, "Couldnt get port (next :%u)", next);
 			return NoPort;
 		}
 	} while ((!port->flags & CAN_ACCEPT));
@@ -1601,7 +1601,7 @@ xport xseg_submit (struct xseg *xseg, struct xseg_request *xreq,
 	/* add current port to path */
 	serial = __xq_append_head(&xreq->path, cur);
 	if (serial == Noneidx){
-		XSEGLOG("Couldn't append path head");
+		XSEGLOG2(W, "Couldn't append path head");
 		return NoPort;
 	}
 
@@ -1626,7 +1626,7 @@ xport xseg_submit (struct xseg *xseg, struct xseg_request *xreq,
 out_rel:
 	xlock_release(&port->rq_lock);
 	if (serial == Noneidx){
-		XSEGLOG("Couldn't append request to queue");
+		XSEGLOG2(W, "Couldn't append request to queue");
 		__xq_pop_head(&xreq->path);
 		next = NoPort;
 	}
@@ -1643,7 +1643,7 @@ struct xseg_request *xseg_receive(struct xseg *xseg, xport portno, uint32_t flag
 	struct xseg_port *port;
 
 	if (!xseg) {
-		XSEGLOG("Invalid xseg argument");
+		XSEGLOG2(W, "Invalid xseg argument");
 		return NULL;
 	}
 	port = xseg_get_port(xseg, portno);
@@ -1669,7 +1669,7 @@ retry:
 	serial = __xq_pop_head(&req->path);
 	if (serial == Noneidx){
                 /* this should never happen */
-		XSEGLOG("pop head of path queue returned Noneidx\n");
+		XSEGLOG2(W, "pop head of path queue returned Noneidx\n");
                 goto retry;
         }
 
@@ -1685,7 +1685,7 @@ struct xseg_request *xseg_accept(struct xseg *xseg, xport portno, uint32_t flags
 	struct xseg_port *port;
 
 	if (!xseg) {
-		XSEGLOG("Invalid xseg argument");
+		XSEGLOG2(W, "Invalid xseg argument");
 		return NULL;
 	}
 	port = xseg_get_port(xseg, portno);
@@ -1722,7 +1722,7 @@ xport xseg_respond (struct xseg *xseg, struct xseg_request *xreq,
 	xport dst;
 
 	if (!xseg || !xreq) {
-		XSEGLOG("Invalid argument");
+		XSEGLOG2(W, "Invalid argument");
 		return NoPort;
 	}
 
@@ -1736,7 +1736,7 @@ retry:
 	if (!port)
 		return NoPort;
 	if (!(port->flags & CAN_RECEIVE)){
-		//XSEGLOG("Port %u cannot receive", dst);
+		//XSEGLOG2(W, "Port %u cannot receive", dst);
 		/* Port cannot receive. Try next one in path */
 		__xq_pop_head(&xreq->path);
 		goto retry;
@@ -1774,12 +1774,12 @@ xport xseg_forward(struct xseg *xseg, struct xseg_request *req, xport new_dst,
 		xport portno, uint32_t flags)
 {
 	if (!xseg || !req) {
-		XSEGLOG("Invalid argument");
+		XSEGLOG2(W, "Invalid argument");
 		return NoPort;
 	}
 
 	if (!__validate_port(xseg, new_dst)){
-		XSEGLOG("Couldn't validate new destination (new_dst %lu)",
+		XSEGLOG2(W, "Couldn't validate new destination (new_dst %lu)",
 				new_dst);
 		return NoPort;
 	}
@@ -1791,7 +1791,7 @@ xport xseg_forward(struct xseg *xseg, struct xseg_request *req, xport new_dst,
 int xseg_set_path_next(struct xseg *xseg, xport portno, xport next)
 {
 	if (!xseg) {
-		XSEGLOG("Invalid xseg argument");
+		XSEGLOG2(W, "Invalid xseg argument");
 		return -1;
 	}
 	if (!__validate_port(xseg, portno))
@@ -1808,11 +1808,11 @@ int xseg_set_req_data(struct xseg *xseg, struct xseg_request *xreq, void *data)
 	xhash_t *req_data;
 
 	if (!xseg) {
-		XSEGLOG("Invalid xseg argument");
+		XSEGLOG2(W, "Invalid xseg argument");
 		return -1;
 	}
 	if (!xreq) {
-		XSEGLOG("Invalid xreq argument");
+		XSEGLOG2(W, "Invalid xreq argument");
 		return -1;
 	}
 
@@ -1839,11 +1839,11 @@ int xseg_get_req_data(struct xseg *xseg, struct xseg_request *xreq, void **data)
 	xhash_t *req_data;
 
 	if (!xseg) {
-		XSEGLOG("Invalid xseg argument");
+		XSEGLOG2(W, "Invalid xseg argument");
 		return -1;
 	}
 	if (!xreq) {
-		XSEGLOG("Invalid xreq argument");
+		XSEGLOG2(W, "Invalid xreq argument");
 		return -1;
 	}
 
@@ -1873,7 +1873,7 @@ struct xobject_h * xseg_get_objh(struct xseg *xseg, uint32_t magic, uint64_t siz
 {
 	int r;
 	if (!xseg) {
-		XSEGLOG("Invalid xseg argument");
+		XSEGLOG2(W, "Invalid xseg argument");
 		return NULL;
 	}
 	struct xobject_h *obj_h = xobj_get_obj(xseg->object_handlers, X_ALLOC);
@@ -1890,7 +1890,7 @@ struct xobject_h * xseg_get_objh(struct xseg *xseg, uint32_t magic, uint64_t siz
 void xseg_put_objh(struct xseg *xseg, struct xobject_h *objh)
 {
 	if (!xseg || !objh) {
-		XSEGLOG("Invalid argument");
+		XSEGLOG2(W, "Invalid argument");
 		return;
 	}
 	xobj_put_obj(xseg->object_handlers, objh);
@@ -1920,7 +1920,7 @@ struct xseg_port *xseg_bind_port(struct xseg *xseg, uint32_t req, void * sd)
 	int r;
 
 	if (!xseg) {
-		XSEGLOG("Invalid argument");
+		XSEGLOG2(W, "Invalid argument");
 		return NULL;
 	}
 
@@ -1996,7 +1996,7 @@ struct xseg_port *xseg_bind_dynport(struct xseg *xseg)
 	int r, has_sd=0, port_allocated=0;
 
 	if (!xseg) {
-		XSEGLOG("Invalid argument");
+		XSEGLOG2(W, "Invalid argument");
 		return NULL;
 	}
 
@@ -2067,7 +2067,7 @@ out:
 int xseg_leave_dynport(struct xseg *xseg, struct xseg_port *port)
 {
 	if (!xseg) {
-		XSEGLOG("Invalid argument");
+		XSEGLOG2(W, "Invalid argument");
 		return -1;
 	}
 	if (!port)
@@ -2095,7 +2095,7 @@ int xseg_set_max_requests(struct xseg *xseg, xport portno, uint64_t nr_reqs)
 	struct xq *q;
 
 	if (!xseg) {
-		XSEGLOG("Invalid argument");
+		XSEGLOG2(W, "Invalid argument");
 		return -1;
 	}
 	if (nr_reqs > XSEG_MAX_ALLOCATED_REQS)
@@ -2124,7 +2124,7 @@ int xseg_set_max_requests(struct xseg *xseg, xport portno, uint64_t nr_reqs)
 uint64_t xseg_get_max_requests(struct xseg *xseg, xport portno)
 {
 	if (!xseg) {
-		XSEGLOG("Invalid argument");
+		XSEGLOG2(W, "Invalid argument");
 		return -1;
 	}
 	struct xseg_port *port = xseg_get_port(xseg, portno);
@@ -2136,7 +2136,7 @@ uint64_t xseg_get_max_requests(struct xseg *xseg, xport portno)
 uint64_t xseg_get_allocated_requests(struct xseg *xseg, xport portno)
 {
 	if (!xseg) {
-		XSEGLOG("Invalid argument");
+		XSEGLOG2(W, "Invalid argument");
 		return -1;
 	}
 	struct xseg_port *port = xseg_get_port(xseg, portno);
@@ -2160,7 +2160,7 @@ int xseg_set_freequeue_size(struct xseg *xseg, xport portno, xqindex size,
 	struct xseg_port *port;
 
 	if (!xseg) {
-		XSEGLOG("Invalid argument");
+		XSEGLOG2(W, "Invalid argument");
 		return -1;
 	}
 	port = xseg_get_port(xseg, portno);
@@ -2234,7 +2234,7 @@ int xseg_finalize(void)
 char* xseg_get_data_nonstatic(struct xseg* xseg, struct xseg_request *req)
 {
 	if (!xseg || !req) {
-		XSEGLOG("Invalid argument");
+		XSEGLOG2(W, "Invalid argument");
 		return NULL;
 	}
 	return xseg_get_data(xseg, req);
@@ -2243,7 +2243,7 @@ char* xseg_get_data_nonstatic(struct xseg* xseg, struct xseg_request *req)
 char* xseg_get_target_nonstatic(struct xseg* xseg, struct xseg_request *req)
 {
 	if (!xseg || !req) {
-		XSEGLOG("Invalid argument");
+		XSEGLOG2(W, "Invalid argument");
 		return NULL;
 	}
 	return xseg_get_target(xseg, req);
@@ -2252,7 +2252,7 @@ char* xseg_get_target_nonstatic(struct xseg* xseg, struct xseg_request *req)
 void* xseg_get_signal_desc_nonstatic(struct xseg *xseg, struct xseg_port *port)
 {
 	if (!xseg || !port) {
-		XSEGLOG("Invalid argument");
+		XSEGLOG2(W, "Invalid argument");
 		return NULL;
 	}
 	return xseg_get_signal_desc(xseg, port);
@@ -2261,7 +2261,7 @@ void* xseg_get_signal_desc_nonstatic(struct xseg *xseg, struct xseg_port *port)
 uint32_t xseg_portno_nonstatic(struct xseg *xseg, struct xseg_port *port)
 {
 	if (!xseg || !port) {
-		XSEGLOG("Invalid argument");
+		XSEGLOG2(W, "Invalid argument");
 		return NoPort;
 	}
 	return xseg_portno(xseg, port);
