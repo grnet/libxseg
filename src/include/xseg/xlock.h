@@ -162,7 +162,7 @@ __attribute__((always_inline)) static inline unsigned long xlock_acquire(struct 
 #ifdef XLOCK_CONGESTION_NOTIFY
 			if (!(times & ((1<<shift) -1))) {
 				xlock_unpack_owner(owner, &opid, &otid, &opc);
-				XSEGLOG("xlock %p spinned for %llu times"
+				XSEGLOG2(I, "xlock %p spinned for %llu times"
 					"\n\t who: (%d, %d, %p), "
 					"owner: (%d, %d, %p) (full pc: %p)",
 					(unsigned long) lock, times,

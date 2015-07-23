@@ -219,7 +219,7 @@ static int posixfd_wait_signal(struct xseg *xseg, void *sd, uint32_t usec_timeou
 	FD_SET(psd->fd, &fds);
 
 	r = select(psd->fd + 1, &fds, NULL, NULL, &tv);
-	//XSEGLOG("Tv sec: %ld, tv_usec: %ld", tv.tv_sec, tv.tv_usec);
+	//XSEGLOG2(I, "Tv sec: %ld, tv_usec: %ld", tv.tv_sec, tv.tv_usec);
 
 	if (r < 0) {
 		if (errno != EINTR) {
